@@ -1,0 +1,7 @@
+name = "hirtos"
+description = "High-Integrity RTOS"
+version = "0.0.0"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]

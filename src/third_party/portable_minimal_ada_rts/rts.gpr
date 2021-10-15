@@ -1,0 +1,107 @@
+project RTS is
+
+   type CPU_Core_Type is ("arm_cortex_m0plus", "arm_cortex_m4", "arm_cortex_r5", "riscv32");
+
+   CPU_Core : CPU_Core_Type := External ("CPU_Core", "arm_cortex_r5");
+
+   Build_Type := External ("BUILD_TYPE", "Debug");
+
+   for Languages use ("Ada");
+   for Library_Auto_Init use "False";
+   for Library_Name use "gnat";
+   for Library_Kind use "static";
+
+   CPU_Arch := "";
+   CPU_Core_Switches := ();
+   Build_Type_Switches := ();
+   case CPU_Core is
+      when "arm_cortex_m0plus" =>
+	      CPU_Arch := "arm_cortex_m";
+	      for Target use "arm-none-abi";
+	      for Library_Dir use "arm_cortex_m_adalib";
+	      CPU_Core_Switches := ("-mcpu=cortex-m0plus",
+	 		                      "-mthumb",
+			                      --"-march=armv6-m",
+			                      "-mlittle-endian",
+			                      "-fno-omit-frame-pointer");
+
+      when "arm_cortex_m4" =>
+	      CPU_Arch := "arm_cortex_m";
+	      for Target use "arm-none-eabi";
+	      for Library_Dir use "arm_cortex_m_adalib";
+	      CPU_Core_Switches := ("-mcpu=cortex-m4",
+	                            "-mthumb",
+	                            --"-march=armv7e-m",
+			                      "-mlittle-endian",
+			                      --"-mfloat-abi=softfp",
+			                      "-mhard-float",
+			                      "-mfpu=fpv4-sp-d16",
+			                      "-fno-omit-frame-pointer");
+
+      when "arm_cortex_r5" =>
+         CPU_Arch := "arm-cortex-r";
+         for Target use "arm-eabi";
+         CPU_Core_Switches := ("-mcpu=cortex-r5",
+			       "-mlittle-endian",
+			       --"-mhard-float",
+			       --"-mfpu=fpv4-sp-d16",
+			       "-fno-omit-frame-pointer",
+                "-funwind-tables");
+
+      when "riscv32" =>
+	      CPU_Arch := "riscv32";
+	      for Target use "riscv32-elf";
+	      CPU_Core_Switches := ("-march=rv32imac",
+	                            "-mabi=ilp32",
+		                    "-mcmodel=medany");
+      when others =>
+	      null;
+   end case;
+
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   for Runtime ("Ada") use Project'Project_Dir;
+
+   case Build_Type is
+      when "Debug" =>
+        Build_Type_Switches := ("-O0", "-g");
+     when "RelWithDebInfo" =>
+        Build_Type_Switches := ("-Os", "-g");
+      when others =>
+        Build_Type_Switches := ("-O0");
+   end case;
+
+   package Compiler is
+      --  COMMON_FLAGS here is common flags (used for C and Ada).
+      COMMON_FLAGS := CPU_Core_Switches &
+                  ("-fcallgraph-info=su,da",
+                   "-ffunction-sections",
+                   "-fdata-sections",
+                   -- "-fverbose-asm",
+		             "-Wall");
+
+      --  Per language flags (COMMON_FLAGS will be added later)
+      ADAFLAGS := ("-gnatg", "-nostdinc");
+      ASMFLAGS := ("");
+      CFLAGS := ("-DIN_RTS",
+                 "-Dinhibit_libc");
+
+      --COMMON_FLAGS := COMMON_FLAGS & ("-O2");
+      COMMON_FLAGS := COMMON_FLAGS & Build_Type_Switches;
+      ADAFLAGS := ADAFLAGS & ("-gnatp", "-gnatn2");
+      --ASMFLAGS := ASMFLAGS & ("-g");
+
+      --  Concatenate with common flags
+      ALL_ADAFLAGS := ADAFLAGS & COMMON_FLAGS;
+      ALL_CFLAGS := CFLAGS & COMMON_FLAGS;
+
+      for Switches ("C") use ALL_CFLAGS;
+      for Switches ("Ada") use ALL_ADAFLAGS;
+      for Switches ("Asm_Cpp") use ASMFLAGS;
+
+      for Local_Configuration_Pragmas use "../../gnat_pragmas.adc";
+  end Compiler;
+end RTS;
