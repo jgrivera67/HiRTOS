@@ -1,0 +1,643 @@
+\documentclass[11pt,letterpaper,twoside,openany]{book}
+%\usepackage{lineno}
+%\usepackage{afterpage}
+\usepackage[pdftex]{graphicx}
+\usepackage[pdftex, pdfborder={0 0 0}]{hyperref}
+\usepackage[pdftex]{lscape}
+\usepackage{listings}
+%\usepackage{longtable}
+%\usepackage{fancyvrb}
+\usepackage{zed-csp}
+
+\lstset{language=Ada,
+        basicstyle=\small}
+
+\addtolength{\textheight}{0.6in}
+%\addtolength{\textheight}{1.25in}
+
+\addtolength{\textwidth}{0.6in}
+%\addtolength{\textwidth}{0.5in}
+
+%\setlength{\parskip}{5pt plus1pt minus1pt}
+%\addtocounter{secnumdepth}{1}
+
+\pagestyle{plain}
+%\linenumbers
+
+\begin{document}
+\title{Design of the HiRTOS Multi-core \\
+       Real-Time Operating System}
+\author{Germ\'an Rivera \\
+        \texttt jgrivera67@gmail.com}
+\date{\today}
+\maketitle
+
+\frontmatter
+\tableofcontents
+%\listoffigures
+
+\mainmatter
+\raggedbottom
+\pagestyle{myheadings}
+\markboth{Design of the HiRTOS Multi-core Real-Time Operating System}{Design of the HiRTOS Real-Time Operating System}
+
+\chapter{HiRTOS: A High Integrity RTOS}
+
+This document describes the design of \emph{HiRTOS}, a high integrity real-time
+operating system kernel. The design is presented using the
+\href{http://en.wikipedia.org/wiki/Z_notation}{Z notation} \cite{Zrm, WayofZ}.
+Z is a software modeling notation based on discrete mathematics structures (such as sets,
+relations and functions) and predicate logic. With Z, data structures can be specified in
+terms of mathematical structures and their state invariants can be specified using mathematical
+predicates. The pre-conditions and post-conditions of the operations that manipulate
+the data structures can also be specified using predicates. Using Z for this purpose encourages
+a rigorous and methodical thought process to elicit correctness properties, in a systematic way.
+The HiRTOS Z model described here was checked with the \verb'fuzz' tool~\cite{Fuzz}, a
+Z type-checker, that catches Z type mismatches in predicates.
+
+\section{Z Naming Conventions}
+%\paragraph*{NOTE:}
+
+The following naming conventions are used in the Z model of HiRTOS:
+\begin{itemize}
+\item Z Primitive types are in uppercase.
+\item Z Composite types (schema types) start with uppercase.
+\item Z constants and variables start with lower case.
+\item Identifiers that start with the $ghost$ prefix are model-only variables
+      that are not meant to be implemented in code.
+\end{itemize}
+
+\clearpage
+\section{Numeric Constants}
+
+Constants defined here represent compile-time configuration parameters for
+HiRTOS.
+
+\begin{axdef}
+    maxNumCpus: \nat_1 \\
+    numCpuRegisters: \nat_1 \\
+    cpuRegisterWidth: \nat_1 \\
+    minMemoryAddress: \nat \\
+    maxMemoryAddress: \nat_1 \\
+    maxNumThreads: \nat_1 \\
+    maxNumMutexes: \nat_1 \\
+    maxNumCondvars: \nat_1 \\
+    maxNumInterrupts: \nat_1 \\
+    numThreadPriorities: \nat_1 \\
+    numInterruptPriorities: \nat_1 \\
+    lowestThreadPriority: \nat_1 \\
+    highestThreadPriority: \nat_1 \\
+    lowestInterruptPriority: \nat_1 \\
+    highestInterruptPriority: \nat_1 \\
+\where
+    minMemoryAddress < maxMemoryAddress \\
+    highestInterruptPriority = 1 \\
+    lowestInterruptPriority = numInterruptPriorities \\
+    highestThreadPriority = lowestInterruptPriority + 1 \\
+    lowestThreadPriority = lowestInterruptPriority + numThreadPriorities \\
+\end{axdef}
+
+\section{Primitive Types}
+
+\begin{zed}
+    CpuIdType == 1 \upto maxNumCpus \\
+    CpuRegisterIdType == 1 \upto numCpuRegisters \\
+    CpuRegisterValueType == 0 \upto 2^{cpuRegisterWidth} - 1 \\
+    MemoryAddressType == minMemoryAddress \upto maxMemoryAddress \\
+    ThreadIdType == 1 \upto maxNumThreads \\
+    MutexIdType == 1 \upto maxNumMutexes \\
+    CondvarIdType == 1 \upto maxNumCondvars \\
+    InterruptIdType == 1 \upto maxNumInterrupts \\
+    InterruptPrioirtyType == 1 \upto numInterruptPriorities \\
+    ThreadPrioirtyType == \\
+    \t1 numInterruptPriorities + 1 \upto numInterruptPriorities + numThreadPriorities \\
+    MutexPriorityType == InterruptPrioirtyType \cup ThreadPrioirtyType \\
+    CpuInterruptsStateType ::= cpuInterruptsEnabled | cpuInterruptsDisabled \\
+    CpuPrivilegeType ::= cpuPrivileged | cpuUnprivileged \\
+    ExecutionContextType ::= interruptContext | threadContext \\
+    ThreadStateType ::= threadNotCreated | threadRunnable | threadRunning | threadBlocked \\
+    SynchronizationScopeType ::= localCpuOnly | interCpu \\
+\end{zed}
+
+For both threads and interrupts, lower priority numbers represent higher priorities. Interrupts
+have higher priority than threads. That is, the lowest priority interrupt has higher priority than
+the highest priority thread.
+
+\section{Structural Constants}
+
+\begin{axdef}
+    threadsMap: ThreadIdType \inj Thread \\
+    mutexesMap: MutexIdType \inj Mutex \\
+    condvarsMap: CondvarIdType \inj Condvar \\
+    interruptsMap: InterruptIdType \inj Interrupt \\
+\end{axdef}
+
+\section{State Variables}
+
+\begin{schema}{HiRTOS}
+    ExecutionController \\
+    mutexes: \finset Mutex \\
+    condvars: \finset Condvar \\
+    %semaphores: \finset Semaphore \\
+    messageChannels: \finset MessageChannel \\
+    zMutexOwner: Mutex \pfun ExecutionContext \\
+    zMutexWaiters: Thread \pfun Mutex \\
+    zCondvarWaiters: Thread \pfun Condvar \\
+    zCondvarToMutex: Condvar \pfun Mutex \\
+\where
+	\dom zMutexOwner \subseteq mutexes
+\also
+	\ran zMutexOwner \subset  \\
+\t1      \{ t: zThreads @ t.executionContext \}~ \cup \{ i: zInterrupts @ i.executionContext \}
+\also
+	\dom zMutexWaiters \subset zThreads \land \ran zMutexWaiters \subseteq mutexes
+\also
+	\dom zCondvarWaiters \subset zThreads \land \ran zCondvarWaiters \subseteq condvars
+\also
+    \dom zMutexWaiters \cap \dom zCondvarWaiters = \emptyset
+\also
+    \# zMutexWaiters < \# zThreads \land \# zCondvarWaiters < \# zThreads
+\also
+	\forall cpu: CpuIdType @ \\
+\t1		(zCpuIdToCpuController(cpu)).zRunnableThreads ~\cap \\
+\t1		(\dom zMutexWaiters \cup \dom zCondvarWaiters) = \emptyset
+\also
+    \forall t: zThreads @ \\
+\t1		t.executionContext \notin \ran zMutexOwner \implies \\
+\t2			t.currentPriority = t.basePriority
+\also
+    \{ mq: messageChannels @ mq.mutex \} \subset mutexes
+\also
+    \{ mq: messageChannels @ mq.notEmptyCondvar \}~ \cup \\
+    \{ mq: messageChannels @ mq.notFullCondvar \} \subset condvars
+\also
+    \forall cv: \dom zCondvarToMutex @ \\
+\t1     cv.synchronizationScope \neq kLocalCpuInterruptAndThread \land \\
+\t1     cv.synchronizationScope = (zCondvarToMutex(cv)).synchronizationScope
+\end{schema}
+
+Invariants:
+\begin{itemize}
+\item The same thread cannot be waiting for more than one mutex.
+\item The same mutex cannot be owned by more than one thread.
+\item The same thread cannot be waiting on more than one condition variable.
+\item The same thread cannot be waiting on a mutex and a condition variable at the same time.
+\item The same thread cannot be both runnable and blocked on a condvar or mutex.
+\item ISRs can never wait on mutexes or condvars. However, ISRs can signal condvars
+for which waiting threads call ``wait for interrupt''.
+\item The current priority of a thread that does not own a mutex must always be its base priority.
+\end{itemize}
+
+\clearpage
+\subsection{Execution Controller}
+
+\begin{schema}{ExecutionController}
+    zCpuIdToCpuController: CpuIdType \inj CpuController \\
+    cpuControllers: \finset_1 CpuController \\
+    zExecutionContexts: \finset_1 ExecutionContext \\
+	zThreads: \finset Thread \\
+    zInterrupts: \finset_1 Interrupt \\
+    zExecutionContextToCpu: ExecutionContext \psurj CpuIdType \\
+    zThreadToExecutionContext: Thread \pinj ExecutionContext \\
+    zInterruptToExecutionContext: Interrupt \pinj ExecutionContext
+\where
+	\ran zCpuIdToCpuController = cpuControllers
+\also
+    \forall cpu: CpuIdType @ (zCpuIdToCpuController(cpu)).cpuId = cpu
+\also
+	\bigcap \{ cpuC: cpuControllers @ cpuC.threads \} = \emptyset
+\also
+    \bigcup \{ cpuC: cpuControllers @ cpuC.threads \} = zThreads
+\also
+	\bigcap \{ cpuC: cpuControllers @ cpuC.interrupts \} = \emptyset
+\also
+    \bigcup \{ cpuC: cpuControllers @ cpuC.interrupts \} = zInterrupts
+\also
+    zExecutionContexts = \\
+\t1 \{ t: zThreads @ t.executionContext \} \cup \{ i: zInterrupts @ i.executionContext \}
+\also
+	\{ t: zThreads @ t.executionContext \} \cap \{ i: zInterrupts @ i.executionContext \} = \emptyset
+\also
+	\dom zExecutionContextToCpu = zExecutionContexts
+\also
+	\dom zThreadToExecutionContext = zThreads
+\also
+    \ran zThreadToExecutionContext = \{ t: zThreads @ t.executionContext \}
+\also
+	\dom zInterruptToExecutionContext = zInterrupts
+\also
+	\ran zInterruptToExecutionContext = \{ i: zInterrupts @ i.executionContext \}
+\also
+	\forall et: zExecutionContexts @ zExecutionContextToCpu(et) = et.cpuId
+\also
+	\bigcap \{ et: zExecutionContexts @ et.executionStack \} = \emptyset
+\end{schema}
+
+An execution context can correspond to a software-scheduled thread or to an interrupt.
+Interrupts are seen as ``hardware-scheduled'' threads that have higher priority
+than software-scheduled threads. Thus, an interrupt can be seen as a hardware thread
+that can preempt the highest priority software thread.
+
+Invariants:
+\begin{itemize}
+\item Every thread must be assigned to a CPU. This is done at thread creation time
+and the thread cannot be moved to another CPU.
+\item Every interrupt source must be assigned to a CPU and must always be serviced by that CPU.
+\item The same thread cannot be assigned to more than one CPU.
+\item The same interrupt source cannot be assigned to more than one CPU.
+\item Every execution context is assigned to a fixed CPU. The same execution context cannot be
+assigned to two different CPUs. Every CPU has at least one execution context (if nothing else,
+its idle thread).
+\end{itemize}
+
+\clearpage
+\subsection{CPU Controllers}
+
+\begin{schema}{CpuController}
+	ThreadScheduler \\
+    cpuId: CpuIdType \\
+    zExecutionContexts: \finset_1 ExecutionContext \\
+    preemptedBy: ExecutionContext \pinj ExecutionContext \\
+    timers: \finset Timer \\
+  	zIterruptChannelToInterrupt: INTERRUPT\_CHANNEL \inj Interrupt \\
+    interrupts: \finset_1 Interrupt \\
+    tickTimerInterrupt: Interrupt \\
+    runningExecutionContext: ExecutionContext \\
+    nestedInterruptCount: 0 \upto kMaxNumInterruptChannelsPerCpu \\
+	activeInterruptsBitMap: \finset INTERRUPT\_CHANNEL \\
+    activeInterrupts: \finset Interrupt \\
+\where
+	 \ran zIterruptChannelToInterrupt = interrupts
+\also
+     zExecutionContexts = \\
+\t1     \{ t: threads @ t.executionContext \} \cup \{ i: interrupts @ i.executionContext \}
+\also
+     \{ t: threads @ t.executionContext \} \cap \{ i: interrupts @ i.executionContext \} = \emptyset
+\also
+     \forall et: zExecutionContexts @ et.cpuId = cpuId
+\also
+	 activeInterrupts = \{ iv: activeInterruptsBitMap @ zIterruptChannelToInterrupt(iv) \}
+\also
+     nestedInterruptCount = \# activeInterrupts
+\also
+	 nestedInterruptCount = 0 \iff \\
+\t1 	runningExecutionContext \in \{ t: zRunnableThreads @ t.executionContext \}
+\also
+     nestedInterruptCount > 0 \iff \\
+\t1		runningExecutionContext \in \{ i: activeInterrupts @ i.executionContext \}
+\end{schema}
+
+Invariants:
+\begin{itemize}
+\item There can be more than one interrupt with the same interrupt priority. Interrupt
+    scheduling is done by hardware, by the interrupt controller.
+\item The same interrupt cannot be nested.
+\end{itemize}
+
+$ThreadScheduler$ represents the state variables of the Per-CPU thread scheduler.
+
+\clearpage
+\begin{schema}{ThreadScheduler}
+ 	zThreadIdToThread: THREAD\_ID \pinj Thread \\
+    threads: \finset_1 Thread \\
+    zUserThreads: \finset Thread \\
+    zSystemThreads: \finset_1 Thread \\
+    idleThread: Thread \\
+    runningThread: Thread \\
+    runnableThreadPrioritiesBitMap: \finset_1 THREAD\_PRIO \\
+    runnableThreadQueues: THREAD\_PRIO \inj ThreadQueue \\
+    zRunnableThreads: \finset_1 Thread \\
+\where
+     \ran zThreadIdToThread = threads
+\also
+	 zRunnableThreads = \\
+\t1 \bigcup \{ i: THREAD\_PRIO @ \ran (runnableThreadQueues(i)).zElements \}
+\also
+     zRunnableThreads \neq \emptyset \land zRunnableThreads \subseteq threads
+\also
+     threads = zUserThreads \cup zSystemThreads
+\also
+     zUserThreads \cap zSystemThreads = \emptyset
+\also
+     \forall t: zSystemThreads @ t.executionContext.cpuPrivilege = cpuPrivileged
+\also
+     \forall t: zUserThreads @ \\
+\t1      t.executionContext.contextType = threadContext
+\also
+     idleThread \in zSystemThreads
+\also
+	 zThreadIdToThread(0) = idleThread
+\also
+     runningThread \in zRunnableThreads \land runningThread.state = kRunning
+\also
+     \forall t: zRunnableThreads \setminus \{ runningThread \} @ t.state = kRunnable
+\also
+     \forall t: threads \setminus zRunnableThreads @ \\
+\t1     t.state \notin \{kRunnable, kRunning \}
+\also
+	\ran (runnableThreadQueues(kLowestThreadPriority)).zElements = \{ idleThread \}
+\also
+  	\forall t: threads @ \\
+\t1 	runningThread.currentPriority \geq t.currentPriority
+\also
+  	\forall prio: runnableThreadPrioritiesBitMap @ prio \in \dom runnableThreadQueues
+\end{schema}
+
+Invariants:
+\begin{itemize}
+\item The running thread is always the highest priority thread. There can be more than one
+thread with the same thread priority. Threads of equal priority are time-sliced in a
+round-robin fashion.
+\item Each CPU has an idle thread. The idle thread has the lowest priority and cannot get
+blocked on any mutex or condvar, but it is the only thread that can execute an instruction
+that stops the processor until an interrupt happens.
+\end{itemize}
+
+\begin{schema}{ThreadQueue}
+    GenericLinkedList[Thread] \\
+\end{schema}
+
+\clearpage
+\subsection{ExecutionContext}
+
+\begin{schema}{ExecutionContext}
+    cpuRegisters: CpuRegisterIdType \inj CpuRegisterValueType \\
+    stackPointer: MemoryAddressType \\
+    cpuId: CpuIdType \\
+    cpuPrivilege: CpuPrivilegeType \\
+    contextType: ExecutionContextType \\
+    exeStackTopEnd: MemoryAddressType \\
+    exeStackBottomEnd: MemoryAddressType \\
+ \where
+    stackPointer \in cpuRegisters
+\also
+    kWordValue(stackPointer) \in \dom executionStack
+\also
+    exeStackTopEnd < exeStackBottomEnd
+\also
+    exeStackTopEnd \upto exeStackBottomEnd \subset kValidRamWordAddresses
+\also
+    \dom executionStack = exeStackTopEnd + 1 \upto exeStackBottomEnd
+\also
+	\dom executionStack \subset kValidRamWordAddresses
+\also
+	\dom executionStack \cap kReadOnlyAddresses = \emptyset
+\end{schema}
+
+
+\subsection{Threads}
+
+\begin{schema}{Thread}
+    executionContext: ExecutionContext \\
+    threadID: THREAD\_ID \\
+    threadFunction: kExecutableAddresses \\
+    state: THREAD\_STATE \\
+	basePriority: THREAD\_PRIO \\
+	currentPriority: THREAD\_PRIO \\
+    listNode: LIST\_NODE \\
+    deadlineToRun: \nat \\
+\where
+	currentPriority \geq basePriority
+\also
+	executionContext.contextType = kThreadContext
+\also
+    \# executionContext.executionStack = kThreadStackSizeInWords
+\end{schema}
+
+User-created threads run in the CPU's unprivileged mode and system internal threads run in the CPU's privileged mode.
+This is to prevent user threads to execute privileged instructions. If a
+user thread needs to execute a provileged instruction, it needs to first switch the CPU to privileged mode.
+
+Invariants:
+\begin{itemize}
+\item The current priority of a thread can never be lower than its base priority. The
+current priority can be higher than the base priority when it acquires a mutex that has
+higher priority than the thread's base priority.
+\item A thread never gets blocked trying to acquire a mutex that has the same priority
+as the thread. Still, the thread needs to acquire the mutex, since other threads with
+the same prioirity may also try to acquire the same mutex, if the running thread gets
+switched out due running out of its time slice.
+\item A thread should never try to acquire a mutex of lower priority than the thread's priority. Indeed, It does not need to, as it cannot be preemted by lower priority threads.
+\end{itemize}
+
+\subsection{Interrupts}
+
+\begin{schema}{Interrupt}
+    executionContext: ExecutionContext \\
+    interruptChannel: INTERRUPT\_CHANNEL \\
+	isrFunction: kExecutableAddresses \\
+\where
+	executionContext.contextType = kInterruptContext
+\also
+	executionContext.cpuPrivilege = cpuPrivileged
+\also
+    \# executionContext.executionStack = kInterruptStackSizeInWords
+\end{schema}
+
+Interrupt execution contexts run in privileged mode. To ensure that a higher
+priority interrupt is not delayed by a lower priority interrupt, nested
+interrupts are supported. To this end, interrupt service routines (ISRs)
+run with interrupts enabled by default. However, interrupts with the same or
+lower priority cannot interrupt the CPU until we finish servicing the current
+interrupt, as the interrupt controller is expected to only raise interrupts
+with higher priority than the current one being serviced. (The last step in
+servicing an interrupt is to notify the interrupt controller of the
+completion of servicing the interrupt).
+
+\subsection{Timers}
+
+\begin{schema}{Timer}
+    counter: \nat \\
+%\where
+\end{schema}
+
+%\clearpage
+
+\subsection{Mutexes}
+
+\begin{schema}{Mutex}
+	waitingThreads: ThreadQueue \\
+    synchronizationScope: SynchronizationScopeType \\
+    priority: MutexPriorityType \\
+\end{schema}
+
+HiRTOS mutexes implement the priority ceiling protocol. That is, each mutex has a priority
+associated with it, which is the priority of the highest priority task that accesses the
+resource protected by the mutex, or the lowest interrupt priorirty, in case if an ISR
+accesses the resource protected by the mutex.
+The mutex is supposed be acquired by threads that have lower priority than the mutex's
+priority. If the mutex has prioirty higher or equal to the lowest interrupt priority,
+acquiring the mutex also disables interrupts in the CPU.
+
+When a mutex is released and another thread is waiting to acquire it, the ownership of the mutex
+is transferred to the first waiter, and this waiter is made runnable. This is so that if the
+previous owner has higher priority and tries to acquire it again, it will get blocked. Otherwise,
+the highest priority thread will keep running, acquiring and releasing the mutex without giving
+a chance to the low-priority waiting thread to ever get it.
+
+The queue of waiters on a mutex is strictly FIFO, not priority based. This is to ensure
+fairness for lower priority threads. Otherwise, lower priority threads may starve waiting
+to get the mutex, as higher priority threads keep acquiring it first.
+
+\subsection{Condition Variables}
+
+\begin{schema}{Condvar}
+    waitingThreads: ThreadQueue \\
+    synchronizationScope: SYNCHRONIZATION\_SCOPE \\
+%\where
+\end{schema}
+
+Besides the traditional condvar ``wait'' primitive, there is a ``wait with interrupts disabled''
+primitive, intended to be used to synchronize a waiting thread with an ISR that is supposed to signal
+the corresponding condvar on which the thread is waiting. The waiting thread must have interrupts
+disabled in the processor, when it calls the ``wait with interrupts disabled'' primitve.
+
+If more than one thread is waiting on the condvar, the ``signal'' primitive will wake up the
+first thread in the condvar's queue. The ``broadcast'' primitive wakes up all the waiting threads.
+
+There is a variation of the ``wait'' primitive that includes a timeout.
+
+HiRTOS will not provide semaphore primitives as part of its APIs, as semaphores can be
+easily implemented using condition variables and mutexes, for semaphores used only by threads.
+For semaphores signaled from ISRs, they can be implemented with a combination of condition
+variables and disabling interrupts, since mutexes cannot be used in ISRs. In this case, the thread
+waiting on the condition variable to be signaled by an ISR, disables interrupts before checking
+the condition and calls the ``wait for interrupt'' primitive, if the condition has not been met.
+Otherwise, missed ``wake-ups'' could happen due to a race condition between the thread and the ISR.
+
+%\subsection{Semaphores}
+
+%\begin{schema}{Semaphore}
+%    counter: \nat \\
+%	counterNonZeroCondVar: Condvar \\
+%\where
+%    counterNonZeroCondVar.synchronizationScope = kLocalCpuInterruptAndThread
+%\end{schema}
+
+\subsection{Message Channels}
+
+\begin{schema}{MessageChannel}
+    GenericCircularBuffer[WORD\_LOCATION] \\
+\end{schema}
+
+\clearpage
+\subsection{Generic Data Structures}
+
+\subsubsection{Generic Linked Lists}
+
+\begin{schema}{GenericLinkedList}[ElementType]
+    listAnchor: LIST\_NODE \\
+    numNodes: \nat \\
+    zNodes: \finset LIST\_NODE \\
+    zElements: \iseq ElementType \\
+    zNodeToElem: LIST\_NODE \finj ElementType \\
+    zNextNode: LIST\_NODE \finj LIST\_NODE \\
+    zPrevNode: LIST\_NODE \finj LIST\_NODE \\
+	zNodeToListAnchor: LIST\_NODE \finj LIST\_NODE \\
+\where
+    listAnchor \notin zNodes
+\also
+	numNodes = \# zNodes
+\also
+    \dom zNodeToElem = zNodes
+\also
+    \ran zNodeToElem = \ran zElements
+\also
+    \dom zNextNode = zNodes \cup \{listAnchor\}
+\also
+    \ran zNextNode = zNodes \cup \{listAnchor\}
+\also
+    \dom zPrevNode = \dom zNextNode
+\also
+    \ran zPrevNode = \ran zNextNode
+\also
+    \# zElements = \# zNodes
+\also
+    head~zElements = zNodeToElem(zNextNode(listAnchor)) \iff zElements \neq \emptyset
+\also
+    last~zElements = zNodeToElem(zPrevNode(listAnchor)) \iff zElements \neq \emptyset
+\also
+    head~zElements = last~zElements \iff \# zElements = 1
+\also
+    \forall x: zNodes @ \\
+\t1      zPrevNode(zNextNode(x)) = x \land zNextNode(zPrevNode(x)) = x \land \\
+%\t1      (zNodeToElem(x)).listNode = x \land \\ XXX
+\t1      zNodeToListAnchor(x) = listAnchor
+\also
+    \forall x: zNodes @ \\
+\t1      zNextNode^{\# zNodes + 1}(x) = x \land zPrevNode^{\# zNodes + 1}(x) = x
+\also
+    \forall x: zNodes; k: 1 \upto \# zNodes @ \\
+\t1     zNextNode^{k}(x) \neq x \land zPrevNode^{k}(x) \neq x
+\also
+	 zNextNode(listAnchor) = zNodeToElem\inv(zElements(0))
+\also
+	 zPrevNode(listAnchor) = zNodeToElem\inv(last(zElements))
+\also
+     zNextNode(listAnchor) = listAnchor \iff zNodes = \emptyset
+\also
+    zPrevNode(listAnchor) = listAnchor \iff zNextNode(listAnchor) = listAnchor
+\also
+    zNextNode(listAnchor) = zPrevNode(listAnchor) \iff \# zNodes \leq 1
+\end{schema}
+
+\subsubsection{Generic Circular Buffers}
+
+\begin{schema}{GenericCircularBuffer}[EntryType]
+    zEntries: \iseq EntryType \\
+    numEntries: \nat_1 \\
+    entriesFilled: \nat \\
+    readCursor: \nat \\
+    writeCursor: \nat \\
+    synchronizationScope: SYNCHRONIZATION\_SCOPE \\
+    mutex: Mutex \\
+    notEmptyCondvar: Condvar \\
+    notFullCondvar: Condvar \\
+\where
+   \# zEntries = numEntries
+\also
+    entriesFilled \in 0 \upto numEntries
+\also
+   readCursor \in 0 \upto numEntries - 1
+\also
+   writeCursor \in 0 \upto numEntries - 1
+\also
+   writeCursor = readCursor \iff \\
+\t1 (entriesFilled = 0 \lor entriesFilled = numEntries)
+\also
+    notEmptyCondvar \neq notFullCondvar
+\also
+    notEmptyCondvar.synchronizationScope = synchronizationScope
+\also
+    notFullCondvar.synchronizationScope = synchronizationScope
+\end{schema}
+
+If $synchronizationScope$ is $kLocalCpuInterruptAndThread$, the circular buffer operations
+disable interrupts instead of using the circular buffer's mutex. If a circular buffer is empty,
+a reader will block until the buffer is not empty.
+Three behaviors are possible for writers when a circular buffer is full: block until there is
+room to complete the write, drop the item to be written, overwrite the oldest entry with the
+new item.
+
+\clearpage
+\begin{thebibliography}{9}
+
+\bibitem{Zrm}
+Mike Spivey, ``The Z Reference Manual'', second edition, Prentice-Hall, 1992 \\
+\url{http://spivey.oriel.ox.ac.uk/~mike/zrm/zrm.pdf}
+
+\bibitem{WayofZ}
+Jonathan Jacky, ``The Way of Z'', Cambridge Press, 1997 \\
+\url{http://staff.washington.edu/jon/z-book/index.html}
+
+\bibitem{Fuzz}
+Mike Spivey, ``The Fuzz checker'' \\
+\url{http://spivey.oriel.ox.ac.uk/mike/fuzz}
+
+\bibitem{DbC}
+Bertrand Meyer, ``Touch of Class: Learning to Program Well with Objects and Contracts'', Springer, 2009 \\
+\url{http://www.amazon.com/dp/3540921443}
+
+\end{thebibliography}
+
+\end{document}

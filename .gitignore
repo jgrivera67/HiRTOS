@@ -1,5 +1,10 @@
 # Object file
 *.o
+*.elf
+*.bin
 
 # Ada Library Information
 *.ali
+
+# vim backup files
+.*.sw[op]

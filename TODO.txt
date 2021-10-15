@@ -1,0 +1,41 @@
+Create two packages:
+
+hirtos-application_interface.ads:
+- rtos_init() (can be called multi-le times: once per CPU core, HiRTOS keeps
+        separate state variablesd for each CPU core)
+- ...
+- rtos_enter_isr()
+- rtos_exit_isr()
+
+hirtos-platform-interface.ads:
+- raise_cpu_privilege()
+- restore_cpu_privilege()
+- disable_cpu_interrupts()
+- restore_cpu_interrupts(old_int_mask)
+- disable_cpu_interrupts_below_priority()
+- restore_cpu_interrupts_below_priority(old_int_prio)
+	// See Table 4-32 GICC_PMR Register bit assignments,
+	// ARM Generic Interrupt Controller Architecture Specification
+- init_thread_mpu_regions()
+- save_thread_mpu_regions()
+- restore_thread_mpu_regions()
+- init_thread_cpu_registers()
+- save_thread_cpu_registers()
+- restore_thread_cpu_registers()
+- first_task_context_switch()
+- get_cpu_id()
+- start_tick_timer(timer_callback)
+
+hirtos-platform-interface/armv7-r
+hirtos-platform-interface/armv7-m
+hirtos-platform-interface/armv8-r
+hirtos-platform-interface/riscv32
+hirtos-platform-interface/riscv64
+
+hirtos-platform-interface/third-party/minimal runtime here)
+
+
+Checks every ms that current task is not running more than 1ms continously
+(as that would impact the response time of otgher tasks that are ready to
+ run and may miss their deadlines (e.g. periodic tasks that don't get to run
+ before thir next period)
