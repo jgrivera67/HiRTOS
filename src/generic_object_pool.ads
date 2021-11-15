@@ -1,4 +1,3 @@
-
 --
 --  Copyright (c) 2021, German Rivera
 --  All rights reserved.
@@ -27,25 +26,19 @@
 --
 
 --
---  @summary HiRTOS implementation
+--  @summary Generic object pool services
 --
-package body HiRTOS with SPARK_Mode => On is
-   procedure Initialize_Rtos is
-      HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
-   begin
-      HiRTOS_Instance.Initialized := True;
-   end Initialize_Rtos;
+generic
+   type Object_Type is limited private;
+   type Object_Id_Type is range <>;
+package Generic_Object_Pool is
+   subtype Valid_Object_Id_Type is
+      Object_Id_Type range Object_Id_Type'First .. Object_Id_Type'Last - 1;
 
-   procedure Start_Thread_Scheduler is
-   begin
-      null;
-   end Start_Thread_Scheduler;
+   type  Object_Array_Type is array (Valid_Object_Id_Type) of Object_Type;
 
-   package body Mutex is separate;
-   package body Condvar is separate;
-   package body Timer is separate;
-   package body Thread is separate;
-   package body Interrupt_Nesting is separate;
-
-end HiRTOS;
+   type Object_Pool_Type is limited record
+      Next_Free_Object_Id : Object_Id_Type := Valid_Object_Id_Type'First;
+      Object_Array : Object_Array_Type;
+   end record;
+end Generic_Object_Pool;

@@ -1,4 +1,3 @@
-
 --
 --  Copyright (c) 2021, German Rivera
 --  All rights reserved.
@@ -27,25 +26,42 @@
 --
 
 --
---  @summary HiRTOS implementation
+--  @summary HiRTOS target platform interface
 --
-package body HiRTOS with SPARK_Mode => On is
-   procedure Initialize_Rtos is
-      HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
-   begin
-      HiRTOS_Instance.Initialized := True;
-   end Initialize_Rtos;
+package HiRTOS_Platform_Interface with SPARK_Mode => On is
+   --
+   --  Number of CPU cores
+   --
+   Num_Cpu_Cores : constant := 1;
 
-   procedure Start_Thread_Scheduler is
-   begin
-      null;
-   end Start_Thread_Scheduler;
+   --
+   --  Width in bits of CPU core registers
+   --
+   CPU_Register_Width_Bits : constant := 32;
 
-   package body Mutex is separate;
-   package body Condvar is separate;
-   package body Timer is separate;
-   package body Thread is separate;
-   package body Interrupt_Nesting is separate;
+   --
+   --  Cache line size in bytes
+   --
+   Cache_Line_Size_Bytes : constant := 32;
 
-end HiRTOS;
+   --
+   --  Alignment in bytes for a memory protection region
+   --
+   Mem_Prot_Region_Alignment : constant := 32;
+
+   --
+   -- Ids of CPU cores
+   --
+   type Cpu_Core_Id_Type is mod Num_Cpu_Cores;
+
+   --
+   --  Value of a CPU core general purpose register
+   --
+   type Cpu_Register_Type is mod 2**CPU_Register_Width_Bits;
+
+   --
+   --  Return the Id of the current CPU core
+   --
+   function Get_Cpu_Id return Cpu_Core_Id_Type;
+
+end HiRTOS_Platform_Interface;

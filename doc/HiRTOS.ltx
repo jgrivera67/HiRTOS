@@ -44,7 +44,7 @@
 \chapter{HiRTOS: A High Integrity RTOS}
 
 This document describes the design of \emph{HiRTOS}, a high integrity real-time
-operating system kernel. The design is presented using the
+operating system kernel that supports multi-core systems. The design is presented using the
 \href{http://en.wikipedia.org/wiki/Z_notation}{Z notation} \cite{Zrm, WayofZ}.
 Z is a software modeling notation based on discrete mathematics structures (such as sets,
 relations and functions) and predicate logic. With Z, data structures can be specified in
@@ -67,6 +67,52 @@ The following naming conventions are used in the Z model of HiRTOS:
       that are not meant to be implemented in code.
 \end{itemize}
 
+\section{Major Design Decisions}
+
+\begin{itemize}
+\item ISRs are seen as hardware-scheduled threads that have higher priority than all
+software-scheduled threads. They always run in privileged mode and can only be preempted by
+higher-priority ISRs. They cannot block waiting for mutexes or condition variables.
+
+\item For API simplicity, inspired by the thread synchronization primitives of the C standard
+library \cite{libcThreads}, mutexes and condition variables are the only real synchronization
+primitives in HiRTOS.
+Other synchronization primitives such as semaphores, event flags and message queues can be
+implemented on top of them.
+
+\item Unlike stadanrd mutexes, HiRTOS mutexes have priorities to support the priority ceiling
+protocol \cite{prioCeiling}. Disabling interrupts is achieved by acquiring mutex with priority equal
+to the highest-priority interrupt. Disabling the thread scheduler is achieved by acquiring a mutex
+with priority equal to the highest-priority software-scheduled thread.
+
+\item In a multi-core platform, there is one HiRTOS instance per CPU Core. Each HiRTOS instance is
+independent of each other. No resources are shared between HiRTOS instances. No communication between
+CPU cores is supported by HiRTOS, so that the HiRTOS API can stay the same for both single-core
+and multi-core platforms. Inter-core communication would need to be provided outside of HiRTOS,
+using doorbell interrupts and mailboxes or shared memory, for example.
+
+\item
+Threads are bound to the CPU core in which they were created, for the lifetime of the thread. That is,
+no thread migration between CPU cores is supported.
+
+\item
+All RTOS objects such as threads, mutexes and condition variables are allocated internally
+by HiRTOS from statically allocated internal object pools.
+These object pools are just RTOS-private global arrays of the corresponding RTOS object types,
+sized at compile time via configuration parameters, whose values are application-specific.
+RTOS object handles provided to application code are just indices into these internal object arrays.
+No actual RTOS object pointers exposed to application code.
+No dynamic allocation/deallocation of RTOS objects is supported and no static allocation of RTOS
+objects in memory owned by application code is supported either.
+
+\item
+All application threads run in unprivileged mode. For each thread, the only writable memory,
+by default is its own stack. Global variables in application code are read-only by default.
+To be able to write global variables, application code must request write permission to
+HiRTOS via a system call. MMIO space is not accessible by default. Application (or driver)
+code must request access (read-only or read-write permission) to HiRTOS via a system call.
+\end{itemize}
+
 \clearpage
 \section{Numeric Constants}
 
@@ -82,7 +128,7 @@ HiRTOS.
     maxNumThreads: \nat_1 \\
     maxNumMutexes: \nat_1 \\
     maxNumCondvars: \nat_1 \\
-    maxNumInterrupts: \nat_1 \\
+    maxNumTimers: \nat_1 \\
     numThreadPriorities: \nat_1 \\
     numInterruptPriorities: \nat_1 \\
     lowestThreadPriority: \nat_1 \\
@@ -102,21 +148,18 @@ HiRTOS.
 \begin{zed}
     CpuIdType == 1 \upto maxNumCpus \\
     CpuRegisterIdType == 1 \upto numCpuRegisters \\
-    CpuRegisterValueType == 0 \upto 2^{cpuRegisterWidth} - 1 \\
     MemoryAddressType == minMemoryAddress \upto maxMemoryAddress \\
     ThreadIdType == 1 \upto maxNumThreads \\
     MutexIdType == 1 \upto maxNumMutexes \\
     CondvarIdType == 1 \upto maxNumCondvars \\
-    InterruptIdType == 1 \upto maxNumInterrupts \\
+    TimerIdType == 1 \upto maxNumTimers \\
     InterruptPrioirtyType == 1 \upto numInterruptPriorities \\
     ThreadPrioirtyType == \\
     \t1 numInterruptPriorities + 1 \upto numInterruptPriorities + numThreadPriorities \\
     MutexPriorityType == InterruptPrioirtyType \cup ThreadPrioirtyType \\
     CpuInterruptsStateType ::= cpuInterruptsEnabled | cpuInterruptsDisabled \\
     CpuPrivilegeType ::= cpuPrivileged | cpuUnprivileged \\
-    ExecutionContextType ::= interruptContext | threadContext \\
     ThreadStateType ::= threadNotCreated | threadRunnable | threadRunning | threadBlocked \\
-    SynchronizationScopeType ::= localCpuOnly | interCpu \\
 \end{zed}
 
 For both threads and interrupts, lower priority numbers represent higher priorities. Interrupts
@@ -126,20 +169,27 @@ the highest priority thread.
 \section{Structural Constants}
 
 \begin{axdef}
+    hiRtosInstances: CpuIdType \inj HiRtosInstance \\
     threadsMap: ThreadIdType \inj Thread \\
+    interruptLevelsMap: InterruptPrioirtyType \inj InterruptLevel \\
     mutexesMap: MutexIdType \inj Mutex \\
     condvarsMap: CondvarIdType \inj Condvar \\
-    interruptsMap: InterruptIdType \inj Interrupt \\
+    timersMap: TimerIdType \inj Timer \\
+    timersMap: TimerIdType \inj Timer \\
 \end{axdef}
 
 \section{State Variables}
 
-\begin{schema}{HiRTOS}
-    ExecutionController \\
+There is one HiRTOS instance per CPU core in a multi-core platform.
+
+\begin{schema}{HiRtosInstance}
+    idleThread: Thread \\
+    timerThread: Thread \\
+    appThreads: \finset Thread \\
+    activeInterruptLevels: \finset InterruptLevel \\
     mutexes: \finset Mutex \\
     condvars: \finset Condvar \\
-    %semaphores: \finset Semaphore \\
-    messageChannels: \finset MessageChannel \\
+    timers: \finset Timer \\
     zMutexOwner: Mutex \pfun ExecutionContext \\
     zMutexWaiters: Thread \pfun Mutex \\
     zCondvarWaiters: Thread \pfun Condvar \\
@@ -166,11 +216,6 @@ the highest priority thread.
 \t1		t.executionContext \notin \ran zMutexOwner \implies \\
 \t2			t.currentPriority = t.basePriority
 \also
-    \{ mq: messageChannels @ mq.mutex \} \subset mutexes
-\also
-    \{ mq: messageChannels @ mq.notEmptyCondvar \}~ \cup \\
-    \{ mq: messageChannels @ mq.notFullCondvar \} \subset condvars
-\also
     \forall cv: \dom zCondvarToMutex @ \\
 \t1     cv.synchronizationScope \neq kLocalCpuInterruptAndThread \land \\
 \t1     cv.synchronizationScope = (zCondvarToMutex(cv)).synchronizationScope
@@ -189,14 +234,13 @@ for which waiting threads call ``wait for interrupt''.
 \end{itemize}
 
 \clearpage
-\subsection{Execution Controller}
+\subsection{HiRTOS Instance}
 
 \begin{schema}{ExecutionController}
     zCpuIdToCpuController: CpuIdType \inj CpuController \\
     cpuControllers: \finset_1 CpuController \\
     zExecutionContexts: \finset_1 ExecutionContext \\
 	zThreads: \finset Thread \\
-    zInterrupts: \finset_1 Interrupt \\
     zExecutionContextToCpu: ExecutionContext \psurj CpuIdType \\
     zThreadToExecutionContext: Thread \pinj ExecutionContext \\
     zInterruptToExecutionContext: Interrupt \pinj ExecutionContext
@@ -621,6 +665,14 @@ new item.
 
 \clearpage
 \begin{thebibliography}{9}
+
+\bibitem{libcThreads}
+ISO, ``N2731: Working draft of the C23 standard, section 7.26'', October 2021 \\
+\url{http://www.open-std.org/jtc1/sc22/wg14/www/docs/n2596.pdf#page=345&zoom=100,102,113}
+
+\bibitem{prioCeiling}
+Lui Sha et al, ``Priority Inheritance Protocols: An Approach to Real-Time Synchronization'', IEEE Transactions on Computers, September 1990 \\
+\url{https://www.csie.ntu.edu.tw/~r95093/papers/Priority%20Inheritance%20Protocols%20An%20Approach%20to%20Real-Time%20Synchronization.pdf}
 
 \bibitem{Zrm}
 Mike Spivey, ``The Z Reference Manual'', second edition, Prentice-Hall, 1992 \\

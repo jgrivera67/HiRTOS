@@ -1,4 +1,3 @@
-
 --
 --  Copyright (c) 2021, German Rivera
 --  All rights reserved.
@@ -25,27 +24,30 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
+separate (HiRTOS)
+package body Timer is
+   --
+   --  Subpograms needed by the Timer_Lists package
+   --
+   function Get_Next_Timer (Timer_Id : Timer_Id_Type) return Timer_Id_Type is
+      (HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
+         Timer_Pool.Object_Array (Timer_Id).Node.Next);
 
---
---  @summary HiRTOS implementation
---
-package body HiRTOS with SPARK_Mode => On is
-   procedure Initialize_Rtos is
-      HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+   function Get_Prev_Timer (Timer_Id : Timer_Id_Type) return Timer_Id_Type is
+      (HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
+         Timer_Pool.Object_Array (Timer_Id).Node.Prev);
+
+   procedure Set_Next_Timer (Timer_Id : Timer_Id_Type;
+                              Next_Timer_Id : Timer_Id_Type) is
    begin
-      HiRTOS_Instance.Initialized := True;
-   end Initialize_Rtos;
+      HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
+         Timer_Pool.Object_Array (Timer_Id).Node.Next := Next_Timer_Id;
+   end Set_Next_Timer;
 
-   procedure Start_Thread_Scheduler is
+   procedure Set_Prev_Timer (Timer_Id : Timer_Id_Type;
+                              Prev_Timer_Id : Timer_Id_Type) is
    begin
-      null;
-   end Start_Thread_Scheduler;
-
-   package body Mutex is separate;
-   package body Condvar is separate;
-   package body Timer is separate;
-   package body Thread is separate;
-   package body Interrupt_Nesting is separate;
-
-end HiRTOS;
+      HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
+         Timer_Pool.Object_Array (Timer_Id).Node.Prev := Prev_Timer_Id;
+   end Set_Prev_Timer;
+end Timer;

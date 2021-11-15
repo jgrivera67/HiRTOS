@@ -24,40 +24,36 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
+package body Generic_Linked_List with SPARK_Mode => On is
 
---
---  @summary HiRTOS compile-time configuration parameters
---
-package HiRTOS_Parameters with SPARK_Mode => On is
-   --
-   --  Maximum number of threads
-   --
-   Max_Num_Threads : constant := 32;
+   procedure List_Init (List_Anchor : in out List_Anchor_Type;
+                        List_Id : List_Id_Type) is
+   begin
+      List_Anchor.List_Id := List_Id;
+      List_Anchor.Initialized := True;
+   end List_Init;
 
-   --
-   --  Maximum number of condition variables (not counting the condvar embedded
-   --  in each thread)
-   --
-   Max_Num_Condvars : constant := 32;
+   procedure List_Add_Tail (List_Anchor : in out List_Anchor_Type;
+                            Node_Id : Node_Id_Type) is
+   begin
+      null;
+   end List_Add_Tail;
 
-   --
-   --  Maximum number of mutexes
-   --
-   Max_Num_Mutexes : constant := 32;
+   procedure List_Remove_Head (List_Anchor : in out List_Anchor_Type;
+                               Node_Id : out Node_Id_Type) is
+   begin
+      null;
+   end List_Remove_Head;
 
-   --
-   --  Maximum number of timers
-   --
-   Max_Num_Timers : constant := Max_Num_Threads + 32;
+   procedure List_Remove_This (List_Anchor : in out List_Anchor_Type;
+                               Node_Id : Node_Id_Type) is
+   begin
+      null;
+   end List_Remove_This;
 
-   --
-   --  Number of thread priorities
-   --
-   Num_Thread_Priorities : constant := 16;
+   procedure List_Traverse (List_Anchor : in out List_Anchor_Type) is
+   begin
+      null;
+   end List_Traverse;
 
-   --
-   --  Thread stack minimum size in bytes
-   --
-   Thread_Stack_Min_Size : constant := 1024;
-
-end HiRTOS_Parameters;
+end Generic_Linked_List;

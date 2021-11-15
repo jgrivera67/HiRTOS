@@ -39,7 +39,7 @@ project RTS is
 			                      "-fno-omit-frame-pointer");
 
       when "arm_cortex_r5" =>
-         CPU_Arch := "arm-cortex-r";
+         CPU_Arch := "armv7-r";
          for Target use "arm-eabi";
          CPU_Core_Switches := ("-mcpu=cortex-r5",
 			       "-mlittle-endian",

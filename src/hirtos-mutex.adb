@@ -1,4 +1,3 @@
-
 --
 --  Copyright (c) 2021, German Rivera
 --  All rights reserved.
@@ -25,27 +24,7 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
+separate (HiRTOS)
+package body Mutex is
 
---
---  @summary HiRTOS implementation
---
-package body HiRTOS with SPARK_Mode => On is
-   procedure Initialize_Rtos is
-      HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
-   begin
-      HiRTOS_Instance.Initialized := True;
-   end Initialize_Rtos;
-
-   procedure Start_Thread_Scheduler is
-   begin
-      null;
-   end Start_Thread_Scheduler;
-
-   package body Mutex is separate;
-   package body Condvar is separate;
-   package body Timer is separate;
-   package body Thread is separate;
-   package body Interrupt_Nesting is separate;
-
-end HiRTOS;
+end Mutex;

@@ -1,4 +1,3 @@
-
 --
 --  Copyright (c) 2021, German Rivera
 --  All rights reserved.
@@ -27,25 +26,53 @@
 --
 
 --
---  @summary HiRTOS implementation
+--  @summary HiRTOS compile-time configuration parameters
 --
-package body HiRTOS with SPARK_Mode => On is
-   procedure Initialize_Rtos is
-      HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
-   begin
-      HiRTOS_Instance.Initialized := True;
-   end Initialize_Rtos;
+package HiRTOS_Config_Parameters with SPARK_Mode => On is
+   --
+   --  Maximum number of threads
+   --
+   Max_Num_Threads : constant := 32;
 
-   procedure Start_Thread_Scheduler is
-   begin
-      null;
-   end Start_Thread_Scheduler;
+   --
+   --  Maximum number of condition variables (not counting the condvar embedded
+   --  in each thread)
+   --
+   Max_Num_Condvars : constant := 32;
 
-   package body Mutex is separate;
-   package body Condvar is separate;
-   package body Timer is separate;
-   package body Thread is separate;
-   package body Interrupt_Nesting is separate;
+   --
+   --  Maximum number of mutexes
+   --
+   Max_Num_Mutexes : constant := 32;
 
-end HiRTOS;
+   --
+   --  Maximum number of timers
+   --
+   Max_Num_Timers : constant := 32;
+
+   --
+   --  Number of interrupt priorities priorities
+   --
+   Num_Interrupt_Priorities : constant := 16;
+
+   --
+   --  Number of thread priorities
+   --
+   Num_Thread_Priorities : constant := 32;
+
+   --
+   --  Thread stack minimum size in bytes
+   --
+   Thread_Stack_Min_Size : constant := 1024;
+
+   --
+   --  RTOS tick timer period in milliseconds
+   --
+   Tick_Period_Ms : constant := 1;
+
+   --
+   --  Memory protection region alignment in bytes
+   --
+   Mem_Prot_Region_Alignment : constant := 32;
+
+end HiRTOS_Config_Parameters;
