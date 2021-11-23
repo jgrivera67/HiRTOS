@@ -34,26 +34,80 @@ package body Generic_Linked_List with SPARK_Mode => On is
    end List_Init;
 
    procedure List_Add_Tail (List_Anchor : in out List_Anchor_Type;
-                            Node_Id : Node_Id_Type) is
+                            List_Node_Pointer : List_Node_Pointer_Type) is
    begin
-      null;
+      List_Node_Pointer.Next := null;
+      List_Node_Pointer.Prev := List_Anchor.Tail;
+      List_Node_Pointer.List_Id := List_Anchor.List_Id;
+      List_Node_Pointer.In_List := True;
+
+      if List_Anchor.Tail = null then
+         List_Anchor.Head := List_Node_Pointer;
+      end if;
+
+      List_Anchor.Tail := List_Node_Pointer;
+      List_Anchor.Length :=  @ + 1;
    end List_Add_Tail;
 
    procedure List_Remove_Head (List_Anchor : in out List_Anchor_Type;
-                               Node_Id : out Node_Id_Type) is
+                               List_Node_Pointer : out List_Node_Pointer_Type) is
+      Next_Head : constant List_Node_Pointer_Type := List_Anchor.Head.Next;
    begin
-      null;
+      List_Node_Pointer := List_Anchor.Head;
+      List_Anchor.Head := Next_Head;
+      Next_Head.Prev := null;
+      List_Anchor.Length := @ - 1;
+      if List_Anchor.Head = null then
+         List_Anchor.Tail := null;
+      end if;
+
+      List_Node_Pointer.Next := null;
+      List_Node_Pointer.Prev := null;
+      List_Node_Pointer.In_List := False;
    end List_Remove_Head;
 
    procedure List_Remove_This (List_Anchor : in out List_Anchor_Type;
-                               Node_Id : Node_Id_Type) is
+                               List_Node_Pointer : List_Node_Pointer_Type) is
+      Prev_Node : constant List_Node_Pointer_Type :=  List_Node_Pointer.Prev;
+      Next_Node : constant List_Node_Pointer_Type :=  List_Node_Pointer.Next;
    begin
-      null;
+      if List_Node_Pointer = List_Anchor.Head then
+         List_Anchor.Head := Next_Node;
+      end if;
+
+      if List_Node_Pointer = List_Anchor.Tail then
+         List_Anchor.Tail := Prev_Node;
+      end if;
+
+      List_Anchor.Length := @ - 1;
+      List_Node_Pointer.Next := null;
+      List_Node_Pointer.Prev := null;
+      List_Node_Pointer.In_List := False;
    end List_Remove_This;
 
    procedure List_Traverse (List_Anchor : in out List_Anchor_Type) is
+      Node_Pointer : List_Node_Pointer_Type := List_Anchor.Head;
+      Next_Node_Pointer : List_Node_Pointer_Type;
+      List_Length : constant Interfaces.Unsigned_32 := List_Anchor.Length;
    begin
-      null;
+
+      for I in 0 .. List_Length loop
+         pragma Loop_Invariant (
+            Node_Pointer.List_Id = List_Anchor.List_Id
+            and then
+            (Node_Pointer.Prev = null or else Node_Pointer.Prev.Next = Node_Pointer)
+            and then
+            (Node_Pointer.Next = null or else Node_Pointer.Next.Prev = Node_Pointer)
+         );
+
+         --
+         --  NOTE: Save next pointer in case this node is removed from the list
+         --  by Node_Visitor.
+         --
+         Next_Node_Pointer := Node_Pointer.Next;
+         Node_Visitor (Node_Pointer);
+         Node_Pointer := Next_Node_Pointer;
+      end loop;
    end List_Traverse;
 
 end Generic_Linked_List;

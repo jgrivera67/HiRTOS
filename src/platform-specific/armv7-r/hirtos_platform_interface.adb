@@ -24,7 +24,14 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-separate (HiRTOS)
-package body Timer is
 
-end Timer;
+--
+--  @summary HiRTOS target platform interface for ARMv7-R architecture
+--
+package body HiRTOS_Platform_Interface with SPARK_Mode => On is
+
+   function Get_Cpu_Id return Cpu_Core_Id_Type is
+      --  For now support only single CPU systems
+      (Cpu_Core_Id_Type'First);
+
+end HiRTOS_Platform_Interface;

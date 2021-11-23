@@ -25,7 +25,10 @@ project Hirtos is
 
    for Library_Standalone use "standard";
    for Library_Interface use ("Hirtos",
-                              "Hirtos_Config_Parameters"
+                              "Hirtos_Config_Parameters",
+                              "Hirtos_Platform_Interface",
+                              "Generic_Linked_List",
+                              "Generic_Object_Pool"
                              );
 
    for Library_Auto_Init use "False";

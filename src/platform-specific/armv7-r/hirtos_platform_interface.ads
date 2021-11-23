@@ -50,7 +50,7 @@ package HiRTOS_Platform_Interface with SPARK_Mode => On is
    Mem_Prot_Region_Alignment : constant := 32;
 
    --
-   -- Ids of CPU cores
+   --  Ids of CPU cores
    --
    type Cpu_Core_Id_Type is mod Num_Cpu_Cores;
 

@@ -39,28 +39,4 @@ package body Thread is
       null;
    end Create_Thread;
 
-   --
-   --  Subpograms needed by the Thread_Queues package
-   --
-   function Get_Next_Thread (Thread_Id : Thread_Id_Type) return Thread_Id_Type is
-      (HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
-         Thread_Pool.Object_Array (Thread_Id).Node.Next);
-
-   function Get_Prev_Thread (Thread_Id : Thread_Id_Type) return Thread_Id_Type is
-      (HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
-         Thread_Pool.Object_Array (Thread_Id).Node.Prev);
-
-   procedure Set_Next_Thread (Thread_Id : Thread_Id_Type;
-                              Next_Thread_Id : Thread_Id_Type) is
-   begin
-      HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
-         Thread_Pool.Object_Array (Thread_Id).Node.Next := Next_Thread_Id;
-   end Set_Next_Thread;
-
-   procedure Set_Prev_Thread (Thread_Id : Thread_Id_Type;
-                              Prev_Thread_Id : Thread_Id_Type) is
-   begin
-      HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id).
-         Thread_Pool.Object_Array (Thread_Id).Node.Prev := Prev_Thread_Id;
-   end Set_Prev_Thread;
 end Thread;

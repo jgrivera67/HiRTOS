@@ -162,41 +162,24 @@ package HiRTOS with SPARK_Mode => On is
 
       type Timer_Wheel_Spoke_Index_Type is mod Timer_Wheel_Num_Spokes;
 
-      procedure Set_Next_Timer (Timer_Id : Timer_Id_Type;
-                                Next_Timer_Id : Timer_Id_Type);
-
-      function Get_Next_Timer (Timer_Id : Timer_Id_Type) return Timer_Id_Type;
-
-      procedure Set_Prev_Timer (Timer_Id : Timer_Id_Type;
-                                Prev_Timer_Id : Timer_Id_Type);
-
-      function Get_Prev_Timer (Timer_Id : Timer_Id_Type) return Timer_Id_Type;
-
-      package Timer_List is new
-         Generic_Linked_List (List_Id_Type => Timer_Wheel_Spoke_Index_Type,
-                              Node_Id_Type => Timer_Id_Type,
-                              Invalid_Node_Id => Invalid_Timer_Id,
-                              Set_Next => Set_Next_Timer,
-                              Get_Next => Get_Next_Timer,
-                              Set_Prev => Set_Prev_Timer,
-                              Get_Prev => Get_Prev_Timer);
-
       --
       --  Software timer object
       --
       --  @field Initialized flag indicating if the timer object has been
       --  initialized.
       --  @field Id timer Id
-      --  @field Node: this timer's node in a list of timers, if this timer is in any list.
       --
       type Timer_Type is limited record
          Initialized : Boolean := False;
          Id : Timer_Id_Type := Invalid_Timer_Id;
-         Node : Timer_List.List_Node_Type;
       end record;
 
+      package Timer_List is new
+         Generic_Linked_List (List_Id_Type => Timer_Wheel_Spoke_Index_Type,
+                              Node_Payload_Type => Timer_Type);
+
       package Timer_Pool is new
-         Generic_Object_Pool (Object_Type => Timer_Type,
+         Generic_Object_Pool (Object_Type => Timer_List.List_Node_Type,
                               Object_Id_Type => Timer_Id_Type);
 
       type Timer_Pool_Type is new Timer_Pool.Object_Pool_Type;
@@ -272,25 +255,6 @@ package HiRTOS with SPARK_Mode => On is
                                  Thread_Running,
                                  Thread_Blocked);
 
-      procedure Set_Next_Thread (Thread_Id : Thread_Id_Type;
-                                 Next_Thread_Id : Thread_Id_Type);
-
-      function Get_Next_Thread (Thread_Id : Thread_Id_Type) return Thread_Id_Type;
-
-      procedure Set_Prev_Thread (Thread_Id : Thread_Id_Type;
-                                 Prev_Thread_Id : Thread_Id_Type);
-
-      function Get_Prev_Thread (Thread_Id : Thread_Id_Type) return Thread_Id_Type;
-
-      package Thread_Queue is new
-         Generic_Linked_List (List_Id_Type => Thread_Priority_Type,
-                              Node_Id_Type => Thread_Id_Type,
-                              Invalid_Node_Id => Invalid_Thread_Id,
-                              Set_Next => Set_Next_Thread,
-                              Get_Next => Get_Next_Thread,
-                              Set_Prev => Set_Prev_Thread,
-                              Get_Prev => Get_Prev_Thread);
-
       --
       --  Thread control block
       --
@@ -314,7 +278,6 @@ package HiRTOS with SPARK_Mode => On is
          Id : Thread_Id_Type := Invalid_Thread_Id;
          State : Thread_State_Type := Thread_Not_Created;
          Priority : Thread_Priority_Type;
-         Node : Thread_Queue.List_Node_Type;
          Timer_Id : Timer.Timer_Id_Type := Timer.Invalid_Timer_Id;
          Stack_Base_Addr : System.Address := System.Null_Address;
          Stack_Size : Thread_Stack_Size_Type := 0;
@@ -337,8 +300,12 @@ package HiRTOS with SPARK_Mode => On is
                                  HiRTOS_Config_Parameters.Max_Num_Timers,
                                  "Max_Num_Timers too small");
 
+      package Thread_Queue is new
+         Generic_Linked_List (List_Id_Type => Thread_Priority_Type,
+                              Node_Payload_Type => Thread_Type);
+
       package Thread_Pool is new
-         Generic_Object_Pool (Object_Type => Thread_Type,
+         Generic_Object_Pool (Object_Type => Thread_Queue.List_Node_Type,
                               Object_Id_Type => Thread_Id_Type);
 
       type Thread_Pool_Type is new Thread_Pool.Object_Pool_Type;
