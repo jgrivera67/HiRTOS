@@ -24,27 +24,28 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-package body HiRTOS.Interrupt_Nesting is
+
+private package HiRTOS.Interrupt_Nesting is
+
+   function Get_Current_Interrupt_Nesting (
+      Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type)
+      return Interrupt_Nesting_Counter_Type
+      with Inline_Always,
+           Suppress => All_Checks;
 
    procedure Increment_Interrupt_Nesting (
-            Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type;
-            Stack_Pointer : Cpu_Register_Type) is
-      Current_Interrupt_Nesting_Counter : Interrupt_Nesting_Counter_Type renames
-         Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter;
-      Current_Interrupt_Nesting_Level : Interrupt_Nesting_Level_Type renames
-      Interrupt_Nesting_Level_Stack.Interrupt_Nesting_Level_Array (
-         Current_Interrupt_Nesting_Counter);
-   begin
-      Current_Interrupt_Nesting_Level.Saved_Stack_Pointer := Stack_Pointer;
-      Current_Interrupt_Nesting_Counter := @ + 1;
-   end Increment_Interrupt_Nesting;
+      Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type;
+      Stack_Pointer : Cpu_Register_Type)
+      with Pre => Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) <
+                    Interrupt_Nesting_Counter_Type'Last;
 
    procedure Decrement_Interrupt_Nesting (
-      Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type) is
-      Current_Interrupt_Nesting_Counter : Interrupt_Nesting_Counter_Type renames
-         Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter;
-   begin
-      Current_Interrupt_Nesting_Counter := @ - 1;
-   end Decrement_Interrupt_Nesting;
+      Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type)
+      with Pre => Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) > 0;
+
+   function Get_Current_Interrupt_Nesting (
+      Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type)
+      return Interrupt_Nesting_Counter_Type is
+      (Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter);
 
 end HiRTOS.Interrupt_Nesting;

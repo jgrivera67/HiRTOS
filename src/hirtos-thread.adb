@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2021, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -24,19 +24,33 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-separate (HiRTOS)
-package body Thread is
-   -------------------
-   -- Create_Thread --
-   -------------------
+package body HiRTOS.Thread is
+
    procedure Create_Thread (Entry_Point : Thread_Entry_Point_Type;
                             Priority : Thread_Priority_Type;
                             Stack_Addr : System.Address;
                             Stack_Size : Interfaces.Unsigned_32;
                             Thread_Id : out Thread_Id_Type;
                             Error : out Error_Type) is
+      Thread_Obj : Thread_Type;
+      Thread_Cpu_Context_Address : constant System.Address :=
+         To_Address (Integer_Address (Stack_Addr) + Stack_Size -
+                     (Cpu_Context_Type'Object_Size / System.Storage_Unit));
+      Thread_Cpu_Context : Cpu_Context_Type with Address => Thread_Cpu_Context_Address;
    begin
-      null;
+      --  Allocate a Thread object:
+      null; --  TODO
+
+      Initialize_Thread_Cpu_Context(Thread_Cpu_Context,
+                                    Thread_Cpu_Context_Address);
+
    end Create_Thread;
 
-end Thread;
+   function Get_Current_Thread_Id return Thread_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+   begin
+      return HiRTOS_Instance.Current_Thread_Id;
+   end Get_Current_Thread_Id;
+
+end HiRTOS.Thread;

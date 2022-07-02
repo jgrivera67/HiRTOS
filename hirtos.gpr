@@ -25,10 +25,12 @@ project Hirtos is
 
    for Library_Standalone use "standard";
    for Library_Interface use ("Hirtos",
-                              "Hirtos_Config_Parameters",
-                              "Hirtos_Platform_Interface",
+                              "HiRTOS_Config_Parameters",
+                              "HiRTOS_Platform_Parameters",
                               "Generic_Linked_List",
-                              "Generic_Object_Pool"
+                              "HiRTOS.Interrupt_Nesting",
+                              "HiRTOS.Platform_Interface",
+                              "HiRTOS.Thread_Private"
                              );
 
    for Library_Auto_Init use "False";
@@ -46,9 +48,10 @@ project Hirtos is
    case Compile_Checks is
       when "enabled" =>
          Compile_Checks_Switches :=
-         ("-gnatwa",  -- All warnings
-            "-gnatVa",  -- All validity checks
-            "-gnatwe"); -- Warnings as errors
+            ("-gnatwa", -- All warnings
+           --???"-gnatwe", -- Warnings as errors
+             "-gnatVa"  -- All validity checks
+            );
       when others => null;
    end case;
 
@@ -96,14 +99,16 @@ project Hirtos is
         Runtime_Checks_Switches &
         Style_Checks_Switches &
         Contracts_Switches &
+        RTS.Compiler.COMMON_FLAGS &
         ("-gnatw.X", -- Disable warnings for No_Exception_Propagation
          "-gnatQ",   -- Don't quit. Generate ALI and tree files even if illegalities
-	  "-fstack-usage",
-	  -- "-fstack-check", --  Generate stack checking code
-          "-gnato13",         --  Overflow checking            (part of Ada)
-          "-gnatf",           --  Full, verbose error messages
-	  "-gnat12",
-          "-gnat2012");       --  Use Ada 2012
+	      "-fstack-usage",
+	      -- "-fstack-check", --  Generate stack checking code
+         "-gnato13",         --  Overflow checking            (part of Ada)
+         "-gnatf",           --  Full, verbose error messages
+         "-gnat2020"         --  Use Ada 2020
+         , "-S" -- ???
+        );
 
       for Local_Configuration_Pragmas use "src/gnat_pragmas.adc";
    end Compiler;

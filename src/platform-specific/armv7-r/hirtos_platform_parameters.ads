@@ -24,27 +24,35 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-package body HiRTOS.Interrupt_Nesting is
 
-   procedure Increment_Interrupt_Nesting (
-            Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type;
-            Stack_Pointer : Cpu_Register_Type) is
-      Current_Interrupt_Nesting_Counter : Interrupt_Nesting_Counter_Type renames
-         Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter;
-      Current_Interrupt_Nesting_Level : Interrupt_Nesting_Level_Type renames
-      Interrupt_Nesting_Level_Stack.Interrupt_Nesting_Level_Array (
-         Current_Interrupt_Nesting_Counter);
-   begin
-      Current_Interrupt_Nesting_Level.Saved_Stack_Pointer := Stack_Pointer;
-      Current_Interrupt_Nesting_Counter := @ + 1;
-   end Increment_Interrupt_Nesting;
+--
+--  @summary HiRTOS target platform parameters
+--
 
-   procedure Decrement_Interrupt_Nesting (
-      Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type) is
-      Current_Interrupt_Nesting_Counter : Interrupt_Nesting_Counter_Type renames
-         Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter;
-   begin
-      Current_Interrupt_Nesting_Counter := @ - 1;
-   end Decrement_Interrupt_Nesting;
+package HiRTOS_Platform_Parameters with SPARK_Mode => On is
+   --
+   --  Number of CPU cores
+   --
+   Num_Cpu_Cores : constant := 1;
 
-end HiRTOS.Interrupt_Nesting;
+   --
+   --  Cache line size in bytes
+   --
+   Cache_Line_Size_Bytes : constant := 32;
+
+   --
+   --  Alignment in bytes for a memory protection region
+   --
+   Mem_Prot_Region_Alignment : constant := 32;
+
+   --
+   --  Width of CPU integer registers  in bytes
+   --
+   Int_Register_Size : constant := 4;
+
+   --
+   --  Size in bytes of the 'BL' machine instruction
+   --
+   Call_Instruction_Size : constant := 4;
+
+end HiRTOS_Platform_Parameters;

@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2021, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,6 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-separate (HiRTOS)
-package body Timer is
+package body HiRTOS.Timer is
 
-end Timer;
+end HiRTOS.Timer;

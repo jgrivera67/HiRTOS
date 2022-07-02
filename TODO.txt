@@ -1,3 +1,10 @@
+
+If a thread is preempted before its time slice is up is should be added at the
+front of the corresponding run queue instead of of at the back
+
+Have all ISRs run unprivileged. rtos_enter_isr() should return in unprivileged
+mode.
+
 Create two packages:
 
 hirtos-application_interface.ads:
@@ -6,6 +13,11 @@ hirtos-application_interface.ads:
 - ...
 - rtos_enter_isr()
 - rtos_exit_isr()
+
+- rtos_create_interrupt_handler(irq_num, isr, priority)
+- set_data_region_writable()
+- ...
+
 
 hirtos-platform-interface.ads:
 - raise_cpu_privilege()
@@ -26,6 +38,10 @@ hirtos-platform-interface.ads:
 - get_cpu_id()
 - start_tick_timer(timer_callback)
 
+- mem_prot_init()
+- interrupt_controller_init()
+- interrupt_controller_enable_irq()
+
 hirtos-platform-interface/armv7-r
 hirtos-platform-interface/armv7-m
 hirtos-platform-interface/armv8-r
@@ -39,3 +55,12 @@ Checks every ms that current task is not running more than 1ms continously
 (as that would impact the response time of otgher tasks that are ready to
  run and may miss their deadlines (e.g. periodic tasks that don't get to run
  before thir next period)
+
+Tickless idle
+
+DESIGN DECISIONS
+
+Initialize_Rtos will initialize the MPU regions but will return still in
+privilege mode to the reset handler. So, that we don't have to consider
+the reset handler as a special interrupt context case when entering/exiting
+privileged mode. So only threads will run in unprivileged mode.

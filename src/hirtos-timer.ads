@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2021, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -24,44 +24,6 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
+package HiRTOS.Timer is
 
---
---  @summary HiRTOS target platform interface
---
-package HiRTOS_Platform_Interface with SPARK_Mode => On is
-   --
-   --  Number of CPU cores
-   --
-   Num_Cpu_Cores : constant := 1;
-
-   --
-   --  Width in bits of CPU core registers
-   --
-   CPU_Register_Width_Bits : constant := 32;
-
-   --
-   --  Cache line size in bytes
-   --
-   Cache_Line_Size_Bytes : constant := 32;
-
-   --
-   --  Alignment in bytes for a memory protection region
-   --
-   Mem_Prot_Region_Alignment : constant := 32;
-
-   --
-   --  Ids of CPU cores
-   --
-   type Cpu_Core_Id_Type is mod Num_Cpu_Cores;
-
-   --
-   --  Value of a CPU core general purpose register
-   --
-   type Cpu_Register_Type is mod 2**CPU_Register_Width_Bits;
-
-   --
-   --  Return the Id of the current CPU core
-   --
-   function Get_Cpu_Id return Cpu_Core_Id_Type;
-
-end HiRTOS_Platform_Interface;
+end HiRTOS.Timer;
