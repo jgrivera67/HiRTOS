@@ -26,38 +26,36 @@
 --
 
 --
---  @summary HiRTOS target platform parameters
+--  @summary RTOS to target platform interface - CPU specific for ARMv7-R architecture
 --
 
-package HiRTOS_Platform_Parameters with SPARK_Mode => On is
-   --
-   --  Number of CPU cores
-   --
-   Num_Cpu_Cores : constant := 1;
+package body HiRTOS_Platform_Interface.Cpu_Specific with SPARK_Mode => On is
 
-   --
-   --  Cache line size in bytes
-   --
-   Cache_Line_Size_Bytes : constant := 32;
+   procedure Initialize_Thread_Mem_Prot_Regions (Stack_Base_Addr : System.Address;
+                                                 Stack_Szie : Interfaces.Unsigned_32;
+                                                 Thread_Regions : out Thread_Mem_Prot_Regions_Type)
+   is
+   begin
+      null; --  ???
+   end Initialize_Thread_Mem_Prot_Regions;
 
-   --
-   --  Alignment in bytes for a memory protection region
-   --
-   Mem_Prot_Region_Alignment : constant := Cache_Line_Size_Bytes;
+   procedure Restore_Thread_Mem_Prot_Regions (Thread_Regions : Thread_Mem_Prot_Regions_Type) is
+   begin
+      null; --  ???
+   end Restore_Thread_Mem_Prot_Regions;
 
-   --
-   --  Width of CPU integer registers  in bytes
-   --
-   Int_Register_Size : constant := 4;
+   procedure Save_Thread_Mem_Prot_Regions (Thread_Regions : out Thread_Mem_Prot_Regions_Type) is
+   begin
+      null; --  ???
+   end Save_Thread_Mem_Prot_Regions;
 
-   --
-   --  Size in bytes of the 'BL' machine instruction
-   --
-   Call_Instruction_Size : constant := 4;
+   procedure Initialize_Thread_Cpu_Context (Thread_Cpu_Context : out Cpu_Context_Type;
+                                            Initial_Stack_Pointer : System.Address) is
+   begin
+      Thread_Cpu_Context.Sp := To_Integer (Initial_Stack_Pointer);
+      Thread_Cpu_Context.Cpu_Privileged_Nesting_Count := 0;
+      --??? Floating_Point_Registers : Floating_Point_Registers_Type;
+      --??? Integer_Registers
+   end Initialize_Thread_Cpu_Context;
 
-   --
-   --  Number of usable interrupt priorities (levels)
-   --
-   Num_Interrupt_Priorities : constant := 31;
-
-end HiRTOS_Platform_Parameters;
+end HiRTOS_Platform_Interface.Cpu_Specific;

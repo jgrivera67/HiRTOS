@@ -30,13 +30,12 @@ package body Generic_Linked_List with SPARK_Mode => On is
                         List_Id : List_Id_Type) is
    begin
       List_Anchor.List_Id := List_Id;
-      List_Anchor.Initialized := True;
    end List_Init;
 
    procedure List_Add_Tail (List_Anchor : in out List_Anchor_Type;
-                            Node_Pointer : Node_Pointer_Type)
+                            Element_Id : Element_Id_Type)
       with Refined_Post =>
-         List_Anchor.Tail = Node_Pointer
+         List_Anchor.Tail = Element_Id
          and then
          (if List_Anchor.Length = 1 then
              List_Anchor.Head = List_Anchor.Tail
@@ -45,23 +44,22 @@ package body Generic_Linked_List with SPARK_Mode => On is
               List_Anchor.Head /= List_Anchor.Tail))
    is
    begin
-      Node_Pointer.Next := null;
-      Node_Pointer.Prev := List_Anchor.Tail;
-      Node_Pointer.List_Id := List_Anchor.List_Id;
-      Node_Pointer.In_List := True;
+      Set_Next_Element (Element_Id, Null_Element_Id);
+      Set_Prev_Element (Element_Id, List_Anchor.Tail);
+      Set_Containing_List (Element_Id, List_Anchor.List_Id);
 
-      if List_Anchor.Tail = null then
-         List_Anchor.Head := Node_Pointer;
+      if List_Anchor.Tail = Null_Element_Id then
+         List_Anchor.Head := Element_Id;
       end if;
 
-      List_Anchor.Tail := Node_Pointer;
+      List_Anchor.Tail := Element_Id;
       List_Anchor.Length :=  @ + 1;
    end List_Add_Tail;
 
    procedure List_Add_Head (List_Anchor : in out List_Anchor_Type;
-                            Node_Pointer : Node_Pointer_Type)
+                            Element_Id : Element_Id_Type)
       with Refined_Post =>
-         List_Anchor.Head = Node_Pointer
+         List_Anchor.Head = Element_Id
          and then
          (if List_Anchor.Length = 1 then
              List_Anchor.Head = List_Anchor.Tail
@@ -70,81 +68,83 @@ package body Generic_Linked_List with SPARK_Mode => On is
               List_Anchor.Head /= List_Anchor.Tail))
    is
    begin
-      Node_Pointer.Next := List_Anchor.Head;
-      Node_Pointer.Prev := null;
-      Node_Pointer.List_Id := List_Anchor.List_Id;
-      Node_Pointer.In_List := True;
+      Set_Next_Element (Element_Id, List_Anchor.Head);
+      Set_Prev_Element (Element_Id, Null_Element_Id);
+      Set_Containing_List (Element_Id, List_Anchor.List_Id);
 
-      if List_Anchor.Head = null then
-         List_Anchor.Tail := Node_Pointer;
+      if List_Anchor.Head = Null_Element_Id then
+         List_Anchor.Tail := Element_Id;
       end if;
 
-      List_Anchor.Head := Node_Pointer;
+      List_Anchor.Head := Element_Id;
       List_Anchor.Length :=  @ + 1;
    end List_Add_Head;
 
    procedure List_Remove_Head (List_Anchor : in out List_Anchor_Type;
-                               Node_Pointer : out Node_Pointer_Type)
+                               Element_Id : out Element_Id_Type)
       with Refined_Post =>
-         Node_Pointer = List_Anchor'Old.Head
+         Element_Id = List_Anchor'Old.Head
    is
-      Next_Head : constant Node_Pointer_Type := List_Anchor.Head.Next;
+      Next_Head : constant Element_Id_Type := Get_Next_Element (List_Anchor.Head);
    begin
-      Node_Pointer := List_Anchor.Head;
+      Element_Id := List_Anchor.Head;
       List_Anchor.Head := Next_Head;
-      Next_Head.Prev := null;
+      Set_Prev_Element (Next_Head, Null_Element_Id);
       List_Anchor.Length := @ - 1;
-      if List_Anchor.Head = null then
-         List_Anchor.Tail := null;
+      if List_Anchor.Head = Null_Element_Id then
+         List_Anchor.Tail := Null_Element_Id;
       end if;
 
-      Node_Pointer.Next := null;
-      Node_Pointer.Prev := null;
-      Node_Pointer.In_List := False;
+      Set_Next_Element (Element_Id, Null_Element_Id);
+      Set_Prev_Element (Element_Id, Null_Element_Id);
+      Set_Containing_List (Element_Id, Null_List_Id);
    end List_Remove_Head;
 
    procedure List_Remove_This (List_Anchor : in out List_Anchor_Type;
-                               Node_Pointer : Node_Pointer_Type) is
-      Prev_Node : constant Node_Pointer_Type :=  Node_Pointer.Prev;
-      Next_Node : constant Node_Pointer_Type :=  Node_Pointer.Next;
+                               Element_Id : Element_Id_Type) is
+      Prev_Element_Id : constant Element_Id_Type := Get_Prev_Element (Element_Id);
+      Next_Element_Id : constant Element_Id_Type := Get_Next_Element (Element_Id);
    begin
-      if Node_Pointer = List_Anchor.Head then
-         List_Anchor.Head := Next_Node;
+      if Element_Id = List_Anchor.Head then
+         List_Anchor.Head := Next_Element_Id;
       end if;
 
-      if Node_Pointer = List_Anchor.Tail then
-         List_Anchor.Tail := Prev_Node;
+      if Element_Id = List_Anchor.Tail then
+         List_Anchor.Tail := Prev_Element_Id;
       end if;
 
       List_Anchor.Length := @ - 1;
-      Node_Pointer.Next := null;
-      Node_Pointer.Prev := null;
-      Node_Pointer.In_List := False;
+      Set_Next_Element (Element_Id, Null_Element_Id);
+      Set_Prev_Element (Element_Id, Null_Element_Id);
+      Set_Containing_List (Element_Id, Null_List_Id);
    end List_Remove_This;
 
    procedure List_Traverse (List_Anchor : in out List_Anchor_Type) is
-      Node_Pointer : Node_Pointer_Type := List_Anchor.Head;
-      Next_Node_Pointer : Node_Pointer_Type;
+      Element_Id : Element_Id_Type := List_Anchor.Head;
+      Next_Element_Id : Element_Id_Type;
       List_Length : constant Interfaces.Unsigned_32 := List_Anchor.Length;
    begin
-
-      for I in 0 .. List_Length loop
+      for I in 0 .. List_Length - 1 loop
          pragma Loop_Invariant (
-            Node_Pointer.List_Id = List_Anchor.List_Id
+            Get_Containing_List (Element_Id) = List_Anchor.List_Id
             and then
-            (Node_Pointer.Prev = null or else Node_Pointer.Prev.Next = Node_Pointer)
+            (Get_Prev_Element (Element_Id) = Null_Element_Id or else
+             Get_Next_Element (Get_Prev_Element (Element_Id)) = Element_Id)
             and then
-            (Node_Pointer.Next = null or else Node_Pointer.Next.Prev = Node_Pointer)
+            (Get_Next_Element (Element_Id) = Null_Element_Id or else
+             Get_Prev_Element (Get_Next_Element (Element_Id)) = Element_Id)
          );
 
          --
          --  NOTE: Save next pointer in case this node is removed from the list
          --  by Node_Visitor.
          --
-         Next_Node_Pointer := Node_Pointer.Next;
-         Node_Visitor (Node_Pointer);
-         Node_Pointer := Next_Node_Pointer;
+         Next_Element_Id := Get_Next_Element (Element_Id);
+         Element_Visitor (Element_Id);
+         Element_Id := Next_Element_Id;
       end loop;
+
+      pragma Assert (Element_Id = Null_Element_Id);
    end List_Traverse;
 
 end Generic_Linked_List;

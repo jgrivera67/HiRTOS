@@ -34,11 +34,11 @@ private package HiRTOS.Thread_Private is
       with Pre => Get_Privilege_Nesting (Thread_Obj) > 0;
 
    procedure Save_Thread_Stack_Pointer (Thread_Obj : in out Thread_Type;
-                                        Stack_Pointer : Cpu_Register_Type)
+                                        Stack_Pointer : HiRTOS_Platform_Interface.Cpu_Register_Type)
       with Inline_Always;
 
    function Get_Thread_Stack_Pointer (Thread_Obj : Thread_Type)
-      return Cpu_Register_Type
+      return HiRTOS_Platform_Interface.Cpu_Register_Type
       with Inline_Always;
 
    function Get_Privilege_Nesting (Thread_Obj : Thread_Type)
@@ -46,7 +46,7 @@ private package HiRTOS.Thread_Private is
       (Thread_Obj.Privilege_Nesting_Counter);
 
    function Get_Thread_Stack_Pointer (Thread_Obj : Thread_Type)
-      return Cpu_Register_Type is
+      return HiRTOS_Platform_Interface.Cpu_Register_Type is
       (Thread_Obj.Saved_Stack_Pointer);
 
    procedure Run_Thread_Scheduler;

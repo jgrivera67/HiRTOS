@@ -63,7 +63,7 @@ The following naming conventions are used in the Z model of HiRTOS:
 \item Z Primitive types are in uppercase.
 \item Z Composite types (schema types) start with uppercase.
 \item Z constants and variables start with lower case.
-\item Identifiers that start with the $ghost$ prefix are model-only variables
+\item Identifiers that start with the $z$ prefix are model-only variables
       that are not meant to be implemented in code.
 \end{itemize}
 
@@ -72,18 +72,19 @@ The following naming conventions are used in the Z model of HiRTOS:
 \begin{itemize}
 \item ISRs are seen as hardware-scheduled threads that have higher priority than all
 software-scheduled threads. They always run in privileged mode and can only be preempted by
-higher-priority ISRs. They cannot block waiting for mutexes or condition variables.
+higher-priority ISRs. They cannot block waiting on mutexes or condition variables.
 
-\item For API simplicity, inspired by the thread synchronization primitives of the C standard
+\item For API simplicity, inspired by the thread synchronization primitives of the C11 standard
 library \cite{libcThreads}, mutexes and condition variables are the only real synchronization
 primitives in HiRTOS.
 Other synchronization primitives such as semaphores, event flags and message queues can be
 implemented on top of them.
 
 \item Unlike stadanrd mutexes, HiRTOS mutexes have priorities to support the priority ceiling
-protocol \cite{prioCeiling}. Disabling interrupts is achieved by acquiring mutex with priority equal
-to the highest-priority interrupt. Disabling the thread scheduler is achieved by acquiring a mutex
-with priority equal to the highest-priority software-scheduled thread.
+protocol \cite{prioCeiling}.
+
+\item HiRTOS atomic levels can be used to disable the thread scheduler or to disable interrupts
+at and below a given priority or to disable all interrupts.
 
 \item In a multi-core platform, there is one HiRTOS instance per CPU Core. Each HiRTOS instance is
 independent of each other. No resources are shared between HiRTOS instances. No communication between
@@ -114,186 +115,216 @@ code must request access (read-only or read-write permission) to HiRTOS via a sy
 \end{itemize}
 
 \clearpage
-\section{Numeric Constants}
+\section{HiRTOS Configuration Parameters}
 
 Constants defined here represent compile-time configuration parameters for
 HiRTOS.
 
 \begin{axdef}
-    maxNumCpus: \nat_1 \\
-    numCpuRegisters: \nat_1 \\
-    cpuRegisterWidth: \nat_1 \\
-    minMemoryAddress: \nat \\
-    maxMemoryAddress: \nat_1 \\
     maxNumThreads: \nat_1 \\
     maxNumMutexes: \nat_1 \\
     maxNumCondvars: \nat_1 \\
     maxNumTimers: \nat_1 \\
     numThreadPriorities: \nat_1 \\
-    numInterruptPriorities: \nat_1 \\
-    lowestThreadPriority: \nat_1 \\
-    highestThreadPriority: \nat_1 \\
-    lowestInterruptPriority: \nat_1 \\
-    highestInterruptPriority: \nat_1 \\
 \where
-    minMemoryAddress < maxMemoryAddress \\
-    highestInterruptPriority = 1 \\
-    lowestInterruptPriority = numInterruptPriorities \\
-    highestThreadPriority = lowestInterruptPriority + 1 \\
-    lowestThreadPriority = lowestInterruptPriority + numThreadPriorities \\
+    maxNumThreads > 2
 \end{axdef}
 
-\section{Primitive Types}
+The minimum number of threads that can be configured is 2, which corresponds to the HiRTOS pre-defined threads:
+the idle thread and the tick timer thread.
 
-\begin{zed}
-    CpuIdType == 1 \upto maxNumCpus \\
-    CpuRegisterIdType == 1 \upto numCpuRegisters \\
-    MemoryAddressType == minMemoryAddress \upto maxMemoryAddress \\
-    ThreadIdType == 1 \upto maxNumThreads \\
-    MutexIdType == 1 \upto maxNumMutexes \\
-    CondvarIdType == 1 \upto maxNumCondvars \\
-    TimerIdType == 1 \upto maxNumTimers \\
-    InterruptPrioirtyType == 1 \upto numInterruptPriorities \\
-    ThreadPrioirtyType == \\
-    \t1 numInterruptPriorities + 1 \upto numInterruptPriorities + numThreadPriorities \\
-    MutexPriorityType == InterruptPrioirtyType \cup ThreadPrioirtyType \\
-    CpuInterruptsStateType ::= cpuInterruptsEnabled | cpuInterruptsDisabled \\
-    CpuPrivilegeType ::= cpuPrivileged | cpuUnprivileged \\
-    ThreadStateType ::= threadNotCreated | threadRunnable | threadRunning | threadBlocked \\
-\end{zed}
+\section{HiRTOS Target Platform Parameters}
 
-For both threads and interrupts, lower priority numbers represent higher priorities. Interrupts
-have higher priority than threads. That is, the lowest priority interrupt has higher priority than
-the highest priority thread.
-
-\section{Structural Constants}
+Constants defined here represent compile-time target platform parameters for
+HiRTOS.
 
 \begin{axdef}
-    hiRtosInstances: CpuIdType \inj HiRtosInstance \\
-    threadsMap: ThreadIdType \inj Thread \\
-    interruptLevelsMap: InterruptPrioirtyType \inj InterruptLevel \\
-    mutexesMap: MutexIdType \inj Mutex \\
-    condvarsMap: CondvarIdType \inj Condvar \\
-    timersMap: TimerIdType \inj Timer \\
-    timersMap: TimerIdType \inj Timer \\
+    maxNumCpus: \nat_1 \\
+    minMemoryAddress: \nat \\
+    maxMemoryAddress: \nat_1 \\
+    numInterruptPriorities: \nat_1 \\
+\where
+    minMemoryAddress < maxMemoryAddress
 \end{axdef}
 
-\section{State Variables}
+\section{HiRTOS Primitive Types}
 
-There is one HiRTOS instance per CPU core in a multi-core platform.
+\begin{zed}
+    CpuIdType == 0 \upto maxNumCpus - 1 \\
+    MemoryAddressType == minMemoryAddress \upto maxMemoryAddress \\
+    ThreadIdType == 0 \upto maxNumThreads \\
+    invalidThreadId == maxNumThreads \\
+    idleThreadId == 0 \\
+    tickTimerThreadId == 1 \\
+    ValidThreadIdType == ThreadType \setminus \{ InvalidThreadId \} \\
+    ThreadPrioirtyType == 0 \upto numThreadPriorities \\
+    invalidThreadPriority == numThreadPriorities \\
+    ValidThreadPriorityType == ThreadPriorityType \setminus \{ InvalidThreadPriority \} \\
+    MutexIdType == 0 \upto maxNumMutexes \\
+    invalidMutexId == maxNumMutexes \\
+    ValidMutexIdType == MutexType \setminus \{ InvalidMutexId \} \\
+    CondvarIdType == 0 \upto maxNumCondvars \\
+    invalidCondvarId == maxNumCondvars \\
+    ValidCondvarIdType == CondvarType \setminus \{ InvalidCondvarId \} \\
+    TimerIdType == 0 \upto maxNumTimers \\
+    invalidTimerId == maxNumTimers \\
+    ValidTimerIdType == TimerType \setminus \{ InvalidTimerId \} \\
+    InterruptPrioirtyType == 0 \upto numInterruptPriorities \\
+    invalidInterruptPriority == numInterruptPriorities \\
+    ValidInterruptPriorityIdType == InterruptPriorityType \setminus \{ InvalidInterruptPriorityId \} \\
+    AtomicLevelType == 0 \upto numInterruptPriorities + 1 \\
+    atomicLevelNoInterrupts == min~AtomicLevelType \\
+    atomicLevelSingleThread == max~AtomicLevelType - 1 \\
+    atomicLevelNone == max~AtomicLevelType \\
+    CpuInterruptMaskingStateType ::= cpuInterruptsEnabled | cpuInterruptsDisabled \\
+    CpuPrivilegeType ::= cpuPrivileged | cpuUnprivileged \\
+    MemoryProtectionStateType ::= memoryProtectionOn | memoryProtectionOff \\
+    CpuExecutionModeType ::= cpuExecutingResetHandler | cpuExecutingInterruptHandler | cpuExecutingThread \\
+    ThreadStateType ::= threadNotCreated | threadRunnable | threadRunning | threadInterrupted | threadBlocked \\
+    HiRtosStateType ::= threadSchedulerStopped | threadSchedulerRunning \\
+    TimerTicksType == \nat \\
+    ThreadQueueType == \iseq ValidThreadIdType \\
+    MutexListType == \iseq ValidMutexIdType \\
+    MutexListType == \iseq ValidMutexIdType \\
+    TimerListType == \iseq ValidTimerIdType \\
+\end{zed}
 
-\begin{schema}{HiRtosInstance}
-    idleThread: Thread \\
-    timerThread: Thread \\
-    appThreads: \finset Thread \\
-    activeInterruptLevels: \finset InterruptLevel \\
-    mutexes: \finset Mutex \\
-    condvars: \finset Condvar \\
-    timers: \finset Timer \\
-    zMutexOwner: Mutex \pfun ExecutionContext \\
-    zMutexWaiters: Thread \pfun Mutex \\
-    zCondvarWaiters: Thread \pfun Condvar \\
-    zCondvarToMutex: Condvar \pfun Mutex \\
+For interrupts, lower priority values represent higher priorities. For threads, lower priority
+values represent lower priorities.
+
+\section{Per-CPU HiRTOS State Variables}
+
+There is a separate HiRTOS instance per CPU core in the target platform:
+
+\begin{axdef}
+    hiRtosInstances: CpuIdType \inj HiRtosInstanceType \\
 \where
-	\dom zMutexOwner \subseteq mutexes
+    \forall cpuId: \dom hiRtosInstances @ hiRtosInstances(cpuId).cpuId = cpuId
+\end{axdef}
+
+The state variables and internal data structures of each HiRTOS instance are modeled by the $HiRtosInstanceType$
+state space schema:
+
+\begin{schema}{HiRtosInstanceType}
+    cpuId: CpuIdType \\
+    threadSchedulerState: ThreadSchedulerStateType \\
+    currentAtomicLevel: AtomicLevelType \\
+    currentPrivilegeNestingCounter: PrivilegeNestingCounterType \\
+    currentThreadId: ThreadIdType \\
+    timerTicksSinceBoot: TimerTicksType \\
+    threadInstances: ValidThreadIdType \pinj ThreadType \\
+    mutexInstances: ValidMutexIdType \pinj MutexType \\
+    condvarInstances: ValidCondvarIdType \pinj CondvarType \\
+    timerInstances: ValidTimerIdType \pinj TimerType \\
+    interruptNestingLevelStack: InterruptNestingLevelStackType \\
+    runnableThreadQueues: ValidThreadPriorityIdType \inj ThreadQueueType \\
+    timerWheel: TimerWheelType \\
+    zCpuInterruptMaskingState: CpuInterruptMaskingStateType \\
+    zCpuPrivilege: CpuPrivilegeType \\
+    zCpuExecutionMode: CpuExecutionModeType \\
+    zMemoryProtectionState: MemoryProtectionStateType \\
+\where
+	threadSchedulerState = ThreadSchedulerRunning \implies currentThreadId \in \dom threadInstances
 \also
-	\ran zMutexOwner \subset  \\
-\t1      \{ t: zThreads @ t.executionContext \}~ \cup \{ i: zInterrupts @ i.executionContext \}
+    zCpuInterruptMaskingState = cpuInterruptsEnabled \iff currentAtomicLevel > AtomicLevelNoInterrupts
 \also
-	\dom zMutexWaiters \subset zThreads \land \ran zMutexWaiters \subseteq mutexes
+    zCpuInterruptMaskingState = cpuInterruptsDisabled \implies zCpuPrivilege = cpuPrivileged
 \also
-	\dom zCondvarWaiters \subset zThreads \land \ran zCondvarWaiters \subseteq condvars
+    currentAtomicLevel < AtomicLevelNone \implies zCpuPrivilege = cpuPrivileged
 \also
-    \dom zMutexWaiters \cap \dom zCondvarWaiters = \emptyset
+    currentPrivilegeNestingCounter > 0 \iff zCpuPrivilege = cpuPrivileged
 \also
-    \# zMutexWaiters < \# zThreads \land \# zCondvarWaiters < \# zThreads
-\also
-	\forall cpu: CpuIdType @ \\
-\t1		(zCpuIdToCpuController(cpu)).zRunnableThreads ~\cap \\
-\t1		(\dom zMutexWaiters \cup \dom zCondvarWaiters) = \emptyset
-\also
-    \forall t: zThreads @ \\
-\t1		t.executionContext \notin \ran zMutexOwner \implies \\
-\t2			t.currentPriority = t.basePriority
-\also
-    \forall cv: \dom zCondvarToMutex @ \\
-\t1     cv.synchronizationScope \neq kLocalCpuInterruptAndThread \land \\
-\t1     cv.synchronizationScope = (zCondvarToMutex(cv)).synchronizationScope
+    zCpuExectionMode \neq cpuExecutingThread \implies zCpuPrivilege = cpuPrivileged
 \end{schema}
 
-Invariants:
-\begin{itemize}
-\item The same thread cannot be waiting for more than one mutex.
-\item The same mutex cannot be owned by more than one thread.
-\item The same thread cannot be waiting on more than one condition variable.
-\item The same thread cannot be waiting on a mutex and a condition variable at the same time.
-\item The same thread cannot be both runnable and blocked on a condvar or mutex.
-\item ISRs can never wait on mutexes or condvars. However, ISRs can signal condvars
-for which waiting threads call ``wait for interrupt''.
-\item The current priority of a thread that does not own a mutex must always be its base priority.
-\end{itemize}
+%\clearpage
+\subsection{Per-CPU HiRTOS Initialization}
 
-\clearpage
-\subsection{HiRTOS Instance}
+After calling the \verb$HiRTOS.Initialize$ HiRTOS API, on a given CPU core, the state of the
+corresponding HiRTOS instance is as described below:
 
-\begin{schema}{ExecutionController}
-    zCpuIdToCpuController: CpuIdType \inj CpuController \\
-    cpuControllers: \finset_1 CpuController \\
-    zExecutionContexts: \finset_1 ExecutionContext \\
-	zThreads: \finset Thread \\
-    zExecutionContextToCpu: ExecutionContext \psurj CpuIdType \\
-    zThreadToExecutionContext: Thread \pinj ExecutionContext \\
-    zInterruptToExecutionContext: Interrupt \pinj ExecutionContext
+\begin{schema}{HiRtosInitialize}
+    HiRtosInstanceType' \\
+    zCpuId?: CpuIdType \\
 \where
-	\ran zCpuIdToCpuController = cpuControllers
+    cpuId' = zCpuId?
 \also
-    \forall cpu: CpuIdType @ (zCpuIdToCpuController(cpu)).cpuId = cpu
+    threadSchedulerState' = threadSchedulerStopped \\
 \also
-	\bigcap \{ cpuC: cpuControllers @ cpuC.threads \} = \emptyset
+    currentAtomicLevel' = AtomicLevelNone \\
 \also
-    \bigcup \{ cpuC: cpuControllers @ cpuC.threads \} = zThreads
+    currentPrivilegeNestingCounter' = 1 \\
 \also
-	\bigcap \{ cpuC: cpuControllers @ cpuC.interrupts \} = \emptyset
+    currentThreadId' = InvalidThreadId \\
 \also
-    \bigcup \{ cpuC: cpuControllers @ cpuC.interrupts \} = zInterrupts
+    timerTicksSinceBoot' = 0 \\
 \also
-    zExecutionContexts = \\
-\t1 \{ t: zThreads @ t.executionContext \} \cup \{ i: zInterrupts @ i.executionContext \}
+    \dom threadInstances' = \{ idleThreadId, tickTimerThreadId \} \\
 \also
-	\{ t: zThreads @ t.executionContext \} \cap \{ i: zInterrupts @ i.executionContext \} = \emptyset
+    mutexInstances' = \emptyset \\
 \also
-	\dom zExecutionContextToCpu = zExecutionContexts
+    condvarInstances' = \emptyset \\
 \also
-	\dom zThreadToExecutionContext = zThreads
+    timerInstances' = \emptyset \\
 \also
-    \ran zThreadToExecutionContext = \{ t: zThreads @ t.executionContext \}
+    \theta interruptNestingLevelStack' = \theta InitInterruptNestingLevelStack \\
 \also
-	\dom zInterruptToExecutionContext = zInterrupts
+    \theta timerWheel' = \theta InitTimerWheel \\
 \also
-	\ran zInterruptToExecutionContext = \{ i: zInterrupts @ i.executionContext \}
+    zCpuInterruptMaskingState' = cpuInterruptsEnabled \\
 \also
-	\forall et: zExecutionContexts @ zExecutionContextToCpu(et) = et.cpuId
+    zCpuPrivilege' = cpuPrivileged \\
 \also
-	\bigcap \{ et: zExecutionContexts @ et.executionStack \} = \emptyset
+    zMemoryProtectionState' = memoryProtectionOn \\
+\also
+    zCpuExecutionMode' = cpuExecutingResetHandler \\
+\also
+    runnableThreadQueues'(min~ ValidInterruptPriorityIdType) = \langle idleThreadId \rangle \\
+\also
+    runnableThreadQueues'(max~ ValidInterruptPriorityIdType) = \langle tickTimerThreadId \rangle \\
+\also
+     \forall p: ValidThreadPrioirtyType \setminus
+            \{ \min~ValidThreadPrioirtyType, \max~ValidThreadPrioirtyType \} @ \\
+\t1      runnableThreadQueues'(p) = \emptyset
 \end{schema}
 
-An execution context can correspond to a software-scheduled thread or to an interrupt.
-Interrupts are seen as ``hardware-scheduled'' threads that have higher priority
-than software-scheduled threads. Thus, an interrupt can be seen as a hardware thread
-that can preempt the highest priority software thread.
+%\clearpage
+\subsection{Starting the Per-CPU HiRTOS Thread Scheduler}
 
-Invariants:
-\begin{itemize}
-\item Every thread must be assigned to a CPU. This is done at thread creation time
-and the thread cannot be moved to another CPU.
-\item Every interrupt source must be assigned to a CPU and must always be serviced by that CPU.
-\item The same thread cannot be assigned to more than one CPU.
-\item The same interrupt source cannot be assigned to more than one CPU.
-\item Every execution context is assigned to a fixed CPU. The same execution context cannot be
-assigned to two different CPUs. Every CPU has at least one execution context (if nothing else,
-its idle thread).
-\end{itemize}
+After calling the \verb$HiRTOS.Start_Thread_Scheduler$ HiRTOS API, on a given CPU core, RTOS multi-tasking
+is started on the given CPU, as described below:
 
+\begin{schema}{HiRtosStartThreadScheduler}
+    \Delta HiRtosInstanceType \\
+    zCpuId?: CpuIdType \\
+\where
+\end{schema}
+
+\subsection{Entering HiRTOS from Interrupt Context}
+
+After calling the \verb$HiRTOS.Enter_Interrupt_Context$ HiRTOS API, from an ISR on a given CPU core, RTOS multi-tasking
+the HiRTOS environment for interrupt context is entered.
+
+\begin{schema}{HiRtosEnterInterruptContext}
+    \Delta HiRtosInstanceType \\
+    zCpuId?: CpuIdType \\
+    zInterruptId?: InterruptIdType \\
+\where
+\end{schema}
+
+\subsection{Exiting HiRTOS from Interrupt Context}
+
+After calling the \verb$HiRTOS.Exit_Interrupt_Context$ HiRTOS API, from an ISR on a given CPU core, RTOS multi-tasking
+the HiRTOS environment for interrupt context is exited.
+
+\begin{schema}{HiRtosExitInterruptContext}
+    \Delta HiRtosInstanceType \\
+    zCpuId?: CpuIdType \\
+    zInterruptId?: InterruptIdType \\
+\where
+\end{schema}
+
+???
 \clearpage
 \subsection{CPU Controllers}
 

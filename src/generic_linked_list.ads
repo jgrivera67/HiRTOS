@@ -32,16 +32,42 @@ with Interfaces;
 --
 generic
    type List_Id_Type is private;
-   type Node_Payload_Type is limited private;
-   type Node_Payload_Pointer_Type is access all Node_Payload_Type;
+   Null_List_Id : List_Id_Type;
+   type Element_Id_Type is private;
+   Null_Element_Id : Element_Id_Type;
+   with function Get_Next_Element (Element_Id : Element_Id_Type) return Element_Id_Type
+           with Pre => Element_Id /= Null_Element_Id;
+
+   with procedure Set_Next_Element (Element_Id : Element_Id_Type;
+                                    Next_Element_Id : Element_Id_Type)
+           with Pre => Element_Id /= Null_Element_Id and then
+                       Next_Element_Id /= Element_Id;
+
+   with function Get_Prev_Element (Element_Id : Element_Id_Type) return Element_Id_Type
+           with Pre => Element_Id /= Null_Element_Id;
+
+   with procedure Set_Prev_Element (Element_Id : Element_Id_Type;
+                                    Prev_Element_Id : Element_Id_Type)
+           with Pre => Element_Id /= Null_Element_Id and then
+                       Prev_Element_Id /= Element_Id;
+
+   with function Get_Containing_List (Element_Id : Element_Id_Type) return List_Id_Type
+           with Pre => Element_Id /= Null_Element_Id;
+
+   with procedure Set_Containing_List (Element_Id : Element_Id_Type;
+                                       List_Id : List_Id_Type)
+           with Pre => Element_Id /= Null_Element_Id;
+
 package Generic_Linked_List with SPARK_Mode => On is
    use type Interfaces.Unsigned_32;
 
    type List_Anchor_Type is private;
 
-   type Node_Type is limited private;
-
-   type Node_Pointer_Type is access all Node_Type;
+   type List_Node_Type is limited record
+      Next_Element_Id : Element_Id_Type := Null_Element_Id;
+      Prev_Element_Id : Element_Id_Type := Null_Element_Id;
+      Containing_List_Id : List_Id_Type := Null_List_Id;
+   end record;
 
    function List_Initialized (List_Anchor : List_Anchor_Type) return Boolean
       with Ghost => True;
@@ -49,17 +75,16 @@ package Generic_Linked_List with SPARK_Mode => On is
    function List_Length (List_Anchor : List_Anchor_Type) return Interfaces.Unsigned_32
       with Ghost => True;
 
-   function Node_In_List (Node : Node_Type) return Boolean
-      with Ghost => True;
-
    procedure List_Init (List_Anchor : in out List_Anchor_Type;
                         List_Id : List_Id_Type)
       with
          Global => null,
          Depends => (List_Anchor =>+ List_Id),
-         Pre => not List_Initialized (List_Anchor),
+         Pre => not List_Initialized (List_Anchor) and then
+                List_Is_Empty (List_Anchor) and then
+                List_Id /= Null_List_Id,
          Post => List_Initialized (List_Anchor) and then
-                 List_Length (List_Anchor) = 0;
+                 List_Is_Empty (List_Anchor);
 
    function List_Is_Empty (List_Anchor : List_Anchor_Type) return Boolean
       with
@@ -68,112 +93,87 @@ package Generic_Linked_List with SPARK_Mode => On is
          Pre => List_Initialized (List_Anchor);
 
    procedure List_Add_Tail (List_Anchor : in out List_Anchor_Type;
-                            Node_Pointer : Node_Pointer_Type)
+                            Element_Id : Element_Id_Type)
       with
          Global => null,
-         Depends => (List_Anchor =>+ Node_Pointer,
-                     Node_Pointer => List_Anchor),
+         Depends => (List_Anchor =>+ Element_Id),
          Pre => List_Initialized (List_Anchor) and then
-                Node_Pointer /= null and then
-                not Node_In_List (Node_Pointer.all),
+                Element_Id /= Null_Element_Id and then
+                Get_Containing_List (Element_Id) = Null_List_Id,
          Post => List_Length (List_Anchor) = List_Length (List_Anchor'Old) + 1
                  and then
-                 Node_In_List (Node_Pointer.all);
+                 Get_Containing_List (Element_Id) /= Null_List_Id;
 
    procedure List_Add_Head (List_Anchor : in out List_Anchor_Type;
-                            Node_Pointer : Node_Pointer_Type)
+                            Element_Id : Element_Id_Type)
       with
          Global => null,
-         Depends => (List_Anchor =>+ Node_Pointer,
-                     Node_Pointer => List_Anchor),
+         Depends => (List_Anchor =>+ Element_Id),
          Pre => List_Initialized (List_Anchor) and then
-                Node_Pointer /= null and then
-                not Node_In_List (Node_Pointer.all),
+                Element_Id /= Null_Element_Id and then
+                Get_Containing_List (Element_Id) = Null_List_Id,
          Post => List_Length (List_Anchor) = List_Length (List_Anchor'Old) + 1
                  and then
-                 Node_In_List (Node_Pointer.all);
+                 Get_Containing_List (Element_Id) /= Null_List_Id;
 
    procedure List_Remove_Head (List_Anchor : in out List_Anchor_Type;
-                               Node_Pointer : out Node_Pointer_Type)
+                               Element_Id : out Element_Id_Type)
       with
          Global => null,
          Depends => (List_Anchor =>+ null,
-                     Node_Pointer => List_Anchor),
+                     Element_Id => List_Anchor),
          Pre => List_Initialized (List_Anchor) and then
                 List_Length (List_Anchor) /= 0,
          Post => List_Length (List_Anchor) = List_Length (List_Anchor'Old) - 1
                  and then
-                 Node_Pointer /= null
+                 Element_Id /= Null_Element_Id
                  and then
-                 not Node_In_List (Node_Pointer.all);
+                 Get_Containing_List (Element_Id) = Null_List_Id;
 
    procedure List_Remove_This (List_Anchor : in out List_Anchor_Type;
-                               Node_Pointer : Node_Pointer_Type)
+                               Element_Id : Element_Id_Type)
       with
          Global => null,
-         Depends => (List_Anchor =>+ Node_Pointer,
-                     Node_Pointer => List_Anchor),
+         Depends => (List_Anchor =>+ Element_Id),
          Pre => List_Initialized (List_Anchor) and then
                 List_Length (List_Anchor) /= 0 and then
-                Node_Pointer /= null and then
-                Node_In_List (Node_Pointer.all),
+                Element_Id /= Null_Element_Id and then
+                Get_Containing_List (Element_Id) /= Null_List_Id,
          Post => List_Length (List_Anchor) = List_Length (List_Anchor'Old) - 1
                  and then
-                 not Node_In_List (Node_Pointer.all);
+                 Get_Containing_List (Element_Id) = Null_List_Id;
 
    generic
-      with procedure Node_Visitor (Node_Pointer : Node_Pointer_Type);
+      with procedure Element_Visitor (Element_Id : Element_Id_Type);
    procedure List_Traverse (List_Anchor : in out List_Anchor_Type)
       with
          Pre => List_Initialized (List_Anchor);
 
-   function Get_Node_Payload_Pointer (Node_Pointer : Node_Pointer_Type)
-      return Node_Payload_Pointer_Type
-      with Pre => Node_Pointer /= null;
-
 private
 
    type List_Anchor_Type is record
-      Initialized : Boolean := False;
-      List_Id : List_Id_Type;
-      Head : Node_Pointer_Type := null;
-      Tail : Node_Pointer_Type := null;
+      List_Id : List_Id_Type := Null_List_Id;
+      Head : Element_Id_Type := Null_Element_Id;
+      Tail : Element_Id_Type := Null_Element_Id;
       Length : Interfaces.Unsigned_32 := 0;
    end record
       with Type_Invariant =>
          (if List_Anchor_Type.Length = 0 then
-            (List_Anchor_Type.Head = null and then
-             List_Anchor_Type.Tail = null)
+            (List_Anchor_Type.Head = Null_Element_Id and then
+             List_Anchor_Type.Tail = Null_Element_Id)
          else
-            (List_Anchor_Type.Head /= null and then
-             List_Anchor_Type.Tail /= null and then
+            (List_Anchor_Type.Head /= Null_Element_Id and then
+             List_Anchor_Type.Tail /= Null_Element_Id and then
              (if List_Anchor_Type.Head = List_Anchor_Type.Tail then
                  List_Anchor_Type.Length = 1)));
 
-   type Node_Type is limited record
-      Next : Node_Pointer_Type := null;
-      Prev : Node_Pointer_Type := null;
-      In_List : Boolean := False;
-      List_Id : List_Id_Type;
-      Payload : aliased Node_Payload_Type;
-   end record with Type_Invariant =>
-      (if not Node_Type.In_List then
-         (Node_Type.Next = null and then Node_Type.Prev = null));
-
    function List_Initialized (List_Anchor : List_Anchor_Type) return Boolean
-      is (List_Anchor.Initialized);
+      is (List_Anchor.List_Id /= Null_List_Id);
 
    function List_Length (List_Anchor : List_Anchor_Type) return Interfaces.Unsigned_32
       is (List_Anchor.Length);
 
-   function Node_In_List (Node : Node_Type) return Boolean is
-      (Node.In_List);
-
    function List_Is_Empty (List_Anchor : List_Anchor_Type) return Boolean is
       (List_Anchor.Length = 0);
-
-   function Get_Node_Payload_Pointer (Node_Pointer : Node_Pointer_Type)
-      return Node_Payload_Pointer_Type is
-      (Node_Pointer.Payload'Access);
 
 end Generic_Linked_List;

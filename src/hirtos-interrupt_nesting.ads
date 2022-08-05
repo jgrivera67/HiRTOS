@@ -35,7 +35,7 @@ private package HiRTOS.Interrupt_Nesting is
 
    procedure Increment_Interrupt_Nesting (
       Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type;
-      Stack_Pointer : Cpu_Register_Type)
+      Stack_Pointer : HiRTOS_Platform_Interface.Cpu_Register_Type)
       with Pre => Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) <
                     Interrupt_Nesting_Counter_Type'Last;
 

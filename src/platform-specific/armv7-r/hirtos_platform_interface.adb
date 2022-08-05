@@ -30,8 +30,10 @@
 --
 
 with System.Machine_Code;
+with Interfaces;
+with HiRTOS;
 
-package body HiRTOS.Platform_Interface with SPARK_Mode => On is
+package body HiRTOS_Platform_Interface with SPARK_Mode => On is
    use ASCII;
 
    --
@@ -70,7 +72,7 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
       --  For now support only single CPU systems
       (Cpu_Core_Id_Type'First);
 
-   function Get_CPSR return Cpu_Register_Type is
+   function Get_Cpu_Status_Register return Cpu_Register_Type is
       Reg_Value : Cpu_Register_Type;
    begin
       System.Machine_Code.Asm (
@@ -79,7 +81,7 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
          Volatile => True);
 
       return Reg_Value;
-   end Get_CPSR;
+   end Get_Cpu_Status_Register;
 
    function Get_Call_Address return System.Address is
       Reg_Value : Cpu_Register_Type;
@@ -89,7 +91,9 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
          Outputs => Cpu_Register_Type'Asm_Output ("=r", Reg_Value),
          Volatile => True);
 
-      return To_Address (Reg_Value - HiRTOS_Platform_Parameters.Call_Instruction_Size);
+      return System.Storage_Elements.To_Address (
+               System.Storage_Elements.Integer_Address (
+                  Reg_Value - HiRTOS_Platform_Parameters.Call_Instruction_Size));
    end Get_Call_Address;
 
    function Get_Stack_Pointer return Cpu_Register_Type is
@@ -112,14 +116,14 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
    end Set_Stack_Pointer;
 
    function Cpu_Interrupting_Disabled return Boolean is
-      CPSR_Value : constant Cpu_Register_Type := Get_CPSR;
+      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
       return (CPSR_Value and CPSR_I_Bit_Mask) /= 0;
    end Cpu_Interrupting_Disabled;
 
    function Disable_Cpu_Interrupting return Cpu_Register_Type
    is
-      CPSR_Value : constant Cpu_Register_Type := Get_CPSR;
+      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
       if (CPSR_Value and CPSR_I_Bit_Mask) = 0 then
          System.Machine_Code.Asm (
@@ -147,7 +151,7 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
    end Restore_Cpu_Interrupting;
 
    function Cpu_In_Privileged_Mode return Boolean is
-      CPSR_Value : constant Cpu_Register_Type := Get_CPSR;
+      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
       return (CPSR_Value and CPSR_Mode_Mask) /= CPSR_User_Mode;
    end Cpu_In_Privileged_Mode;
@@ -157,7 +161,7 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
    --  enabled.
    --
    procedure Switch_Cpu_To_Privileged_Mode is
-      CPSR_Value : constant Cpu_Register_Type := Get_CPSR;
+      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
          --
          --  We are not in privileged mode, so interrupts must be enabled:
@@ -268,33 +272,6 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
 
    procedure Interrupt_Handler_Epilog
       with Inline_Always;
-
-   procedure Initialize_Thread_Mem_Prot_Regions (Stack_Base_Addr : System.Address;
-                                                 Stack_Szie : Interfaces.Unsigned_32;
-                                                 Thread_Regions : out Thread_Mem_Prot_Regions_Type)
-   is
-   begin
-      null; --  ???
-   end Initialize_Thread_Mem_Prot_Regions;
-
-   procedure Restore_Thread_Mem_Prot_Regions (Thread_Regions : Thread_Mem_Prot_Regions_Type) is
-   begin
-      null; --  ???
-   end Restore_Thread_Mem_Prot_Regions;
-
-   procedure Save_Thread_Mem_Prot_Regions (Thread_Regions : out Thread_Mem_Prot_Regions_Type) is
-   begin
-      null; --  ???
-   end Save_Thread_Mem_Prot_Regions;
-
-   procedure Initialize_Thread_Cpu_Context (Thread_Cpu_Context : out Cpu_Context_Type;
-                                            Initial_Stack_Pointer : System.Address) is
-   begin
-      Thread_Cpu_Context.Sp := Initial_Stack_Pointer;
-      Thread_Cpu_Context.Cpu_Privileged_Nesting_Count := 0;
-      Floating_Point_Registers : Floating_Point_Registers_Type;
-      Integer_Registers
-   end Initialize_Thread_Cpu_Context;
 
    procedure First_Thread_Context_Switch is
    begin
@@ -479,7 +456,7 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
       --  NOTE: Enter_Interrupt_Context call is assumed to be inlined,
       --  since sp changes to point to the ISR stack, if interrupt nesting was 0.
       --
-      Enter_Interrupt_Context;
+      HiRTOS.Enter_Interrupt_Context;
 
       --
       --  NOTE: At this point sp always points to somewhere in the ISR stack
@@ -515,7 +492,7 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
       --  since sp changes to point to the interrupted task's stack if
       --  if interrupt nesting dropped 0.
       --
-      Exit_Interrupt_Context;
+      HiRTOS.Exit_Interrupt_Context;
 
       System.Machine_Code.Asm (
          --
@@ -549,4 +526,4 @@ package body HiRTOS.Platform_Interface with SPARK_Mode => On is
          Volatile => True);
    end Interrupt_Handler_Epilog;
 
-end HiRTOS.Platform_Interface;
+end HiRTOS_Platform_Interface;

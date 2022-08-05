@@ -28,7 +28,7 @@ package body HiRTOS.Interrupt_Nesting is
 
    procedure Increment_Interrupt_Nesting (
             Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type;
-            Stack_Pointer : Cpu_Register_Type) is
+            Stack_Pointer : HiRTOS_Platform_Interface.Cpu_Register_Type) is
       Current_Interrupt_Nesting_Counter : Interrupt_Nesting_Counter_Type renames
          Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter;
       Current_Interrupt_Nesting_Level : Interrupt_Nesting_Level_Type renames

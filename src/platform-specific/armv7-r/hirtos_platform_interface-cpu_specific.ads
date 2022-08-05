@@ -26,89 +26,12 @@
 --
 
 --
---  @summary RTOS to target platform interface
+--  @summary RTOS to target platform interface - CPU specific declarations
 --
 
-with System;
 with Interfaces;
 
-private package HiRTOS.Platform_Interface with SPARK_Mode => On is
-
-   function Get_Cpu_Id return Cpu_Core_Id_Type
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   function Get_Call_Address return System.Address
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   function Get_Stack_Pointer return Cpu_Register_Type
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   procedure Set_Stack_Pointer (Stack_Pointer : Cpu_Register_Type)
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   function Get_CPSR return Cpu_Register_Type
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   function Cpu_Interrupting_Disabled return Boolean;
-
-   --
-   --  Disable interrupts at the CPU
-   --
-   --  NOTE: Only the IRQ interrupt is disabled, not the FIQ interrupt.
-   --
-   function Disable_Cpu_Interrupting return Cpu_Register_Type
-      with Pre => Cpu_In_Privileged_Mode;
-
-   --
-   --  Restore interrupt enablement at the CPU
-   --
-   procedure Restore_Cpu_Interrupting (Old_Cpu_Interrupting : Cpu_Register_Type)
-      with Pre => Cpu_In_Privileged_Mode and then
-                  Cpu_Interrupting_Disabled;
-
-   function Cpu_In_Privileged_Mode return Boolean;
-
-   --
-   --  Switch to CPU privileged mode
-   --
-   procedure Switch_Cpu_To_Privileged_Mode
-      with Pre => not Cpu_In_Privileged_Mode and then
-                  not Cpu_Interrupting_Disabled,
-           Post => Cpu_In_Privileged_Mode;
-
-   --
-   --  Switch back to CPU unprivileged mode
-   --
-   procedure Switch_Cpu_To_Unprivileged_Mode
-      with Pre => Cpu_In_Privileged_Mode and then
-                  not Cpu_Interrupting_Disabled,
-           Post => not Cpu_In_Privileged_Mode;
-
-   function Ldrex_Word (Word_Address : System.Address) return Cpu_Register_Type
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   function Strex_Word (Word_Address : System.Address;
-                        Value : Cpu_Register_Type) return Boolean
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   function Atomic_Fetch_Add
-     (Counter_Address : System.Address;
-      Value : Cpu_Register_Type) return Cpu_Register_Type
-      with Inline_Always,
-           Suppress => All_Checks;
-
-   function Atomic_Fetch_Sub
-     (Counter_Address : System.Address;
-      Value : Cpu_Register_Type) return Cpu_Register_Type
-      with Inline_Always,
-           Suppress => All_Checks;
+package HiRTOS_Platform_Interface.Cpu_Specific with SPARK_Mode => On is
 
    type Thread_Mem_Prot_Regions_Type is limited private;
 
@@ -135,48 +58,6 @@ private package HiRTOS.Platform_Interface with SPARK_Mode => On is
    --  Initialize a thread's CPU context
    procedure Initialize_Thread_Cpu_Context (Thread_Cpu_Context : out Cpu_Context_Type;
                                             Initial_Stack_Pointer : System.Address);
-
-   --
-   --  Perform the first thread thread context switch
-   --
-   procedure First_Thread_Context_Switch;
-
-   --
-   --  Perform a synchronous thread context switch
-   --
-   procedure Synchronous_Thread_Context_Switch;
-
-   --
-   --  Entry point of the supervisor call exception handler
-   --
-   procedure Supervisor_Call_Exception_Handler
-      with Export,
-           External_Name => "supervisor_call_exception_handler";
-   pragma Machine_Attribute (Supervisor_Call_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the prefetch abort exception handler
-   --
-   procedure Prefetch_Abort_Exception_Handler
-      with Export,
-           External_Name => "prefetch_abort_exception_handler";
-   pragma Machine_Attribute (Prefetch_Abort_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the data abort exception handler
-   --
-   procedure Data_Abort_Exception_Handler
-      with Export,
-           External_Name => "data_abort_exception_handler";
-   pragma Machine_Attribute (Data_Abort_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the external interrupt handler
-   --
-   procedure External_Interrupt_Handler
-      with Export,
-           External_Name => "external_interrupt_handler";
-   pragma Machine_Attribute (External_Interrupt_Handler, "naked");
 
 private
 
@@ -294,4 +175,5 @@ private
       Floating_Point_Registers at 8 range 0 .. 136 * 8 - 1;
       Integer_Registers at 144 range 0 .. 64 * 8 - 1;
    end record;
-end HiRTOS.Platform_Interface;
+
+end HiRTOS_Platform_Interface.Cpu_Specific;

@@ -28,7 +28,6 @@
 
 with HiRTOS.Thread_Private;
 with HiRTOS.Interrupt_Nesting;
-with HiRTOS.Platform_Interface;
 
 --
 --  @summary HiRTOS implementation
@@ -37,29 +36,32 @@ package body HiRTOS with SPARK_Mode => On is
    procedure Initialize (Interrupt_Stack_Base_Addr : System.Address;
                          Interrupt_Stack_Size : System.Storage_Elements.Integer_Address)
    is
-      HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
+      Cpu_Id : constant Cpu_Core_Id_Type := HiRTOS_Platform_Interface.Get_Cpu_Id;
+      HiRTOS_Instance : HiRTOS_Instance_Type renames HiRTOS_Instances (Cpu_Id);
    begin
+      pragma Assert (not HiRTOS_Instance.Initialized);
+      HiRTOS_Platform_Interface.Memory_Protection.Initialize;
       HiRTOS_Instance.Interrupt_Stack_Base_Addr := Interrupt_Stack_Base_Addr;
       HiRTOS_Instance.Interrupt_Stack_Size := Interrupt_Stack_Size;
+      HiRTOS_Instance.Cpu_Id := Cpu_Id;
       HiRTOS_Instance.Initialized := True;
    end Initialize;
 
    procedure Start_Thread_Scheduler is
    begin
-      HiRTOS.Platform_Interface.First_Thread_Context_Switch;
+      HiRTOS_Platform_Interface.First_Thread_Context_Switch;
    end Start_Thread_Scheduler;
 
    function Thread_Scheduler_Started return Boolean is
       HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
    begin
       return HiRTOS_Instance.Current_Thread_Id /= Invalid_Thread_Id;
    end Thread_Scheduler_Started;
 
    function Current_Execution_Context_Is_Interrupt return Boolean is
       HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
    begin
       return Interrupt_Nesting.Get_Current_Interrupt_Nesting (
                HiRTOS_Instance.Interrupt_Nesting_Level_Stack) /= 0;
@@ -77,19 +79,19 @@ package body HiRTOS with SPARK_Mode => On is
 
       declare
          HiRTOS_Instance : HiRTOS_Instance_Type renames
-            HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
+            HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
          Current_Thread_Id : constant Thread_Id_Type :=
                   HiRTOS_Instance.Current_Thread_Id;
-         Current_Thread_Ptr : constant Thread_Pointer_Type :=
-            Get_Thread_Pointer (Current_Thread_Id);
+         Current_Thread_Obj : Thread_Type renames
+            HiRTOS_Instance.Thread_Instances (Current_Thread_Id);
       begin
-         if Thread_Private.Get_Privilege_Nesting (Current_Thread_Ptr.all) = 0 then
-            HiRTOS.Platform_Interface.Switch_Cpu_To_Privileged_Mode;
+         if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then
+            HiRTOS_Platform_Interface.Switch_Cpu_To_Privileged_Mode;
          else
-            pragma Assert (HiRTOS.Platform_Interface.Cpu_In_Privileged_Mode);
+            pragma Assert (HiRTOS_Platform_Interface.Cpu_In_Privileged_Mode);
          end if;
 
-         Thread_Private.Increment_Privilege_Nesting (Current_Thread_Ptr.all);
+         Thread_Private.Increment_Privilege_Nesting (Current_Thread_Obj);
       end;
    end Enter_Cpu_Privileged_Mode;
 
@@ -105,15 +107,15 @@ package body HiRTOS with SPARK_Mode => On is
 
       declare
          HiRTOS_Instance : HiRTOS_Instance_Type renames
-            HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
+            HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
          Current_Thread_Id : Thread_Id_Type renames
             HiRTOS_Instance.Current_Thread_Id;
-         Current_Thread_Ptr : constant Thread_Pointer_Type :=
-            Get_Thread_Pointer (Current_Thread_Id);
+         Current_Thread_Obj : Thread_Type renames
+            HiRTOS_Instance.Thread_Instances (Current_Thread_Id);
       begin
-         Thread_Private.Decrement_Privilege_Nesting (Current_Thread_Ptr.all);
-         if Thread_Private.Get_Privilege_Nesting (Current_Thread_Ptr.all) = 0 then
-            HiRTOS.Platform_Interface.Switch_Cpu_To_Unprivileged_Mode;
+         Thread_Private.Decrement_Privilege_Nesting (Current_Thread_Obj);
+         if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then
+            HiRTOS_Platform_Interface.Switch_Cpu_To_Unprivileged_Mode;
          end if;
       end;
    end Exit_Cpu_Privileged_Mode;
@@ -126,9 +128,9 @@ package body HiRTOS with SPARK_Mode => On is
    --
    procedure Enter_Interrupt_Context is
       HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
-      Stack_Pointer : constant Cpu_Register_Type :=
-         HiRTOS.Platform_Interface.Get_Stack_Pointer;
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Stack_Pointer : constant HiRTOS_Platform_Interface.Cpu_Register_Type :=
+         HiRTOS_Platform_Interface.Get_Stack_Pointer;
       Current_Thread_Id : constant Thread_Id_Type :=
                HiRTOS_Instance.Current_Thread_Id;
    begin
@@ -144,13 +146,13 @@ package body HiRTOS with SPARK_Mode => On is
          pragma Assert (Current_Thread_Id /= Invalid_Thread_Id);
 
          declare
-            Current_Thread_Ptr : constant Thread_Pointer_Type :=
-               Get_Thread_Pointer (Current_Thread_Id);
+            Current_Thread_Obj : Thread_Type renames
+               HiRTOS_Instance.Thread_Instances (Current_Thread_Id);
          begin
             --
             --  Save current sp in current RTOS task context:
             --
-            Thread_Private.Save_Thread_Stack_Pointer (Current_Thread_Ptr.all, Stack_Pointer);
+            Thread_Private.Save_Thread_Stack_Pointer (Current_Thread_Obj, Stack_Pointer);
          end;
 
          --
@@ -162,8 +164,8 @@ package body HiRTOS with SPARK_Mode => On is
                System.Storage_Elements.To_Integer (HiRTOS_Instance.Interrupt_Stack_Base_Addr) +
                HiRTOS_Instance.Interrupt_Stack_Size;
          begin
-            HiRTOS.Platform_Interface.Set_Stack_Pointer (
-               Cpu_Register_Type (Interrupt_Stack_Bottom_End_Addr));
+            HiRTOS_Platform_Interface.Set_Stack_Pointer (
+               HiRTOS_Platform_Interface.Cpu_Register_Type (Interrupt_Stack_Bottom_End_Addr));
          end;
       end if;
    end Enter_Interrupt_Context;
@@ -176,7 +178,7 @@ package body HiRTOS with SPARK_Mode => On is
    --
    procedure Exit_Interrupt_Context is
       HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
    begin
       Interrupt_Nesting.Decrement_Interrupt_Nesting (
          HiRTOS_Instance.Interrupt_Nesting_Level_Stack);
@@ -193,35 +195,187 @@ package body HiRTOS with SPARK_Mode => On is
          declare
             Current_Thread_Id : constant Thread_Id_Type :=
                   HiRTOS_Instance.Current_Thread_Id;
-            Current_Thread_Ptr : constant Thread_Pointer_Type :=
-               Get_Thread_Pointer (Current_Thread_Id);
-            Stack_Pointer : constant Cpu_Register_Type :=
-               Thread_Private.Get_Thread_Stack_Pointer (Current_Thread_Ptr.all);
+            Current_Thread_Obj : Thread_Type renames
+               HiRTOS_Instance.Thread_Instances (Current_Thread_Id);
+            Stack_Pointer : constant HiRTOS_Platform_Interface.Cpu_Register_Type :=
+               Thread_Private.Get_Thread_Stack_Pointer (Current_Thread_Obj);
 
          begin
             --
             --  Restore saved stack pointer from the current RTOS task context:
             --
-            HiRTOS.Platform_Interface.Set_Stack_Pointer (Stack_Pointer);
+            HiRTOS_Platform_Interface.Set_Stack_Pointer (Stack_Pointer);
          end;
       end if;
    end Exit_Interrupt_Context;
 
-   procedure Switch_Thread_Context is
-   begin
-      null; -- TODO
-   end Switch_Thread_Context;
-
-   function Get_Thread_Pointer (Thread_Id : Thread_Id_Type) return Thread_Pointer_Type is
-      HiRTOS_Instance : HiRTOS_Instance_Type renames
-         HiRTOS_Instances (HiRTOS.Platform_Interface.Get_Cpu_Id);
-      Thread_Node_Ptr : constant Thread_Queue.Node_Pointer_Type :=
-         HiRTOS_Instance.Thread_Node_Array (Thread_Id)'Access;
-   begin
-      return Thread_Queue.Get_Node_Payload_Pointer (Thread_Node_Ptr);
-   end Get_Thread_Pointer;
-
    function Running_In_Privileged_Mode return Boolean renames
-      HiRTOS.Platform_Interface.Cpu_In_Privileged_Mode;
+      HiRTOS_Platform_Interface.Cpu_In_Privileged_Mode;
+
+   --
+   --  Timer list node accessors
+   --
+
+   function Get_Next_Timer (Timer_Id : Timer_Id_Type) return Timer_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames HiRTOS_Instance.Timer_Instances (Timer_Id);
+   begin
+      return Timer_Obj.List_Node.Next_Element_Id;
+   end Get_Next_Timer;
+
+   procedure Set_Next_Timer (Timer_Id : Timer_Id_Type;
+                             Next_Timer_Id : Timer_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames HiRTOS_Instance.Timer_Instances (Timer_Id);
+   begin
+      Timer_Obj.List_Node.Next_Element_Id := Next_Timer_Id;
+   end Set_Next_Timer;
+
+   function Get_Prev_Timer (Timer_Id : Timer_Id_Type) return Timer_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames HiRTOS_Instance.Timer_Instances (Timer_Id);
+   begin
+      return Timer_Obj.List_Node.Prev_Element_Id;
+   end Get_Prev_Timer;
+
+   procedure Set_Prev_Timer (Timer_Id : Timer_Id_Type;
+                             Prev_Timer_Id : Timer_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames HiRTOS_Instance.Timer_Instances (Timer_Id);
+   begin
+      Timer_Obj.List_Node.Prev_Element_Id := Prev_Timer_Id;
+   end Set_Prev_Timer;
+
+   function Get_Containing_Timer_List (Timer_Id : Timer_Id_Type) return Timer_Wheel_Spoke_Index_Type
+   is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames HiRTOS_Instance.Timer_Instances (Timer_Id);
+   begin
+      return Timer_Obj.List_Node.Containing_List_Id;
+   end Get_Containing_Timer_List;
+
+   procedure Set_Containing_Timer_List (Timer_Id : Timer_Id_Type;
+                                        List_Id : Timer_Wheel_Spoke_Index_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames HiRTOS_Instance.Timer_Instances (Timer_Id);
+   begin
+      Timer_Obj.List_Node.Containing_List_Id := List_Id;
+   end Set_Containing_Timer_List;
+
+   --
+   --  Thread queue node accessors
+   --
+
+   function Get_Next_Thread (Thread_Id : Thread_Id_Type) return Thread_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames HiRTOS_Instance.Thread_Instances (Thread_Id);
+   begin
+      return Thread_Obj.List_Node.Next_Element_Id;
+   end Get_Next_Thread;
+
+   procedure Set_Next_Thread (Thread_Id : Thread_Id_Type;
+                             Next_Thread_Id : Thread_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames HiRTOS_Instance.Thread_Instances (Thread_Id);
+   begin
+      Thread_Obj.List_Node.Next_Element_Id := Next_Thread_Id;
+   end Set_Next_Thread;
+
+   function Get_Prev_Thread (Thread_Id : Thread_Id_Type) return Thread_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames HiRTOS_Instance.Thread_Instances (Thread_Id);
+   begin
+      return Thread_Obj.List_Node.Prev_Element_Id;
+   end Get_Prev_Thread;
+
+   procedure Set_Prev_Thread (Thread_Id : Thread_Id_Type;
+                             Prev_Thread_Id : Thread_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames HiRTOS_Instance.Thread_Instances (Thread_Id);
+   begin
+      Thread_Obj.List_Node.Prev_Element_Id := Prev_Thread_Id;
+   end Set_Prev_Thread;
+
+   function Get_Containing_Thread_Queue (Thread_Id : Thread_Id_Type) return Thread_Queue_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames HiRTOS_Instance.Thread_Instances (Thread_Id);
+   begin
+      return Thread_Obj.List_Node.Containing_List_Id;
+   end Get_Containing_Thread_Queue;
+
+   procedure Set_Containing_Thread_Queue (Thread_Id : Thread_Id_Type;
+                                         List_Id : Thread_Queue_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames HiRTOS_Instance.Thread_Instances (Thread_Id);
+   begin
+      Thread_Obj.List_Node.Containing_List_Id := List_Id;
+   end Set_Containing_Thread_Queue;
+
+   --
+   --  Mutex list node accessors
+   --
+
+   function Get_Next_Mutex (Mutex_Id : Mutex_Id_Type) return Mutex_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Mutex_Obj : Mutex_Type renames HiRTOS_Instance.Mutex_Instances (Mutex_Id);
+   begin
+      return Mutex_Obj.List_Node.Next_Element_Id;
+   end Get_Next_Mutex;
+
+   procedure Set_Next_Mutex (Mutex_Id : Mutex_Id_Type;
+                             Next_Mutex_Id : Mutex_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Mutex_Obj : Mutex_Type renames HiRTOS_Instance.Mutex_Instances (Mutex_Id);
+   begin
+      Mutex_Obj.List_Node.Next_Element_Id := Next_Mutex_Id;
+   end Set_Next_Mutex;
+
+   function Get_Prev_Mutex (Mutex_Id : Mutex_Id_Type) return Mutex_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Mutex_Obj : Mutex_Type renames HiRTOS_Instance.Mutex_Instances (Mutex_Id);
+   begin
+      return Mutex_Obj.List_Node.Prev_Element_Id;
+   end Get_Prev_Mutex;
+
+   procedure Set_Prev_Mutex (Mutex_Id : Mutex_Id_Type;
+                             Prev_Mutex_Id : Mutex_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Mutex_Obj : Mutex_Type renames HiRTOS_Instance.Mutex_Instances (Mutex_Id);
+   begin
+      Mutex_Obj.List_Node.Prev_Element_Id := Prev_Mutex_Id;
+   end Set_Prev_Mutex;
+
+   function Get_Containing_Mutex_List (Mutex_Id : Mutex_Id_Type) return Thread_Id_Type is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Mutex_Obj : Mutex_Type renames HiRTOS_Instance.Mutex_Instances (Mutex_Id);
+   begin
+      return Mutex_Obj.List_Node.Containing_List_Id;
+   end Get_Containing_Mutex_List;
+
+   procedure Set_Containing_Mutex_List (Mutex_Id : Mutex_Id_Type;
+                                        List_Id : Thread_Id_Type) is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Mutex_Obj : Mutex_Type renames HiRTOS_Instance.Mutex_Instances (Mutex_Id);
+   begin
+      Mutex_Obj.List_Node.Containing_List_Id := List_Id;
+   end Set_Containing_Mutex_List;
 
 end HiRTOS;

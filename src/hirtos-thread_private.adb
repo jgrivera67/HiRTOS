@@ -26,6 +26,26 @@
 --
 package body HiRTOS.Thread_Private is
 
+   -----------------------------------------------------------------------------
+   --  Private Subprograms Specifications                                     --
+   -----------------------------------------------------------------------------
+
+   --
+   --  If the thread has consumed its time slice, enqueue it at the end of the
+   --  given run queue.
+   --
+   procedure Track_Thread_Time_Slice (HiRTOS_Instance : in out HiRTOS_Instance_Type;
+                                      Thread_Obj : in out Thread_Type)
+      with Pre => Thread_Obj.Time_Slice_Left_Us <= Thread_Time_Slice_Us
+                  and then
+                  HiRTOS_Platform_Interface.Cpu_Interrupting_Disabled;
+
+   procedure Save_Thread_Extended_Context (Thread_Obj : in out Thread_Type);
+
+   -----------------------------------------------------------------------------
+   --  Public Subprograms                                                     --
+   -----------------------------------------------------------------------------
+
    procedure Increment_Privilege_Nesting (Thread_Obj : in out Thread_Type) is
    begin
       null; --  TODO
@@ -40,18 +60,31 @@ package body HiRTOS.Thread_Private is
    end Decrement_Privilege_Nesting;
 
    procedure Save_Thread_Stack_Pointer (Thread_Obj : in out Thread_Type;
-                                        Stack_Pointer : Cpu_Register_Type)
+                                        Stack_Pointer : HiRTOS_Platform_Interface.Cpu_Register_Type)
    is
    begin
       Thread_Obj.Saved_Stack_Pointer := Stack_Pointer;
    end Save_Thread_Stack_Pointer;
 
    procedure Run_Thread_Scheduler is
+      HiRTOS_Instance : HiRTOS_Instance_Type renames
+         HiRTOS_Instances (HiRTOS_Platform_Interface.Get_Cpu_Id);
+      Current_Thread_Id : constant Thread_Id_Type := HiRTOS_Instance.Current_Thread_Id;
+      Current_Thread_Obj : Thread_Type renames HiRTOS_Instance.Thread_Instances (Current_Thread_Id);
+      Old_Cpu_Interrupt_Mask : HiRTOS_Platform_Interface.Cpu_Register_Type;
+      Old_Current_Thread_Id : constant Thread_Id_Type := Current_Thread_Id;
    begin
-      --  If current thread is not invalid and has consumed its time slice,
-      --     Enqueue it at the end of the corresponding priorty's queue.
+      --  begin critical section
+      Old_Cpu_Interrupt_Mask := HiRTOS_Platform_Interface.Disable_Cpu_Interrupting;
+      if Current_Thread_Id /= Invalid_Thread_Id then
+         Track_Thread_Time_Slice (HiRTOS_Instance, Current_Thread_Obj);
+
+      --  If current thread is not invalid and
       --     Increment the timeslice up count for that thread.
       --     Set Time slice used back to 0 for the current thread
+
+      end if;
+
       --  Dequeue the highest priority runnable thread.
       --  If current thread /= selected thread,
       --     If current thread is not invalid
@@ -65,7 +98,36 @@ package body HiRTOS.Thread_Private is
       --  else
       --     Increment thread interrupted count for current thread
       --
-      null; --  ???
+
+      --  End critical section
+      HiRTOS_Platform_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupt_Mask);
    end Run_Thread_Scheduler;
+
+   -----------------------------------------------------------------------------
+   --  Private Subprograms                                                    --
+   -----------------------------------------------------------------------------
+
+   procedure Track_Thread_Time_Slice (HiRTOS_Instance : in out HiRTOS_Instance_Type;
+                                      Thread_Obj : in out Thread_Type) is
+      Run_Queue : Thread_Queue_Package.List_Anchor_Type renames
+                     HiRTOS_Instance.Runnable_Thread_Queues (Thread_Obj.Priority);
+   begin
+      if Thread_Obj.Time_Slice_Left_Us = Thread_Time_Slice_Us then
+         Thread_Obj.Stats.Times_Time_Slice_Consumed := @ + 1;
+         Thread_Obj.Time_Slice_Left_Us := Thread_Time_Slice_Us;
+         Thread_Queue_Package.List_Add_Tail (Run_Queue, Thread_Obj.Id);
+         Save_Thread_Extended_Context (Thread_Obj);
+      end if;
+   end Track_Thread_Time_Slice;
+
+   procedure Save_Thread_Extended_Context (Thread_Obj : in out Thread_Type) is
+   begin
+      HiRTOS_Platform_Interface.Memory_Protection.Save_Thread_Mem_Prot_Regions (Thread_Obj.Thread_Mem_Prot_Regions);
+   end Save_Thread_Extended_Context;
+
+   procedure Restore_Thread_Extended_Context (Thread_Obj : in out Thread_Type) is
+   begin
+      HiRTOS_Platform_Interface.Memory_Protection.Restore_Thread_Mem_Prot_Regions (Thread_Obj.Thread_Mem_Prot_Regions);
+   end Save_Thread_Extended_Context;
 
 end HiRTOS.Thread_Private;

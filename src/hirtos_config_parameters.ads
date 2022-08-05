@@ -51,11 +51,6 @@ package HiRTOS_Config_Parameters with SPARK_Mode => On is
    Max_Num_Timers : constant := 32;
 
    --
-   --  Number of interrupt priorities priorities
-   --
-   Num_Interrupt_Priorities : constant := 16;
-
-   --
    --  Number of thread priorities
    --
    Num_Thread_Priorities : constant := 32;
@@ -66,13 +61,13 @@ package HiRTOS_Config_Parameters with SPARK_Mode => On is
    Thread_Stack_Min_Size : constant := 1024;
 
    --
-   --  RTOS tick timer period in milliseconds
+   --  RTOS tick timer period in microseconds
    --
-   Tick_Period_Ms : constant := 1;
+   Tick_Period_Us : constant := 1000;
 
    --
-   --  Memory protection region alignment in bytes
+   --  Thread time slice in RTOS ticks
    --
-   Mem_Prot_Region_Alignment : constant := 32;
+   Thread_Time_Slice_Ticks : constant := 1;
 
 end HiRTOS_Config_Parameters;

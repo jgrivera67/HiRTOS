@@ -47,17 +47,8 @@ ${OBJ_DIR}:
 ${MAIN_DOC}: ${LTX_INCLUDES} ${OTHER_FIGURES}
 
 ${MAIN_DOC}: %.pdf: %.ltx
-	(${FUZZ} -d $<; \
-	 ${RM} $@ ${OBJ_DIR}/${@:.pdf=}*; \
-	 run_count=1; \
-	 printf "\n*** Run $$run_count of pdflatex for $@ ...\n"; \
-	 ${PDFLATEX} ${PDFLATEX_FLAGS} $<; \
-	 while grep -q "Rerun to get cross-references right." ${OBJ_DIR}/${<:.ltx=.log}; do \
-	     run_count=$$(expr $$run_count + 1); \
-	     printf "\n*** Run $$run_count of pdflatex for $@ ...\n"; \
-             ${PDFLATEX} ${PDFLATEX_FLAGS} $<; \
-	 done; \
-	 mv -v ${OBJ_DIR}/$@ $@ || exit 1)
+	${FUZZ} -d $<
+	latexmk -pdf $<
 	@printf "\n*** Build of $@ completed successfully ***\n"
 	ls -lt *.pdf
 

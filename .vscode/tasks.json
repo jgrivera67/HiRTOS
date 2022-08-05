@@ -4,19 +4,14 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build with alr",
             "type": "shell",
-            "command": "gprbuild",
+            "command": "alr",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
             "args": [
-                "-p",
-                "-P",
-                "$GPR_FILE",
-                //"-XCPU_Core=arm_cortex_r",
-                "-cargs",
-                "-gnatef"
+                "build"
             ],
             "problemMatcher": {
                 "base": "$ada",
@@ -100,6 +95,34 @@
                 "kind": "build",
                 "isDefault": true
             }
-        }
+        },
+        {
+            "label": "build with gprbuild",
+            "type": "shell",
+            "command": "gprbuild",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "args": [
+                "-p",
+                "-P",
+                "$GPR_FILE",
+                //"-XCPU_Core=arm_cortex_r",
+                "-cargs",
+                "-gnatef"
+            ],
+            "problemMatcher": {
+                "base": "$ada",
+                "fileLocation": [
+                    "autoDetect",
+                    "${workspaceFolder}"
+                ],
+                "fileLocation": [ "absolute" ],
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }

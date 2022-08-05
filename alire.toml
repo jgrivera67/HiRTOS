@@ -1,3 +1,7 @@
+#
+# NOTE: Before building for the first time with `alr build`, select the
+# corresponding cross compiler toolchain by running `alr toolchain --select`
+#
 name = "hirtos"
 description = "High-Integrity RTOS"
 version = "0.0.0"
