@@ -1,0 +1,7 @@
+name = "portable_minimal_ada_rts"
+description = "Portable Minimal Ada Runtime Library"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]

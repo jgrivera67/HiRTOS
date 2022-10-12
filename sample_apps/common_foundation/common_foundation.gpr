@@ -1,0 +1,39 @@
+with "config/common_foundation_config.gpr";
+with "../../hirtos_compiler_flags.gpr";
+
+project Common_Foundation is
+
+   for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
+   for Runtime ("Ada") use "../../third_party/portable_minimal_ada_rts";
+   for Languages use ("Ada", "C", "Asm_Cpp");
+
+   for Library_Name use "Common_Foundation";
+   for Library_Version use Project'Library_Name & ".so." & Common_Foundation_Config.Crate_Version;
+
+   for Source_Dirs use ("src/",
+                        "src/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch,
+                        "src/platforms/" & HiRTOS_Compiler_Flags.Platform,
+                        "config/");
+   for Object_Dir use "obj/" & Common_Foundation_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("COMMON_FOUNDATION_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   package Compiler is
+      for Default_Switches ("Ada") use Common_Foundation_Config.Ada_Compiler_Switches &
+                                       HiRTOS_Compiler_Flags.Compiler.ADAFLAGS;
+
+      for Default_Switches ("C") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS;
+
+      for Default_Switches ("Asm_Cpp") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS;
+   end Compiler;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Common_Foundation;

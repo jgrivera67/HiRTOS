@@ -24,8 +24,12 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-package HiRTOS.Thread is
 
+with System.Storage_Elements;
+
+package HiRTOS.Thread
+   with SPARK_Mode => On
+is
    --
    --  NOTE: Lower value means higher priority
    --
@@ -36,17 +40,17 @@ package HiRTOS.Thread is
       constant Thread_Priority_Type := Thread_Priority_Type'First;
 
    type Thread_Entry_Point_Type is access procedure (Arg : System.Address)
-	 with Convention => C;
+          with Convention => C;
 
    --
    --  Create new thread
    --
    procedure Create_Thread (Entry_Point : Thread_Entry_Point_Type;
-			    Priority : Thread_Priority_Type;
-			    Stack_Addr : System.Address;
-			    Stack_Size : Interfaces.Unsigned_32;
-			    Thread_Id : out Thread_Id_Type;
-			    Error : out Error_Type)
+                            Priority : Thread_Priority_Type;
+                            Stack_Addr : System.Address;
+                            Stack_Size :  System.Storage_Elements.Integer_Address;
+                            Thread_Id : out Thread_Id_Type;
+                            Error : out Error_Type)
       with Export,
          Convention => C,
          External_Name => "hirtos_create_thread";

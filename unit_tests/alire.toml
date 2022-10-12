@@ -1,0 +1,15 @@
+name = "unit_tests"
+description = "HiRTOS unit tests"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["unit_tests"]
+
+[[depends-on]]
+aunit = "^22.0.0"
+gnatcov = "^22.0.1"
+gnat_native = "*"
+

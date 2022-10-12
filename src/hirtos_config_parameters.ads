@@ -28,9 +28,12 @@
 --
 --  @summary HiRTOS compile-time configuration parameters
 --
-package HiRTOS_Config_Parameters with SPARK_Mode => On is
+package HiRTOS_Config_Parameters
+   with SPARK_Mode => On,
+        No_Elaboration_Code_All
+is
    --
-   --  Maximum number of threads
+   --  Maximum number of threads (total for all CPU cores)
    --
    Max_Num_Threads : constant := 32;
 
@@ -58,7 +61,7 @@ package HiRTOS_Config_Parameters with SPARK_Mode => On is
    --
    --  Thread stack minimum size in bytes
    --
-   Thread_Stack_Min_Size : constant := 1024;
+   Thread_Stack_Min_Size_In_Bytes : constant := 1024;
 
    --
    --  RTOS tick timer period in microseconds

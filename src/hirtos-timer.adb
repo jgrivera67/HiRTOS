@@ -26,4 +26,20 @@
 --
 package body HiRTOS.Timer is
 
+   procedure Initialize_Timer (Timer_Obj : out Timer_Type; Timer_Id : Timer_Id_Type)
+      with Pre => Timer_Id /= Invalid_Timer_Id;
+
+   -----------------------------------------------------------------------------
+   --  Public Subprograms
+   -----------------------------------------------------------------------------
+
+   -----------------------------------------------------------------------------
+   --  Private Subprograms
+   -----------------------------------------------------------------------------
+   
+   procedure Initialize_Timer (Timer_Obj : out Timer_Type; Timer_Id : Timer_Id_Type) is
+   begin
+      Timer_Obj.Id := Timer_Id;
+      Timer_List_Package.List_Node_Init (Timer_Obj.List_Node);
+   end Initialize_Timer;
 end HiRTOS.Timer;

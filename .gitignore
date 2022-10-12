@@ -8,3 +8,7 @@
 
 # vim backup files
 .*.sw[op]
+/obj/
+/lib/
+/alire/
+/config/

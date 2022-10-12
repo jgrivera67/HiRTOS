@@ -1,0 +1,24 @@
+name = "fvp_armv8r_aarch32_hello"
+description = "Hello world app for ARM FVP ARMV8R platform"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["fvp_armv8r_aarch32_hello"]
+
+[[depends-on]]
+hirtos = "*"
+common_foundation = "*"
+portable_minimal_ada_rts = "*"
+
+[[pins]]
+hirtos = { path='../..' }
+common_foundation = { path='../common_foundation' }
+portable_minimal_ada_rts = { path='../../third_party/portable_minimal_ada_rts' }
+
+[build-profiles]
+hirtos = "development"
+common_foundation = "development"
+portable_minimal_ada_rts = "development"

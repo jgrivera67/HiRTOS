@@ -9,3 +9,17 @@ version = "0.0.0"
 authors = ["J. German Rivera"]
 maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
 maintainers-logins = ["jgrivera67"]
+
+[[depends-on]]
+common_foundation = "*"
+portable_minimal_ada_rts = "*"
+gnatprove = "^12.1.1"
+
+[[pins]]
+common_foundation = { path='sample_apps/common_foundation' }
+portable_minimal_ada_rts = { path='third_party/portable_minimal_ada_rts' }
+
+[build-profiles]
+common_foundation = "development"
+portable_minimal_ada_rts = "development"
+

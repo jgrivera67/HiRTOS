@@ -1,0 +1,125 @@
+abstract project Hirtos_Compiler_Flags is
+
+   type CPU_Core_Type is ("arm_cortex_m0plus", "arm_cortex_m4", "arm_cortex_r5", "arm_cortex_r52", "riscv32");
+
+   CPU_Core : CPU_Core_Type := External ("CPU_Core", "arm_cortex_r52");
+
+   CPU_Arch := "";
+   Platform := "";
+   Target_Compiler_Selector := "";
+   CPU_Core_Switches := ();
+   Build_Profile_Switches := ();
+
+   case CPU_Core is
+      when "arm_cortex_m0plus" =>
+	      CPU_Arch := "arm_cortex_m";
+	      Target_Compiler_Selector := "arm-abi";
+	      CPU_Core_Switches := ("-mcpu=cortex-m0plus",
+	 		                      "-mthumb",
+			                    --"-march=armv6-m",
+			                      "-mlittle-endian",
+			                      "-fno-omit-frame-pointer");
+
+      when "arm_cortex_m4" =>
+	      CPU_Arch := "arm_cortex_m";
+	      Target_Compiler_Selector := "arm-eabi";
+	      CPU_Core_Switches := ("-mcpu=cortex-m4",
+	                            "-mthumb",
+	                          --"-march=armv7e-m",
+			                      "-mlittle-endian",
+			                    --"-mfloat-abi=softfp",
+			                      "-mhard-float",
+			                      "-mfpu=fpv4-sp-d16",
+			                      "-fno-omit-frame-pointer");
+
+      when "arm_cortex_r5" =>
+         CPU_Arch := "armv7r";
+         Target_Compiler_Selector := "arm-eabi";
+         CPU_Core_Switches := ("-mcpu=cortex-r5",
+			                      "-mlittle-endian",
+			                    --"-mhard-float",
+			                    --"-mfpu=fpv4-sp-d16",
+			                      "-fno-omit-frame-pointer",
+                               "-funwind-tables");
+
+      when "arm_cortex_r52" =>
+	      CPU_Arch := "armv8r_aarch32";
+	      Platform := "arm_fvp";
+	      Target_Compiler_Selector := "arm-eabi";
+	      CPU_Core_Switches := ("-mcpu=cortex-r52",
+	                          --"-march=armv8-r",
+			                      "-mlittle-endian",
+			                    --"-mfloat-abi=softfp",
+			                      "-mhard-float",
+			                      "-mfpu=fpv4-sp-d16",
+			                      "-fno-omit-frame-pointer");
+
+      when "riscv32" =>
+	      CPU_Arch := "riscv32";
+	      Target_Compiler_Selector := "riscv32-elf";
+	      CPU_Core_Switches := ("-march=rv32imac",
+	                            "-mabi=ilp32",
+		                         "-mcmodel=medany");
+      when others =>
+	      null;
+   end case;
+
+   package Compiler is
+      --  COMMON_FLAGS here is common flags (used for C and Ada).
+      COMMON_FLAGS := CPU_Core_Switches &
+                  ("-fcallgraph-info=su,da",
+                   "-ffunction-sections",
+                   "-fdata-sections",
+                 --"-fverbose-asm",
+	                "-fstack-usage",
+          	     --"-fstack-check", --  Generate stack checking code
+		             "-Wall");
+
+      ADAFLAGS := COMMON_FLAGS &
+                  ("-gnatwa" -- Enable all warnings
+                  ,"-gnatw.X" -- Disable warnings for No_Exception_Propagation
+                  ,"-gnatVa" -- All validity checks
+                  ,"-gnaty3" -- Specify indentation level of 3
+                  ,"-gnatya" -- Check attribute casing
+                  ,"-gnatyA" -- Use of array index numbers in array attributes
+                  ,"-gnatyB" -- Check Boolean operators
+                  ,"-gnatyb" -- Blanks not allowed at statement end
+                  ,"-gnatyc" -- Check comments
+                  ,"-gnaty-d" -- Disable check no DOS line terminators present
+                  ,"-gnatye" -- Check end/exit labels
+                  ,"-gnatyf" -- No form feeds or vertical tabs
+                  ,"-gnatyh" -- No horizontal tabs
+                  ,"-gnatyi" -- Check if-then layout
+                  ,"-gnatyI" -- check mode IN keywords
+                  ,"-gnatyk" -- Check keyword casing
+                  ,"-gnatyl" -- Check layout
+                  ,"-gnatyn" -- Check casing of entities in Standard
+                  ,"-gnatyO" -- Check that overriding subprograms are explicitly marked as such
+                  ,"-gnatyp" -- Check pragma casing
+                  ,"-gnatyr" -- Check identifier references casing
+                  ,"-gnatyS" -- Check no statements after THEN/ELSE
+                  ,"-gnatyt" -- Check token spacing
+                  ,"-gnatyu" -- Check unnecessary blank lines
+                  ,"-gnatyx" -- Check extra parentheses
+                --,"-gnatQ" --  Don't quit. Generate ALI and tree files even if illegalities
+                  ,"-gnato13"   --  Overflow checking            (part of Ada)
+                  ,"-gnatf"     --  Full, verbose error messages
+                  ,"-gnatyM120" --  Check maximum line length
+                  ,"-gnatef"    --  Print full path in error messages
+	                ,"-gnata"     --  Enable assertions and contracts
+                --,"-gnatwe"    --  Warnings as errors
+                  ,"-gnat2022"  --  Use Ada 2022
+                  ,"-nostdinc"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) source files.
+		              ,"-nostdlib"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) ALI files.
+                  );
+
+      Development_Only_Flags := ("-Og", -- No optimization
+	                              "-g"); -- Debug info
+
+      Release_Only_Flags := ("-O3",     -- Optimize for performance
+                             "-gnatn",  -- Enable inlining
+                             "-gnatp"); -- Suppress all runtime checks
+
+      for Local_Configuration_Pragmas use "gnat_pragmas.adc";
+   end Compiler;
+end Hirtos_Compiler_Flags;

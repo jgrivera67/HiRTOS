@@ -5,11 +5,11 @@
 #define CRATE_VERSION "0.0.0"
 #define CRATE_NAME "hirtos"
 
-#define ALIRE_HOST_OS "macos"
+#define ALIRE_HOST_OS "linux"
 
-#define ALIRE_HOST_ARCH "aarch64"
+#define ALIRE_HOST_ARCH "x86_64"
 
-#define ALIRE_HOST_DISTRO "distro_unknown"
+#define ALIRE_HOST_DISTRO "fedora"
 
 #define BUILD_PROFILE_RELEASE 1
 #define BUILD_PROFILE_VALIDATION 2

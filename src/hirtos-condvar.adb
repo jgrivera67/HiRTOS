@@ -26,4 +26,23 @@
 --
 package body HiRTOS.Condvar is
 
+procedure Initialize_Condvar (Condvar_Obj : out Condvar_Type; Condvar_Id : Condvar_Id_Type)
+      with Pre => Condvar_Id /= Invalid_Condvar_Id;
+
+   -----------------------------------------------------------------------------
+   --  Public Subprograms
+   -----------------------------------------------------------------------------
+
+   -----------------------------------------------------------------------------
+   --  Private Subprograms
+   -----------------------------------------------------------------------------
+   
+   procedure Initialize_Condvar (Condvar_Obj : out Condvar_Type; Condvar_Id : Condvar_Id_Type) is
+   begin
+      Condvar_Obj.Id := Condvar_Id;
+      Condvar_Obj.Wakeup_Atomic_Level := Atomic_Level_None;
+      Condvar_Obj.Wakeup_Mutex_id := Invalid_Mutex_Id;
+      Thread_Queue_Package.List_Init (Condvar_Obj.Waiters_Queue);
+   end Initialize_Condvar;
+   
 end HiRTOS.Condvar;

@@ -1,0 +1,30 @@
+Minimal platform-independent Ada runtime library.
+Files copied from the GNAT distro as follows:
+- common/*.ad[sb] files came from
+  <gnat install dir>/arm-eabi/include/rts-sources/common/
+- fpu/*.ad[sb] files came from
+  <gnat install dir>/arm-eabi/include/rts-sources/fpu/
+- zfp/*.ad[sb] files came from
+  <gnat install dir>/arm-eabi/include/rts-sources/zfp/,
+  except for system.ads, which was copied from
+<gnat install dir>/arm-eabi/BSPs/cortex-m/armv7-m/stm32/stm32f4/zfp/arch/system.ads
+
+The following declarations have been removed from the original system.ads
+to make it more portable across platforms:
+
+   Tick                  : constant := 1.0 / 60.0;
+
+   --  Priority-related Declarations (RM D.1)
+
+   Max_Priority           : constant Positive := 30;
+   Max_Interrupt_Priority : constant Positive := 31;
+
+   subtype Any_Priority       is Integer      range  0 .. 31;
+   subtype Priority           is Any_Priority range  0 .. 30;
+   subtype Interrupt_Priority is Any_Priority range 31 .. 31;
+
+   Default_Priority : constant Priority := 15;
+
+
+Host FSF gnat RTS sources are at:
+/usr/lib/gcc/arm-linux-gnueabihf/8/adainclude/

@@ -4,23 +4,23 @@
 --  running `alr toolchain --select`, the cross compiler will be installed
 --  at `~/.config/alire/cache/dependencies/gnat_arm_elf_<xxxx>/bin`.
 --
-with "src/third_party/portable_minimal_ada_rts/rts.gpr";
 with "config/hirtos_config.gpr";
+with "hirtos_compiler_flags.gpr";
 
 project Hirtos is
-
+   for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
+   for Runtime ("Ada") use "third_party/portable_minimal_ada_rts";
    for Languages use ("Ada");
-
-   for Runtime ("Ada") use RTS'Runtime ("Ada");
-
-   for Target use RTS'Target;
 
    for Library_Name use "Hirtos";
    for Library_Version use Project'Library_Name & ".a." & Hirtos_Config.Crate_Version;
 
    for Source_Dirs use ("src",
-                        "src/platform-specific/" & RTS.CPU_Arch);
-   for Object_Dir use "obj";
+                        "src/cpu_architectures",
+                        "src/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch,
+                        "src/platforms/" & HiRTOS_Compiler_Flags.Platform);
+
+   for Object_Dir use "obj/" & HiRTOS_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Library_Dir use "lib";
 
@@ -32,96 +32,36 @@ project Hirtos is
    for Library_Standalone use "standard";
    for Library_Interface use ("Hirtos",
                               "HiRTOS_Config_Parameters",
+                              "HiRTOS_Cpu_Arch_Parameters",
                               "HiRTOS_Platform_Parameters",
-                              "HiRTOS_Platform_Interface",
-                              "HiRTOS_Platform_Interface.Cpu_Specific",
+                              "HiRTOS_Platform_External_Interrupts",
+                              "HiRTOS_Cpu_Arch_Interface",
+                              "HiRTOS_Cpu_Arch_Interface.Thread_Context",
+                              "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling",
+                              "HiRTOS_Cpu_Arch_Interface.Memory_Protection",
+                              "Generic_Execution_Stack",
                               "Generic_Linked_List",
                               "HiRTOS.Interrupt_Nesting",
-                              "HiRTOS.Thread_Private"
+                              "HiRTOS.Interrupt_Context",
+                              "HiRTOS.Thread_Private",
+                              "HiRTOS.Mutex_Private",
+                              "HiRTOS.Condvar_Private",
+                              "HiRTOS.Timer_Private",
+                              "HiRTOS.RTOS_Private",
+                              "HiRTOS.Thread" --,
+                              --"HiRTOS.Timer"
+                              --"HiRTOS.Mutex",
+                              --"HiRTOS.Condvar"
                              );
 
    for Library_Auto_Init use "False";
 
-   type Enabled_Kind is ("enabled", "disabled");
-   Compile_Checks : Enabled_Kind := External ("HIRTOS_COMPILE_CHECKS", "enabled");
-   Runtime_Checks : Enabled_Kind := External ("HIRTOS_RUNTIME_CHECKS", "enabled");
-   Style_Checks : Enabled_Kind := External ("HIRTOS_STYLE_CHECKS", "enabled");
-   Contracts_Checks : Enabled_Kind := External ("HIRTOS_CONTRACTS", "enabled");
-
-   type Build_Kind is ("debug", "optimize");
-   Build_Mode : Build_Kind := External ("HIRTOS_BUILD_MODE", "debug");
-
-   Compile_Checks_Switches := ();
-   case Compile_Checks is
-      when "enabled" =>
-         Compile_Checks_Switches :=
-            ("-gnatwa", -- All warnings
-           --???"-gnatwe", -- Warnings as errors
-             "-gnatVa"  -- All validity checks
-            );
-      when others => null;
-   end case;
-
-   Runtime_Checks_Switches := ();
-   case Runtime_Checks is
-      when "enabled" => null;
-      when others =>
-         Runtime_Checks_Switches :=
-           ("-gnatp"); -- Suppress checks
-   end case;
-
-   Style_Checks_Switches := ();
-   case Style_Checks is
-      when "enabled" =>
-         Style_Checks_Switches :=
-           ("-gnatyg",   -- GNAT Style checks
-            "-gnaty-d",  -- Disable no DOS line terminators
-            "-gnatyM100", -- Maximum line length
-            "-gnatyO");  -- Overriding subprograms explicitly marked as such
-      when others => null;
-   end case;
-
-   Contracts_Switches := ();
-   case Contracts_Checks is
-      when "enabled" =>
-         Contracts_Switches :=
-           ("-gnata"); --  Enable assertions and contracts
-      when others => null;
-   end case;
-
-   Build_Switches := ();
-   case Build_Mode is
-      when "optimize" =>
-         Build_Switches := ("-O3",     -- Optimization
-                            "-gnatn"); -- Enable inlining
-      when "debug" =>
-         Build_Switches := ("-g",   -- Debug info
-                            "-Og"); -- No optimization
-   end case;
-
    package Compiler is
-      for Default_Switches ("Ada") use
-        Compile_Checks_Switches &
-        Build_Switches &
-        Runtime_Checks_Switches &
-        Style_Checks_Switches &
-        Contracts_Switches &
-        RTS.Compiler.COMMON_FLAGS &
-        ("-gnatw.X", -- Disable warnings for No_Exception_Propagation
-         "-gnatQ",   -- Don't quit. Generate ALI and tree files even if illegalities
-	      "-fstack-usage",
-	      -- "-fstack-check", --  Generate stack checking code
-         "-gnato13",         --  Overflow checking            (part of Ada)
-         "-gnatf",           --  Full, verbose error messages
-         "-gnat2020"         --  Use Ada 2020
-         , "-S" -- ???
-        );
-
-      for Local_Configuration_Pragmas use "src/gnat_pragmas.adc";
+      for Default_Switches ("Ada") use HiRTOS_Config.Ada_Compiler_Switches &
+                                       HiRTOS_Compiler_Flags.Compiler.ADAFLAGS;
    end Compiler;
 
-   package Binder is
-      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
-   end Binder;
-
+   --package Builder is
+   --   for Global_Compilation_Switches ("Ada") use ("-gnateT=target.atp");
+   --end Builder;
 end Hirtos;
