@@ -31,63 +31,38 @@
 --
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
-   --
-   --  MPU regions assignment
-   --
-   --  NOTE: Higher region id means higher region precedence in case of overlapping regions
-   --
-   type MPU_Region_Id_Type is (Global_Data_Region,
-                               Global_Interrupt_Stack_Region,
-                               Thread_Stack_Data_Region,
-                               Thread_Private_Data_Region,
-                               Thread_Private_MMIO_Region,
-                               Global_Code_Region,
-                               Thread_Private_Code_Region);
 
-   for MPU_Region_Id_Type use (Global_Data_Region => 0,
-                               Global_Interrupt_Stack_Region => 1,
-                               Thread_Stack_Data_Region => 2,
-                               Thread_Private_Data_Region => 3,
-                               Thread_Private_MMIO_Region => 4,
-                               Global_Code_Region => 5,
-                               Thread_Private_Code_Region => 6);
-
-   procedure Initialize is
+   procedure Enable_Memory_Protection is
    begin
       pragma Assert (False); -- ????
-   end Initialize;
+   end Enable_Memory_Protection;
 
-   procedure Set_Memory_Region (
-      Region : out Memory_Region_Descriptor_Type;
+   procedure Disable_Memory_Protection is
+   begin
+      pragma Assert (False); -- ????
+   end Disable_Memory_Protection;
+
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type;
       Start_Address : System.Address;
-      Size_In_Bits : Region_Size_In_Bits_Type;
+      Size_In_Bytes : System.Storage_Elements.Integer_Address;
       Permissions : Region_Permissions_Type) is
    begin
       pragma Assert (False); --  ???
-   end Set_Memory_Region;
+   end Initialize_Memory_Region_Descriptor;
 
-   procedure Restore_Memory_Region (
-      Saved_Region : Memory_Region_Descriptor_Type) is
+   procedure Restore_Memory_Region_Descriptor (
+      Region_Descriptor_Id : Memory_Region_Descriptor_Id_Type;
+      Region_Descriptor : Memory_Region_Descriptor_Type) is
    begin
       pragma Assert (False); --  ???
-   end Restore_Memory_Region;
+   end Restore_Memory_Region_Descriptor;
 
-   procedure Initialize_Thread_Memory_Regions (Stack_Base_Addr : System.Address;
-                                                 Stack_Size : Interfaces.Unsigned_16;
-                                                 Thread_Regions : out Thread_Memory_Regions_Type)
-   is
+   procedure Save_Memory_Region_Descriptor (
+      Region_Descriptor_Id : Memory_Region_Descriptor_Id_Type;
+      Region_Descriptor : out Memory_Region_Descriptor_Type) is
    begin
-      pragma Assert (False); -- ????
-   end Initialize_Thread_Memory_Regions;
-
-   procedure Restore_Thread_Memory_Regions (Thread_Regions : Thread_Memory_Regions_Type) is
-   begin
-      pragma Assert (False); -- ????
-   end Restore_Thread_Memory_Regions;
-
-   procedure Save_Thread_Memory_Regions (Thread_Regions : out Thread_Memory_Regions_Type) is
-   begin
-      pragma Assert (False); -- ????
-   end Save_Thread_Memory_Regions;
+      pragma Assert (False); --  ???
+   end Save_Memory_Region_Descriptor;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

@@ -26,4 +26,6 @@
 --
 package HiRTOS.Mutex is
 
+   procedure Create_Mutex (Mutex_Id : out Mutex_Id_Type);
+
 end HiRTOS.Mutex;

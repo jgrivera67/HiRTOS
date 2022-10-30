@@ -43,15 +43,17 @@ project Hirtos is
                               "Generic_Linked_List",
                               "HiRTOS.Interrupt_Nesting",
                               "HiRTOS.Interrupt_Context",
+                              "HiRTOS.Memory_Protection_Private",
                               "HiRTOS.Thread_Private",
                               "HiRTOS.Mutex_Private",
                               "HiRTOS.Condvar_Private",
                               "HiRTOS.Timer_Private",
                               "HiRTOS.RTOS_Private",
-                              "HiRTOS.Thread" --,
-                              --"HiRTOS.Timer"
-                              --"HiRTOS.Mutex",
-                              --"HiRTOS.Condvar"
+                              "HiRTOS.Memory_Protection",
+                              "HiRTOS.Thread",
+                              "HiRTOS.Timer",
+                              "HiRTOS.Mutex",
+                              "HiRTOS.Condvar"
                              );
 
    for Library_Auto_Init use "False";

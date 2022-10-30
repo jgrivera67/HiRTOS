@@ -29,15 +29,17 @@ with HiRTOS.RTOS_Private;
 with HiRTOS.Thread;
 with HiRTOS.Thread_Private;
 with HiRTOS.Timer_Private;
+with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Interrupt_Nesting;
+with HiRTOS.Memory_Protection;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 with System.Storage_Elements;
 
 --
 --  @summary HiRTOS implementation
 --
-package body HiRTOS with SPARK_Mode => On
+package body HiRTOS with
+  SPARK_Mode => On
 is
    use HiRTOS.RTOS_Private;
    use HiRTOS.Thread_Private;
@@ -62,24 +64,20 @@ is
         constant HiRTOS_Cpu_Arch_Interface.Interrupt_Handling
           .ISR_Stack_Info_Type :=
         HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Get_ISR_Stack_Info;
-      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
-      Error           : Error_Type;
+      RTOS_Cpu_Instance :
+        HiRTOS_Cpu_Instance_Type renames
+        HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
+      Error          : Error_Type;
+      Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
-      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize;
+      HiRTOS.Memory_Protection_Private.Initialize;
 
-      RTOS_Cpu_Instance.Thread_Scheduler_State := Thread_Scheduler_Stopped;
-      RTOS_Cpu_Instance.Current_Atomic_Level              := Atomic_Level_None;
-      RTOS_Cpu_Instance.Current_Privilege_Nesting_Counter :=
-        Privilege_Nesting_Counter_Type'First + 1;
-      RTOS_Cpu_Instance.Current_Cpu_Execution_Mode :=
-        Cpu_Executing_Reset_Handler;
-      RTOS_Cpu_Instance.Current_Thread_Id         := Invalid_Thread_Id;
-      RTOS_Cpu_Instance.Idle_Thread_Id            := Invalid_Thread_Id;
-      RTOS_Cpu_Instance.Timer_Thread_Id           := Invalid_Thread_Id;
-      RTOS_Cpu_Instance.Timer_Ticks_Since_Boot := Timer_Ticks_Count_Type'First;
-      RTOS_Cpu_Instance.Interrupt_Stack_Base_Addr := ISR_Stack_Info.Base_Address;
+      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
+        (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
+      RTOS_Cpu_Instance.Interrupt_Stack_Base_Addr :=
+        ISR_Stack_Info.Base_Address;
       RTOS_Cpu_Instance.Interrupt_Stack_Size := ISR_Stack_Info.Size_In_Bytes;
-      RTOS_Cpu_Instance.Cpu_Id                    := Cpu_Id;
+      RTOS_Cpu_Instance.Cpu_Id               := Cpu_Id;
 
       HiRTOS.Interrupt_Nesting.Initialize_Interrupt_Nesting_Level_Stack
         (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
@@ -99,25 +97,31 @@ is
         (Timer_Thread_Proc'Access, Lowest_Thread_Priority,
          Timer_Thread_Stack'Address,
          Timer_Thread_Stack'Size / System.Storage_Unit,
-         RTOS_Cpu_Instance.Timer_Thread_Id, Error);
+         RTOS_Cpu_Instance.Tick_Timer_Thread_Id, Error);
       pragma Assert (Error = No_Error);
+
+      HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize;
 
    procedure Start_Thread_Scheduler is
    begin
+      -- TODO: Set state varialbes ????
+      -- TODO: Start tick timer interrupt generation
       HiRTOS_Cpu_Arch_Interface.First_Thread_Context_Switch;
    end Start_Thread_Scheduler;
 
    function Thread_Scheduler_Started return Boolean is
-      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+      RTOS_Cpu_Instance :
+        HiRTOS_Cpu_Instance_Type renames
+        HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
    begin
       return RTOS_Cpu_Instance.Current_Thread_Id /= Invalid_Thread_Id;
    end Thread_Scheduler_Started;
 
    function Current_Execution_Context_Is_Interrupt return Boolean is
-      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+      RTOS_Cpu_Instance :
+        HiRTOS_Cpu_Instance_Type renames
+        HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
    begin
       return
         Interrupt_Nesting.Get_Current_Interrupt_Nesting
@@ -136,12 +140,14 @@ is
       end if;
 
       declare
-         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-            HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+         RTOS_Cpu_Instance :
+           HiRTOS_Cpu_Instance_Type renames
+           HiRTOS_Obj.RTOS_Cpu_Instances
+             (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
          Current_Thread_Id : constant Thread_Id_Type :=
            RTOS_Cpu_Instance.Current_Thread_Id;
-         Current_Thread_Obj : Thread_Type renames
-           HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+         Current_Thread_Obj :
+           Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
       begin
          if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then
             HiRTOS_Cpu_Arch_Interface.Switch_Cpu_To_Privileged_Mode;
@@ -164,12 +170,14 @@ is
       end if;
 
       declare
-         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-            HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+         RTOS_Cpu_Instance :
+           HiRTOS_Cpu_Instance_Type renames
+           HiRTOS_Obj.RTOS_Cpu_Instances
+             (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
          Current_Thread_Id :
            Thread_Id_Type renames RTOS_Cpu_Instance.Current_Thread_Id;
-         Current_Thread_Obj : Thread_Type renames
-           HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+         Current_Thread_Obj :
+           Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
       begin
          Thread_Private.Decrement_Privilege_Nesting (Current_Thread_Obj);
          if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then

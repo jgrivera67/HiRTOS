@@ -25,7 +25,7 @@
 %\linenumbers
 
 \begin{document}
-\title{Design of the HiRTOS Multi-core \\
+\title{Design of the \emph{HiRTOS} Multi-core \\
        Real-Time Operating System}
 \author{Germ\'an Rivera \\
         \texttt jgrivera67@gmail.com}
@@ -41,55 +41,65 @@
 \pagestyle{myheadings}
 \markboth{Design of the HiRTOS Multi-core Real-Time Operating System}{Design of the HiRTOS Real-Time Operating System}
 
-\chapter{HiRTOS: A High Integrity RTOS}
+\chapter{\emph{HiRTOS}: High Integrity RTOS}
 
-This document describes the design of \emph{HiRTOS}, a high integrity real-time
-operating system kernel that supports multi-core systems. The design is presented using the
-\href{http://en.wikipedia.org/wiki/Z_notation}{Z notation} \cite{Zrm, WayofZ}.
+This document describes the design of \emph{HiRTOS} (\emph{``High Integrity''} RTOS),
+a real-time operating system kernel that supports multi-core systems and that is
+specifically designed for high integrity applications. The design is presented using
+the \href{http://en.wikipedia.org/wiki/Z_notation}{Z notation} \cite{Zrm, WayofZ}.
+
 Z is a software modeling notation based on discrete mathematics structures (such as sets,
 relations and functions) and predicate logic. With Z, data structures can be specified in
 terms of mathematical structures and their state invariants can be specified using mathematical
 predicates. The pre-conditions and post-conditions of the operations that manipulate
 the data structures can also be specified using predicates. Using Z for this purpose encourages
 a rigorous and methodical thought process to elicit correctness properties, in a systematic way.
-The HiRTOS Z model described here was checked with the \verb'fuzz' tool~\cite{Fuzz}, a
+The \emph{HiRTOS} Z model described here was checked with the \verb'fuzz' tool~\cite{Fuzz}, a
 Z type-checker, that catches Z type mismatches in predicates.
+
+The code of \emph{HiRTOS} is written in SPARK Ada \cite{SparkAda}, a high integrity
+subset of the Ada programming language. SPARK Ada code can be formally
+verified at compile-time with the \verb`gnatprove` tool \cite{gnatprove}.
 
 \section{Z Naming Conventions}
 %\paragraph*{NOTE:}
 
-The following naming conventions are used in the Z model of HiRTOS:
+The following naming conventions are used in the Z model of \emph{HiRTOS}:
 \begin{itemize}
 \item Z Primitive types are in uppercase.
 \item Z Composite types (schema types) start with uppercase.
 \item Z constants and variables start with lower case.
-\item Identifiers that start with the $z$ prefix are model-only variables
-      that are not meant to be implemented in code.
+\item Identifiers that start with the $z$ prefix are meant to be modeling-only
+      entities that do not physically correspond to code-level entities.
 \end{itemize}
 
 \section{Major Design Decisions}
 
 \begin{itemize}
+\item All application code under HiRTOS supervision runs in unprivileged mode,
+both threads and interrupt handlers. HiRTOS code itself also runs in unprivileged
+mode as much as possible, except when privileged instructions need to be executed.
+
 \item ISRs are seen as hardware-scheduled threads that have higher priority than all
-software-scheduled threads. They always run in privileged mode and can only be preempted by
-higher-priority ISRs. They cannot block waiting on mutexes or condition variables.
+software-scheduled threads. They can only be preempted by higher-priority ISRs.
+They cannot block waiting on mutexes or condition variables.
 
 \item For API simplicity, inspired by the thread synchronization primitives of the C11 standard
 library \cite{libcThreads}, mutexes and condition variables are the only real synchronization
-primitives in HiRTOS.
+primitives in \emph{HiRTOS}.
 Other synchronization primitives such as semaphores, event flags and message queues can be
 implemented on top of them.
 
-\item Unlike stadanrd mutexes, HiRTOS mutexes have priorities to support the priority ceiling
+\item Unlike stadanrd mutexes, \emph{HiRTOS} mutexes have priorities to support the priority ceiling
 protocol \cite{prioCeiling}.
 
-\item HiRTOS atomic levels can be used to disable the thread scheduler or to disable interrupts
+\item \emph{HiRTOS} atomic levels can be used to disable the thread scheduler or to disable interrupts
 at and below a given priority or to disable all interrupts.
 
-\item In a multi-core platform, there is one HiRTOS instance per CPU Core. Each HiRTOS instance is
-independent of each other. No resources are shared between HiRTOS instances. No communication between
-CPU cores is supported by HiRTOS, so that the HiRTOS API can stay the same for both single-core
-and multi-core platforms. Inter-core communication would need to be provided outside of HiRTOS,
+\item In a multi-core platform, there is one \emph{HiRTOS} instance per CPU Core. Each \emph{HiRTOS} instance is
+independent of each other. No resources are shared between \emph{HiRTOS} instances. No communication between
+CPU cores is supported by \emph{HiRTOS}, so that the \emph{HiRTOS} API can stay the same for both single-core
+and multi-core platforms. Inter-core communication would need to be provided outside of \emph{HiRTOS},
 using doorbell interrupts and mailboxes or shared memory, for example.
 
 \item
@@ -98,7 +108,7 @@ no thread migration between CPU cores is supported.
 
 \item
 All RTOS objects such as threads, mutexes and condition variables are allocated internally
-by HiRTOS from statically allocated internal object pools.
+by \emph{HiRTOS} from statically allocated internal object pools.
 These object pools are just RTOS-private global arrays of the corresponding RTOS object types,
 sized at compile time via configuration parameters, whose values are application-specific.
 RTOS object handles provided to application code are just indices into these internal object arrays.
@@ -110,15 +120,15 @@ objects in memory owned by application code is supported either.
 All application threads run in unprivileged mode. For each thread, the only writable memory,
 by default is its own stack. Global variables in application code are read-only by default.
 To be able to write global variables, application code must request write permission to
-HiRTOS via a system call. MMIO space is not accessible by default. Application (or driver)
-code must request access (read-only or read-write permission) to HiRTOS via a system call.
+\emph{HiRTOS} via a system call. MMIO space is not accessible by default. Application (or driver)
+code must request access (read-only or read-write permission) to \emph{HiRTOS} via a system call.
 \end{itemize}
 
 \clearpage
-\section{HiRTOS Configuration Parameters}
+\section{\emph{HiRTOS} Configuration Parameters}
 
 Constants defined here represent compile-time configuration parameters for
-HiRTOS.
+\emph{HiRTOS}.
 
 \begin{axdef}
     maxNumThreads: \nat_1 \\
@@ -130,13 +140,13 @@ HiRTOS.
     maxNumThreads > 2
 \end{axdef}
 
-The minimum number of threads that can be configured is 2, which corresponds to the HiRTOS pre-defined threads:
+The minimum number of threads that can be configured is 2, which corresponds to the \emph{HiRTOS} pre-defined threads:
 the idle thread and the tick timer thread.
 
-\section{HiRTOS Target Platform Parameters}
+\section{\emph{HiRTOS} Target Platform Parameters}
 
 Constants defined here represent compile-time target platform parameters for
-HiRTOS.
+\emph{HiRTOS}.
 
 \begin{axdef}
     maxNumCpus: \nat_1 \\
@@ -147,28 +157,29 @@ HiRTOS.
     minMemoryAddress < maxMemoryAddress
 \end{axdef}
 
-\section{HiRTOS Primitive Types}
+\clearpage
+\section{\emph{HiRTOS} Primitive Types}
 
 \begin{zed}
-    CpuIdType == 0 \upto maxNumCpus - 1 \\
+    CpuIdType == 0 \upto maxNumCpus \\
+    invalidCpuId == maxNumCpus \\
+    ValidCpuIdType == CpuIddType \setminus \{ InvalidCpudId \} \\
     MemoryAddressType == minMemoryAddress \upto maxMemoryAddress \\
     ThreadIdType == 0 \upto maxNumThreads \\
     invalidThreadId == maxNumThreads \\
-    idleThreadId == 0 \\
-    tickTimerThreadId == 1 \\
-    ValidThreadIdType == ThreadType \setminus \{ InvalidThreadId \} \\
+    ValidThreadIdType == ThreadIdType \setminus \{ InvalidThreadId \} \\
     ThreadPrioirtyType == 0 \upto numThreadPriorities \\
     invalidThreadPriority == numThreadPriorities \\
     ValidThreadPriorityType == ThreadPriorityType \setminus \{ InvalidThreadPriority \} \\
     MutexIdType == 0 \upto maxNumMutexes \\
     invalidMutexId == maxNumMutexes \\
-    ValidMutexIdType == MutexType \setminus \{ InvalidMutexId \} \\
+    ValidMutexIdType == MutexIdType \setminus \{ InvalidMutexId \} \\
     CondvarIdType == 0 \upto maxNumCondvars \\
     invalidCondvarId == maxNumCondvars \\
-    ValidCondvarIdType == CondvarType \setminus \{ InvalidCondvarId \} \\
+    ValidCondvarIdType == CondvarIdType \setminus \{ InvalidCondvarId \} \\
     TimerIdType == 0 \upto maxNumTimers \\
     invalidTimerId == maxNumTimers \\
-    ValidTimerIdType == TimerType \setminus \{ InvalidTimerId \} \\
+    ValidTimerIdType == TimerIdType \setminus \{ InvalidTimerId \} \\
     InterruptPrioirtyType == 0 \upto numInterruptPriorities \\
     invalidInterruptPriority == numInterruptPriorities \\
     ValidInterruptPriorityIdType == InterruptPriorityType \setminus \{ InvalidInterruptPriorityId \} \\
@@ -179,131 +190,246 @@ HiRTOS.
     CpuInterruptMaskingStateType ::= cpuInterruptsEnabled | cpuInterruptsDisabled \\
     CpuPrivilegeType ::= cpuPrivileged | cpuUnprivileged \\
     MemoryProtectionStateType ::= memoryProtectionOn | memoryProtectionOff \\
-    CpuExecutionModeType ::= cpuExecutingResetHandler | cpuExecutingInterruptHandler | cpuExecutingThread \\
-    ThreadStateType ::= threadNotCreated | threadRunnable | threadRunning | threadInterrupted | threadBlocked \\
+    CpuExecutionModeType ::= cpuExecutingResetHandler | cpuExecutingInterruptHandler | \\
+\t7                          cpuExecutingThread \\
+    ThreadStateType ::= threadNotCreated | threadRunnable | threadRunning | \\
+\t5                     threadInterrupted | threadBlocked \\
     HiRtosStateType ::= threadSchedulerStopped | threadSchedulerRunning \\
     TimerTicksType == \nat \\
     ThreadQueueType == \iseq ValidThreadIdType \\
     MutexListType == \iseq ValidMutexIdType \\
-    MutexListType == \iseq ValidMutexIdType \\
     TimerListType == \iseq ValidTimerIdType \\
+    PerCpuThreadSetType == \finset_1 ValidThreadIdType \\
+    PerCpuMutexSetType == \finset ValidMutexIdType \\
+    PerCpuCondvarSetType == \finset_1 ValidCondvarIdType \\
+    PerCpuTimerSetType == \finset_1 ValidTimerIdType \\
 \end{zed}
 
 For interrupts, lower priority values represent higher priorities. For threads, lower priority
 values represent lower priorities.
 
-\section{Per-CPU HiRTOS State Variables}
-
-There is a separate HiRTOS instance per CPU core in the target platform:
+\section{\emph{HiRTOS} Axiomatic Definitions}
 
 \begin{axdef}
-    hiRtosInstances: CpuIdType \inj HiRtosInstanceType \\
+    zThreadInstances: ValidThreadIdType \inj ThreadType \\
+    zMutexInstances: ValidMutexIdType \inj MutexType \\
+    zCondvarInstances: ValidCondvarIdType \inj CondvarType \\
+    zTimerInstances: ValidTimerIdType \inj TimerType \\
+    zRtosCpuInstances: ValidCpuIdType \inj HiRtosCpuInstanceType \\
 \where
-    \forall cpuId: \dom hiRtosInstances @ hiRtosInstances(cpuId).cpuId = cpuId
+    \forall i : \dom rtosCpuInstances @ rtosCpuInstances(i).cpuId = i
 \end{axdef}
 
-The state variables and internal data structures of each HiRTOS instance are modeled by the $HiRtosInstanceType$
-state space schema:
+\begin{axdef}
+    zGetHighestPriorityThread: ValidCpuIdType \inj ThreadIdType \\
+\where
+    \forall cpuId : ValidCpuIdType @ \\
+\t1     (\LET threadId == zGetHighestPriorityThread(cpuId) @ \\
+\t2         threadId \in zRtosCpuInstances(cpuId).allThreads \land \\
+\t2         \forall i: zRtosCpuInstances(cpuId).allThreads \setminus \{~ threadId ~\} @ \\
+\t3             zThreadInstances (i).priority < zThreadInstances(threadId).priority)
+\end{axdef}
 
-\begin{schema}{HiRtosInstanceType}
+\clearpage
+\section{\emph{HiRTOS} State Variables}
+
+\begin{schema}{HiRtosType}
+    createdThreadInstances: ValidThreadIdType \finj ThreadType \\
+    createdMutexInstances: ValidMutexIdType \finj MutexType \\
+    createdCondvarInstances: ValidCondvarIdType \finj CondvarType \\
+    createdTimerInstances: ValidTimerIdType \finj TimerType \\
+    rtosCpuInstances: ValidCpuIdType \finj HiRtosCpuInstanceType \\
+\where
+    createdThreadInstances \subseteq zThreadInstances
+\also
+    createdMutexInstances \subseteq zMutexdInstances
+\also
+    createdCondvarInstances \subseteq zCondvarInstances
+\also
+    createdTimerInstances \subseteq zTimerInstances
+\also
+    rtosCpuInstances = zRtosCpuInstances
+\also
+    \bigcup~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allThreads ~\} = createdThreadInstances
+\also
+    \bigcap~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allThreads ~\} = \emptyset
+\also
+    \bigcup~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allMutexes ~\} = createdMutexInstances
+\also
+    \bigcap~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allMutexes ~\} = \emptyset
+\also
+    \bigcup~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allCondvars ~\} = createdCondvarInstances
+\also
+    \bigcap~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allCondvars ~\} = \emptyset
+\also
+    \bigcup~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allTimers ~\} = createdTimerInstances
+\also
+    \bigcap~\{~ i: ValidCpuIdType @ \\
+\t1    rtosCpuInstances(i).allTimers ~\} = \emptyset
+\end{schema}
+
+\clearpage
+\section{Per-CPU \emph{HiRTOS} State Variables}
+
+The state variables and internal data structures of each per-CPU \emph{HiRTOS} instance
+are described below:
+
+\begin{schema}{HiRtosCpuInstanceType}
     cpuId: CpuIdType \\
     threadSchedulerState: ThreadSchedulerStateType \\
     currentAtomicLevel: AtomicLevelType \\
     currentPrivilegeNestingCounter: PrivilegeNestingCounterType \\
+    currentCpuExecutionMode: CpuExecutionModeType \\
     currentThreadId: ThreadIdType \\
     timerTicksSinceBoot: TimerTicksType \\
-    threadInstances: ValidThreadIdType \pinj ThreadType \\
-    mutexInstances: ValidMutexIdType \pinj MutexType \\
-    condvarInstances: ValidCondvarIdType \pinj CondvarType \\
-    timerInstances: ValidTimerIdType \pinj TimerType \\
+    idleThreadId: ValidThreadIdType \\
+    tickTimerThreadId: ValidThreadIdType \\
     interruptNestingLevelStack: InterruptNestingLevelStackType \\
+    allThreads: PerCpuThreadSetType \\
+    allMutexes: PerCpuMutexSetType \\
+    allCondvars: PerCpuCondvarSetType \\
+    allTimers: PerCpuTimerSetType \\
     runnableThreadQueues: ValidThreadPriorityIdType \inj ThreadQueueType \\
     timerWheel: TimerWheelType \\
     zCpuInterruptMaskingState: CpuInterruptMaskingStateType \\
     zCpuPrivilege: CpuPrivilegeType \\
-    zCpuExecutionMode: CpuExecutionModeType \\
     zMemoryProtectionState: MemoryProtectionStateType \\
 \where
-	threadSchedulerState = ThreadSchedulerRunning \implies currentThreadId \in \dom threadInstances
+    \{~ idleThreadId, tickTimerThreadId ~\} \subseteq allThreads
 \also
-    zCpuInterruptMaskingState = cpuInterruptsEnabled \iff currentAtomicLevel > AtomicLevelNoInterrupts
+    tickTimerThreadId \neq idleThreadId
 \also
-    zCpuInterruptMaskingState = cpuInterruptsDisabled \implies zCpuPrivilege = cpuPrivileged
+    threadSchedulerState = threadSchedulerRunning \implies \\
+\t1    currentThreadId = zGetHighestPriorityThread(cpuId)
+\also
+    zCpuInterruptMaskingState = cpuInterruptsEnabled \iff \\
+\t1    currentAtomicLevel > AtomicLevelNoInterrupts
+\also
+    zCpuInterruptMaskingState = cpuInterruptsDisabled \implies \\
+\t1    zCpuPrivilege = cpuPrivileged
 \also
     currentAtomicLevel < AtomicLevelNone \implies zCpuPrivilege = cpuPrivileged
 \also
     currentPrivilegeNestingCounter > 0 \iff zCpuPrivilege = cpuPrivileged
 \also
-    zCpuExectionMode \neq cpuExecutingThread \implies zCpuPrivilege = cpuPrivileged
+    \bigcap~\{~ i: allThreads @ \{~ zThreadInstances(i).builtinCondvarId ~\} ~\} = \emptyset
+\also
+    \bigcap~\{~ i: allThreads @ \{~ zThreadInstances(i).delayTimerId ~\} ~\} = \emptyset
 \end{schema}
 
-%\clearpage
-\subsection{Per-CPU HiRTOS Initialization}
+\clearpage
+\subsection{\emph{HiRTOS} Initialization}
 
-After calling the \verb$HiRTOS.Initialize$ HiRTOS API, on a given CPU core, the state of the
-corresponding HiRTOS instance is as described below:
+On boot, before the \verb`HiRTOS.Initialize` \emph{HiRTOS} API is called on any CPU core,
+the global state of \emph{HiRTOS} is as follows:
 
-\begin{schema}{HiRtosInitialize}
-    HiRtosInstanceType' \\
-    zCpuId?: CpuIdType \\
+\begin{schema}{HiRtosInitialState}
+    HiRtosType'
 \where
-    cpuId' = zCpuId?
+    createdThreadInstances' =  \emptyset
 \also
-    threadSchedulerState' = threadSchedulerStopped \\
+    createdMutexInstances' = \emptyset
 \also
-    currentAtomicLevel' = AtomicLevelNone \\
+    createdCondvarInstances' = \emptyset
 \also
-    currentPrivilegeNestingCounter' = 1 \\
+    createdTimerInstances' = \emptyset
+\end{schema}
+
+When \verb`HiRTOS.Initialize` is called for a given CPU core, the idle thread
+and the tick timer thread for that CPU are created. The initial state of the
+\emph{HiRTOS} instance for that CPU is as follows:
+
+\begin{schema}{HiRtosCpuInstanceInitialState}
+    HiRtosCpuInstanceType'
+\where
+    threadSchedulerState' = threadSchedulerStopped
 \also
-    currentThreadId' = InvalidThreadId \\
+    currentThreadId' = invalidThreadId
 \also
-    timerTicksSinceBoot' = 0 \\
+    currentAtomicLevel' = AtomicLevelNone
 \also
-    \dom threadInstances' = \{ idleThreadId, tickTimerThreadId \} \\
+    currentPrivilegeNestingCounter' = 0
 \also
-    mutexInstances' = \emptyset \\
+    currentCpuExecutionMode' = cpuExecutingResetHandler
 \also
-    condvarInstances' = \emptyset \\
+    idleThreadId' \neq invalidThreadId
 \also
-    timerInstances' = \emptyset \\
+    tickTimerThreadId' \neq invalidThreadId
 \also
-    \theta interruptNestingLevelStack' = \theta InitInterruptNestingLevelStack \\
+    tickTimerThreadId' \neq idleThreadId'
 \also
-    \theta timerWheel' = \theta InitTimerWheel \\
+    allThreads' = \{~ idleThreadId', tickTimerThreadId' ~\}
 \also
-    zCpuInterruptMaskingState' = cpuInterruptsEnabled \\
+    allCondvars' = \{~ zThreadInstances(idleThreadId').builtinCondvarId, \\
+\t3                    zThreadInstances(tickTimerThreadId').builtinCondvarId ~\}
 \also
-    zCpuPrivilege' = cpuPrivileged \\
+    allTimers' = \{~ zThreadInstances(idleThreadId').delayTimerId, \\
+\t3                  zThreadInstances(tickTimerThreadId').delayTimerId ~\}
 \also
-    zMemoryProtectionState' = memoryProtectionOn \\
+    timerTicksSinceBoot' = 0
 \also
-    zCpuExecutionMode' = cpuExecutingResetHandler \\
+    \theta~interruptNestingLevelStack' = \theta~InitInterruptNestingLevelStack
 \also
-    runnableThreadQueues'(min~ ValidInterruptPriorityIdType) = \langle idleThreadId \rangle \\
+    \theta~timerWheel' = \theta~InitTimerWheel
 \also
-    runnableThreadQueues'(max~ ValidInterruptPriorityIdType) = \langle tickTimerThreadId \rangle \\
+    zCpuInterruptMaskingState' = cpuInterruptsEnabled
 \also
-     \forall p: ValidThreadPrioirtyType \setminus
-            \{ \min~ValidThreadPrioirtyType, \max~ValidThreadPrioirtyType \} @ \\
+    zCpuPrivilege' = cpuUnprivileged
+\also
+    zMemoryProtectionState' = memoryProtectionOn
+\also
+    runnableThreadQueues'(min~ ValidInterruptPriorityIdType) = \langle idleThreadId \rangle
+\also
+    runnableThreadQueues'(max~ ValidInterruptPriorityIdType) = \langle tickTimerThreadId \rangle
+\also
+     \forall p: ValidThreadPrioirtyType \setminus \\
+\t2         \{ \min~ValidThreadPrioirtyType, \max~ValidThreadPrioirtyType \} @ \\
 \t1      runnableThreadQueues'(p) = \emptyset
 \end{schema}
 
-%\clearpage
-\subsection{Starting the Per-CPU HiRTOS Thread Scheduler}
+\clearpage
+\subsection{Starting the Per-CPU \emph{HiRTOS} Thread Scheduler}
 
-After calling the \verb$HiRTOS.Start_Thread_Scheduler$ HiRTOS API, on a given CPU core, RTOS multi-tasking
-is started on the given CPU, as described below:
+When calling the \verb`HiRTOS.Start_Thread_Scheduler` \emph{HiRTOS} API, on a given
+CPU core, RTOS multi-tasking is started on the given CPU, as described by the
+precondition/postcondition contract shown below:
 
 \begin{schema}{HiRtosStartThreadScheduler}
-    \Delta HiRtosInstanceType \\
-    zCpuId?: CpuIdType \\
+    \Delta HiRtosCpuInstanceType \\
 \where
+    threadSchedulerState = threadSchedulerStopped
+\also
+    currentThreadId = invalidThreadId
+\also
+    currentAtomicLevel = AtomicLevelNone
+\also
+    currentPrivilegeNestingCounter = 1
+\also
+    currentCpuExecutionMode = cpuExecutingResetHandler
+\also
+\also
+    threadSchedulerState' = threadSchedulerRunning
+\also
+    currentThreadId' = zGetHighestPriorityThread(cpuId)
+\also
+    currentAtomicLevel' = AtomicLevelNone
+\also
+    currentPrivilegeNestingCounter' = 0
+\also
+    currentCpuExecutionMode' = cpuExecutingThread
 \end{schema}
 
-\subsection{Entering HiRTOS from Interrupt Context}
+\subsection{Entering \emph{HiRTOS} from Interrupt Context}
 
-After calling the \verb$HiRTOS.Enter_Interrupt_Context$ HiRTOS API, from an ISR on a given CPU core, RTOS multi-tasking
-the HiRTOS environment for interrupt context is entered.
+After calling the \verb$HiRTOS.Enter_Interrupt_Context$ \emph{HiRTOS} API, from an ISR on a given CPU core, RTOS multi-tasking
+the \emph{HiRTOS} environment for interrupt context is entered.
 
 \begin{schema}{HiRtosEnterInterruptContext}
     \Delta HiRtosInstanceType \\
@@ -312,10 +438,10 @@ the HiRTOS environment for interrupt context is entered.
 \where
 \end{schema}
 
-\subsection{Exiting HiRTOS from Interrupt Context}
+\subsection{Exiting \emph{HiRTOS} from Interrupt Context}
 
-After calling the \verb$HiRTOS.Exit_Interrupt_Context$ HiRTOS API, from an ISR on a given CPU core, RTOS multi-tasking
-the HiRTOS environment for interrupt context is exited.
+After calling the \verb$HiRTOS.Exit_Interrupt_Context$ \emph{HiRTOS} API, from an ISR on a given CPU core, RTOS multi-tasking
+the \emph{HiRTOS} environment for interrupt context is exited.
 
 \begin{schema}{HiRtosExitInterruptContext}
     \Delta HiRtosInstanceType \\
@@ -536,7 +662,7 @@ completion of servicing the interrupt).
     priority: MutexPriorityType \\
 \end{schema}
 
-HiRTOS mutexes implement the priority ceiling protocol. That is, each mutex has a priority
+\emph{HiRTOS} mutexes implement the priority ceiling protocol. That is, each mutex has a priority
 associated with it, which is the priority of the highest priority task that accesses the
 resource protected by the mutex, or the lowest interrupt priorirty, in case if an ISR
 accesses the resource protected by the mutex.
@@ -572,7 +698,7 @@ first thread in the condvar's queue. The ``broadcast'' primitive wakes up all th
 
 There is a variation of the ``wait'' primitive that includes a timeout.
 
-HiRTOS will not provide semaphore primitives as part of its APIs, as semaphores can be
+\emph{HiRTOS} will not provide semaphore primitives as part of its APIs, as semaphores can be
 easily implemented using condition variables and mutexes, for semaphores used only by threads.
 For semaphores signaled from ISRs, they can be implemented with a combination of condition
 variables and disabling interrupts, since mutexes cannot be used in ISRs. In this case, the thread
@@ -720,6 +846,14 @@ Mike Spivey, ``The Fuzz checker'' \\
 \bibitem{DbC}
 Bertrand Meyer, ``Touch of Class: Learning to Program Well with Objects and Contracts'', Springer, 2009 \\
 \url{http://www.amazon.com/dp/3540921443}
+
+\bibitem{SparkAda}
+John W. McCormick, Peter C. Chapin,``Building High Integrity Applications with SPARK'', Cambridge University Press, 2015 \\
+\url{https://www.amazon.com/Building-High-Integrity-Applications-SPARK/dp/1107040736}
+
+\bibitem{gnatprove}
+AdaCore,``Formal Verification with GNATprove'' \\
+\url{https://docs.adacore.com/spark2014-docs/html/ug/en/gnatprove.html}
 
 \end{thebibliography}
 

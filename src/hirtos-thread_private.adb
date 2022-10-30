@@ -24,8 +24,8 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 with HiRTOS.RTOS_Private;
+with HiRTOS.Memory_Protection_Private;
 
 package body HiRTOS.Thread_Private is
    use HiRTOS.RTOS_Private;
@@ -136,13 +136,13 @@ package body HiRTOS.Thread_Private is
 
    procedure Save_Thread_Extended_Context (Thread_Obj : in out Thread_Type) is
    begin
-      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Save_Thread_Memory_Regions (
+      HiRTOS.Memory_Protection_Private.Save_Thread_Memory_Regions (
          Thread_Obj.Saved_Thread_Memory_Regions);
    end Save_Thread_Extended_Context;
 
    procedure Restore_Thread_Extended_Context (Thread_Obj : in out Thread_Type) is
    begin
-      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Restore_Thread_Memory_Regions (
+      HiRTOS.Memory_Protection_Private.Restore_Thread_Memory_Regions (
          Thread_Obj.Saved_Thread_Memory_Regions);
    end Restore_Thread_Extended_Context;
 

@@ -29,8 +29,6 @@ with System;
 with Interfaces;
 with HiRTOS_Config_Parameters;
 with HiRTOS_Cpu_Arch_Parameters;
-with HiRTOS_Cpu_Arch_Interface;
-with HiRTOS_Platform_External_Interrupts;
 with Generic_Execution_Stack;
 private with Generic_Linked_List;
 
@@ -240,16 +238,6 @@ is
 
    Invalid_Thread_Id : constant Thread_Id_Type := Thread_Id_Type'Last;
 
-   Max_Privilege_Nesting : constant := 64;
-
-   --
-   --  Privilege nesting counter. 0 means the CPU is in unprivileged mode
-   --  and > 0 means the CPU is tunning in privileged mode. It is incremented
-   --  every time that Enter_Cpu_Privileged_Mode is called and decremented
-   --  every time that Exit_Cpu_Privileged_Mode is called.
-   --
-   type Privilege_Nesting_Counter_Type is range 0 .. Max_Privilege_Nesting;
-
    --
    --  Thread stats
    --
@@ -308,6 +296,12 @@ is
          Interrupt_Nesting_Counter_Type'Last;
 
 private
+
+   --
+   --  NOTE: These declarations need to be here instead of the corresponding
+   --  private child packages, to avoid circular dependencies between
+   --  child packages.
+   --
 
    type Thread_Queue_Kind_Type is
      (Run_Queue, Mutex_Waiters_Queue, Condvar_Waiters_Queue, Invalid_Queue);

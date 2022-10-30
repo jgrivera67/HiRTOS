@@ -24,25 +24,41 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-package body HiRTOS.Condvar is
 
-procedure Initialize_Condvar (Condvar_Obj : out Condvar_Type; Condvar_Id : Condvar_Id_Type)
+with HiRTOS.Condvar_Private;
+
+package body HiRTOS.Condvar is
+   use HiRTOS.Condvar_Private;
+
+   procedure Initialize_Condvar (Condvar_Obj : out Condvar_Type; Condvar_Id : Condvar_Id_Type)
       with Pre => Condvar_Id /= Invalid_Condvar_Id;
 
    -----------------------------------------------------------------------------
    --  Public Subprograms
    -----------------------------------------------------------------------------
 
+   procedure Create_Condvar (Condvar_Id : out Condvar_Id_Type) is
+   begin
+      pragma Assert (False); --???
+   end Create_Condvar;
+
+   procedure Wait (Condvar : Condvar_Id_Type; Mutex_Id : Mutex_Id_Type) is
+   begin
+      pragma Assert (False); --???
+   end Wait;
+
+   procedure Wait (Condvar : Condvar_Id_Type; Atomic_Level : Atomic_Level_Type) is
+   begin
+      pragma Assert (False); --???
+   end Wait;
+
    -----------------------------------------------------------------------------
    --  Private Subprograms
    -----------------------------------------------------------------------------
-   
+
    procedure Initialize_Condvar (Condvar_Obj : out Condvar_Type; Condvar_Id : Condvar_Id_Type) is
    begin
       Condvar_Obj.Id := Condvar_Id;
-      Condvar_Obj.Wakeup_Atomic_Level := Atomic_Level_None;
-      Condvar_Obj.Wakeup_Mutex_id := Invalid_Mutex_Id;
-      Thread_Queue_Package.List_Init (Condvar_Obj.Waiters_Queue);
    end Initialize_Condvar;
-   
+
 end HiRTOS.Condvar;

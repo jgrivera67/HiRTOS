@@ -24,8 +24,33 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
-package HiRTOS.Timer is
 
-   procedure Create_Timer (Timer_Id : out Timer_Id_Type);
+--
+--  @summary HiRTOS Memory protection services
+--
 
-end HiRTOS.Timer;
+with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+with System.Storage_Elements;
+
+package HiRTOS.Memory_Protection
+   with SPARK_Mode => On
+is
+   use type System.Address;
+
+   subtype Memory_Range_Type is
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Memory_Region_Descriptor_Type;
+
+   type Memory_Range_Size_In_Bits_Type is new System.Storage_Elements.Integer_Address;
+
+   procedure Begin_Data_Range_Write_Access (
+      Start_Address : System.Address;
+      Size_In_Bits : Memory_Range_Size_In_Bits_Type;
+      Old_Data_Range : out Memory_Range_Type)
+      with Pre => Start_Address /= System.Null_Address and then
+                  Size_In_Bits > 0 and then
+                  Size_In_Bits mod System.Storage_Unit = 0;
+
+   procedure End_Data_Range_Access (
+      Old_Data_Range : Memory_Range_Type);
+
+end HiRTOS.Memory_Protection;

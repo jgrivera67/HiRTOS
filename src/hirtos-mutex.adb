@@ -24,7 +24,11 @@
 --  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 --  POSSIBILITY OF SUCH DAMAGE.
 --
+
+with HiRTOS.Mutex_Private;
+
 package body HiRTOS.Mutex is
+   use HiRTOS.Mutex_Private;
 
    procedure Initialize_Mutex (Mutex_Obj : out Mutex_Type; Mutex_Id : Mutex_Id_Type)
       with Pre => Mutex_Id /= Invalid_Mutex_Id;
@@ -33,18 +37,18 @@ package body HiRTOS.Mutex is
    --  Public Subprograms
    -----------------------------------------------------------------------------
 
+   procedure Create_Mutex (Mutex_Id : out Mutex_Id_Type) is
+   begin
+      pragma Assert (False); --???
+   end Create_Mutex;
+
    -----------------------------------------------------------------------------
    --  Private Subprograms
    -----------------------------------------------------------------------------
-   
+
    procedure Initialize_Mutex (Mutex_Obj : out Mutex_Type; Mutex_Id : Mutex_Id_Type) is
    begin
       Mutex_Obj.Id := Mutex_Id;
-      Mutex_Obj.Owner_Thread_Id := Invalid_Thread_Id;
-      Mutex_Obj.Recursive_Count := 0;
-      Mutex_Obj.Priority := Invalid_Thread_Priority;
-      Thread_Queue_Package.List_Init (Mutex_Obj.Waiters_Queue);
-      Mutex_List_Package.List_Node_Init (Mutex_Obj.List_Node);
    end Initialize_Mutex;
 
 end HiRTOS.Mutex;

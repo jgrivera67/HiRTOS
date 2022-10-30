@@ -30,7 +30,6 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
-with Interfaces;
 with System.Machine_Code;
 with System.Storage_Elements;
 

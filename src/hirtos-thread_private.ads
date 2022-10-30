@@ -25,7 +25,8 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+with HiRTOS.Memory_Protection_Private;
+with HiRTOS_Cpu_Arch_Interface;
 
 private package HiRTOS.Thread_Private with
   SPARK_Mode => On
@@ -36,6 +37,16 @@ is
 
    type Thread_State_Type is
      (Thread_Not_Created, Thread_Runnable, Thread_Running, Thread_Blocked);
+
+   Max_Privilege_Nesting : constant := 64;
+
+   --
+   --  Privilege nesting counter. 0 means the CPU is in unprivileged mode
+   --  and > 0 means the CPU is tunning in privileged mode. It is incremented
+   --  every time that Enter_Cpu_Privileged_Mode is called and decremented
+   --  every time that Exit_Cpu_Privileged_Mode is called.
+   --
+   type Privilege_Nesting_Counter_Type is range 0 .. Max_Privilege_Nesting;
 
    --
    --  Thread control block
@@ -58,6 +69,7 @@ is
    --  @field Owned_Mutexes_List : List of mutexes currently owned by this thread. This
    --         list is really a stack of mutexes (LIFO list), as the last mutex acquired
    --         is the next one to be released.
+   --  @field Delay_Timer_Id: Id of the delay timer associated with this thread.
    --  @field Saved_Stack_Pointer: saved stack pointer CPU register the last time this
    --         thread was switched out
    --  @field Privilege_Nesting_Counter: Counter of unpaired calls to `Enter_Privileged_Mode`
@@ -78,11 +90,12 @@ is
       Waiting_On_Condvar_Id : Condvar_Id_Type := Invalid_Condvar_Id;
       Waiting_On_Mutex_Id : Mutex_Id_Type := Invalid_Mutex_Id;
       Owned_Mutexes_List : Mutex_List_Package.List_Anchor_Type;
+      Delay_Timer_Id : Timer_Id_Type := Invalid_Timer_Id;
       Saved_Stack_Pointer : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       Privilege_Nesting_Counter : Privilege_Nesting_Counter_Type := 0;
       Time_Slice_Left_Us : Time_Us_Type := Thread_Time_Slice_Us;
       Saved_Thread_Memory_Regions :
-         HiRTOS_Cpu_Arch_Interface.Memory_Protection.Thread_Memory_Regions_Type;
+         HiRTOS.Memory_Protection_Private.Thread_Memory_Regions_Type;
       Stats : Thread_Stats_Type;
    end record with
      Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;

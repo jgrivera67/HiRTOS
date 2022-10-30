@@ -32,7 +32,7 @@ OBJ_DIR = obj-latex
 # Build tools
 #
 PDFLATEX = pdflatex
-FUZZ = FUZZLIB=/usr/local/lib/fuzzlib fuzz
+FUZZ = FUZZLIB=/opt/fuzz/lib/fuzzlib fuzz
 
 PDFLATEX_FLAGS = -interaction=nonstopmode \
 		 -halt-on-error \

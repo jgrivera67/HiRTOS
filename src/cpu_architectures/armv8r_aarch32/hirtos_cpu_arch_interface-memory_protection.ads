@@ -30,68 +30,61 @@
 --  for ARMv8-R MPU
 --
 
-with Interfaces;
+with System.Storage_Elements;
 
 package HiRTOS_Cpu_Arch_Interface.Memory_Protection
    with SPARK_Mode => On
 is
    use type System.Address;
+   use type System.Storage_Elements.Integer_Address;
+
+   Num_Region_Descriptors : constant := 16;
+
+   type Memory_Region_Descriptor_Id_Type is mod Num_Region_Descriptors;
 
    type Memory_Region_Descriptor_Type is private;
-
-   type Thread_Memory_Regions_Type is limited private;
-
-   type Region_Size_In_Bits_Type is new Interfaces.Unsigned_32;
 
    type Region_Permissions_Type is (None,
                                     Read_Only,
                                     Read_Write,
                                     Read_Execute);
 
-   -------------------------------------------------------------------
-   --  Subprograms to be invoked only from HiRTOS code
-   -------------------------------------------------------------------
+   --
+   --  Enables memory protection hardware
+   --
+   procedure Enable_Memory_Protection;
 
    --
-   --  Initializes memory protection hardware
+   --  Disables memory protection hardware
    --
-   procedure Initialize;
+   procedure Disable_Memory_Protection;
 
-   procedure Set_Memory_Region (
-      Region : out Memory_Region_Descriptor_Type;
+   --
+   --  Initializes state of a memory protection descriptor object
+   --
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type;
       Start_Address : System.Address;
-      Size_In_Bits : Region_Size_In_Bits_Type;
+      Size_In_Bytes : System.Storage_Elements.Integer_Address;
       Permissions : Region_Permissions_Type)
       with Pre => Start_Address /= System.Null_Address and then
-                  Size_In_Bits > 0 and then
-                  Size_In_Bits mod System.Storage_Unit = 0 and then
+                  Size_In_Bytes > 0 and then
                   Permissions /= None;
 
-   procedure Restore_Memory_Region (
-      Saved_Region : Memory_Region_Descriptor_Type);
+   --
+   --  Copies saved state of a memory protection descriptor to the
+   --  corresponding memory descriptor in the MPU
+   --
+   procedure Restore_Memory_Region_Descriptor (
+      Region_Descriptor_Id : Memory_Region_Descriptor_Id_Type;
+      Region_Descriptor : Memory_Region_Descriptor_Type);
 
    --
-   --  Initializes the thread-private memory protection region descriptors
+   --  Saves state of a memory protection descriptor from the MPU
    --
-   procedure Initialize_Thread_Memory_Regions (Stack_Base_Addr : System.Address;
-                                               Stack_Size : Interfaces.Unsigned_16;
-                                               Thread_Regions : out Thread_Memory_Regions_Type);
-
-   --
-   --  Restore thread-private memory protection regions
-   --
-   procedure Restore_Thread_Memory_Regions (Thread_Regions : Thread_Memory_Regions_Type);
-
-   --
-   --  Save thread-private memory protection regions
-   --
-   procedure Save_Thread_Memory_Regions (Thread_Regions : out Thread_Memory_Regions_Type);
-
-   -------------------------------------------------------------------
-   --  Subprograms to be invoked from applications
-   -------------------------------------------------------------------
-
-   --  TODO: Add them here
+   procedure Save_Memory_Region_Descriptor (
+      Region_Descriptor_Id : Memory_Region_Descriptor_Id_Type;
+      Region_Descriptor : out Memory_Region_Descriptor_Type);
 
 private
 
@@ -110,19 +103,5 @@ private
       Reserved2 : Interfaces.Unsigned_16;
    end record
      with Convention => C;
-
-   --
-   --  Thread-private memory protection regions
-   --
-   --  @field stack_region memory region for the thread's stack
-   --  @field writable_data_region current memory region for writable global data
-   --  for the thread.
-   --
-   type Thread_Memory_Regions_Type is limited record
-      Stack_Region : Memory_Region_Descriptor_Type;
-      Data_Region : Memory_Region_Descriptor_Type;
-      Mmio_Region : Memory_Region_Descriptor_Type;
-      Code_Region : Memory_Region_Descriptor_Type;
-   end record;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

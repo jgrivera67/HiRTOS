@@ -25,6 +25,9 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
+with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Platform_External_Interrupts;
+
 private package HiRTOS.Interrupt_Nesting with
   SPARK_Mode => On
 is

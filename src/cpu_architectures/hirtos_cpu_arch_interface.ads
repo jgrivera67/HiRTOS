@@ -32,6 +32,7 @@
 with HiRTOS_Cpu_Arch_Parameters;
 with HiRTOS_Platform_Parameters;
 with System;
+with Interfaces;
 
 package HiRTOS_Cpu_Arch_Interface
    with SPARK_Mode => On
@@ -39,7 +40,15 @@ is
    --
    --  Ids of CPU cores
    --
-   type Cpu_Core_Id_Type is mod HiRTOS_Platform_Parameters.Num_Cpu_Cores;
+   --  NOTE: +1 to allow for an invalid CPU Id
+   --
+   type Cpu_Core_Id_Type is mod HiRTOS_Platform_Parameters.Num_Cpu_Cores + 1
+     with Size => Interfaces.Unsigned_8'Size;
+
+   subtype Valid_Cpu_Core_Id_Type is
+     Cpu_Core_Id_Type range Cpu_Core_Id_Type'First .. Cpu_Core_Id_Type'Last - 1;
+
+   Invalid_Cpu_Core_Id : constant Cpu_Core_Id_Type := Cpu_Core_Id_Type'Last;
 
    type Cpu_Register_Type is mod 2 ** HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits
       with Size => HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits;

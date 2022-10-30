@@ -28,6 +28,7 @@
 with HiRTOS.RTOS_Private;
 with HiRTOS.Interrupt_Nesting;
 with HiRTOS.Thread_Private;
+with HiRTOS_Cpu_Arch_Interface;
 with System.Storage_Elements;
 
 package body HiRTOS.Interrupt_Context is
