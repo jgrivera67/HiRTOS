@@ -28,7 +28,7 @@
 with HiRTOS_Platform_External_Interrupts;
 with System.Storage_Elements;
 
-package body HiRTOS.Interrupt_Nesting is
+package body HiRTOS.Interrupt_Handling_Private is
 
    procedure Initialize_Interrupt_Nesting_Level
      (Interrupt_Nesting_Level : out Interrupt_Nesting_Level_Type);
@@ -36,6 +36,11 @@ package body HiRTOS.Interrupt_Nesting is
    -----------------------------------------------------------------------------
    --  Public Subprograms
    -----------------------------------------------------------------------------
+
+   procedure Initialize is
+   begin
+      pragma Assert (False); --???
+   end Initialize;
 
    procedure Initialize_Interrupt_Nesting_Level_Stack
      (Interrupt_Nesting_Level_Stack : out Interrupt_Nesting_Level_Stack_Type)
@@ -95,4 +100,4 @@ package body HiRTOS.Interrupt_Nesting is
       Interrupt_Nesting_Level.Atomic_Level := Atomic_Level_None;
    end Initialize_Interrupt_Nesting_Level;
 
-end HiRTOS.Interrupt_Nesting;
+end HiRTOS.Interrupt_Handling_Private;

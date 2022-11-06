@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2016, German Rivera
+--  Copyright (c) 2012, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -25,16 +25,11 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
---???with Microcontroller.MCU_Specific;
---???with Microcontroller.Arch_Specific;
 with Number_Conversion_Utils;
 with Bit_Sized_Integer_Types;
 with System;
 
 package body Low_Level_Debug with SPARK_Mode => Off is
-   --???use Microcontroller.MCU_Specific;
-   --???use Microcontroller.Arch_Specific;
-   --???use Microcontroller;
    use type Bit_Sized_Integer_Types.Bit_Type;
 
    --
@@ -477,7 +472,7 @@ package body Low_Level_Debug with SPARK_Mode => Off is
          DMAONERR at 0 range 2 .. 2;
       end record;
 
-      type UART_Peripheral is record
+      type UART_Peripheral is limited record
          UARTDR : aliased UARTDR_Register;
          UARTRSR : aliased UARTRSR_Register;
          UARTFR : aliased UARTFR_Register;

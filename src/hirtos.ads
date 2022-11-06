@@ -303,30 +303,9 @@ private
    --  child packages.
    --
 
-   type Thread_Queue_Kind_Type is
-     (Run_Queue, Mutex_Waiters_Queue, Condvar_Waiters_Queue, Invalid_Queue);
-
-   type Thread_Queue_Id_Type
-     (Queue_Kind : Thread_Queue_Kind_Type := Invalid_Queue) is
-   record
-      case Queue_Kind is
-         when Run_Queue =>
-            Thread_Priority : Thread_Priority_Type;
-         when Mutex_Waiters_Queue =>
-            Mutex_Id : Mutex_Id_Type;
-         when Condvar_Waiters_Queue =>
-            Condvar_Id : Condvar_Id_Type;
-         when Invalid_Queue =>
-            null;
-      end case;
-   end record;
-
-   Invalid_Thread_Queue_Id : constant Thread_Queue_Id_Type :=
-     (Queue_Kind => Invalid_Queue);
-
    package Thread_Queue_Package is new Generic_Linked_List
-     (List_Id_Type    => Thread_Queue_Id_Type,
-      Null_List_Id    => Invalid_Thread_Queue_Id,
+     (List_Id_Type    => Thread_Priority_Type,
+      Null_List_Id    => Invalid_Thread_Priority,
       Element_Id_Type => Thread_Id_Type,
       Null_Element_Id => Invalid_Thread_Id);
 

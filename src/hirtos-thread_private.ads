@@ -118,12 +118,12 @@ is
 
    type Thread_Array_Type is array (Valid_Thread_Id_Type) of Thread_Type;
 
-   type Runnable_Thread_Queues_Type is
+   type Priority_Thread_Queues_Type is
      array
        (Valid_Thread_Priority_Type) of Thread_Queue_Package.List_Anchor_Type;
 
-   procedure Initialize_Runnable_Thread_Queues
-     (Runnable_Thread_Queues : out Runnable_Thread_Queues_Type);
+   procedure Initialize_Priority_Thread_Queues
+     (Priority_Thread_Queues : out Priority_Thread_Queues_Type);
 
    procedure Increment_Privilege_Nesting (Thread_Obj : in out Thread_Type) with
      Pre =>

@@ -30,7 +30,7 @@ with HiRTOS.Thread;
 with HiRTOS.Thread_Private;
 with HiRTOS.Timer_Private;
 with HiRTOS.Memory_Protection_Private;
-with HiRTOS.Interrupt_Nesting;
+with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with System.Storage_Elements;
@@ -71,6 +71,7 @@ is
       Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
       HiRTOS.Memory_Protection_Private.Initialize;
+      HiRTOS.Interrupt_Handling_Private.Initialize;
 
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
@@ -79,9 +80,9 @@ is
       RTOS_Cpu_Instance.Interrupt_Stack_Size := ISR_Stack_Info.Size_In_Bytes;
       RTOS_Cpu_Instance.Cpu_Id               := Cpu_Id;
 
-      HiRTOS.Interrupt_Nesting.Initialize_Interrupt_Nesting_Level_Stack
+      HiRTOS.Interrupt_Handling_Private.Initialize_Interrupt_Nesting_Level_Stack
         (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
-      HiRTOS.Thread_Private.Initialize_Runnable_Thread_Queues
+      HiRTOS.Thread_Private.Initialize_Priority_Thread_Queues
         (RTOS_Cpu_Instance.Runnable_Thread_Queues);
       HiRTOS.Timer_Private.Initialize_Timer_Wheel
         (RTOS_Cpu_Instance.Timer_Wheel);
@@ -124,7 +125,7 @@ is
         HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
    begin
       return
-        Interrupt_Nesting.Get_Current_Interrupt_Nesting
+        Interrupt_Handling_Private.Get_Current_Interrupt_Nesting
           (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack) /=
         0;
    end Current_Execution_Context_Is_Interrupt;

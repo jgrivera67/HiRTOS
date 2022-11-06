@@ -25,7 +25,11 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
+with HiRTOS.Thread_Private;
+
 private package HiRTOS.Mutex_Private is
+   use HiRTOS.Thread_Private;
+
    --
    --  Mutex object
    --
@@ -34,7 +38,7 @@ private package HiRTOS.Mutex_Private is
    --  @field Owner_Thread_Id: Thread Id of the thread that currently owns the mutex
    --  @field Recursive_Count: Recursive mutex acquires count
    --  @field Priority: Thread priority associated to the mutex
-   --  @field Waiters_Queue: Queue of threads waiting to acquire the mutex
+   --  @field Waiters_Queue: Priority queue of threads waiting to acquire the mutex
    --  @field List_Node: this mutex's node in a list of mutexes, if this mutex is in a list.
    --
    type Mutex_Type is limited record
@@ -43,7 +47,7 @@ private package HiRTOS.Mutex_Private is
       Owner_Thread_Id : Thread_Id_Type := Invalid_Thread_Id;
       Recursive_Count : Interfaces.Unsigned_8 := 0;
       Priority        : Thread_Priority_Type := Invalid_Thread_Priority;
-      Waiters_Queue   : Thread_Queue_Package.List_Anchor_Type;
+      Waiters_Queue   : Priority_Thread_Queues_Type;
    end record;
 
    type Mutex_Array_Type is array (Valid_Mutex_Id_Type) of Mutex_Type;

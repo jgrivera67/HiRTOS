@@ -29,7 +29,7 @@ with HiRTOS.Thread_Private;
 with HiRTOS.Mutex_Private;
 with HiRTOS.Condvar_Private;
 with HiRTOS.Timer_Private;
-with HiRTOS.Interrupt_Nesting;
+with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS_Cpu_Arch_Interface;
 with System.Storage_Elements;
 
@@ -43,7 +43,7 @@ is
   use HiRTOS.Mutex_Private;
   use HiRTOS.Condvar_Private;
   use HiRTOS.Timer_Private;
-  use HiRTOS.Interrupt_Nesting;
+  use HiRTOS.Interrupt_Handling_Private;
 
   type Thread_Scheduler_State_Type is
    (Thread_Scheduler_Stopped, Thread_Scheduler_Running);
@@ -123,7 +123,7 @@ is
     All_Mutexs : Per_Cpu_Mutex_List_Package.List_Anchor_Type;
     All_Condvars : Per_Cpu_Condvar_List_Package.List_Anchor_Type;
     All_Timers : Per_Cpu_Timer_List_Package.List_Anchor_Type;
-    Runnable_Thread_Queues        : Runnable_Thread_Queues_Type;
+    Runnable_Thread_Queues        : Priority_Thread_Queues_Type;
     Timer_Wheel                   : Timer_Wheel_Type;
   end record with
    Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;

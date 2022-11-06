@@ -41,7 +41,7 @@
 \pagestyle{myheadings}
 \markboth{Design of the HiRTOS Multi-core Real-Time Operating System}{Design of the HiRTOS Real-Time Operating System}
 
-\chapter{\emph{HiRTOS}: High Integrity RTOS}
+\chapter{Introduction}
 
 This document describes the design of \emph{HiRTOS} (\emph{``High Integrity''} RTOS),
 a real-time operating system kernel that supports multi-core systems and that is
@@ -124,7 +124,8 @@ To be able to write global variables, application code must request write permis
 code must request access (read-only or read-write permission) to \emph{HiRTOS} via a system call.
 \end{itemize}
 
-\clearpage
+\chapter{\emph{HiRTOS} Z Specification}
+
 \section{\emph{HiRTOS} Configuration Parameters}
 
 Constants defined here represent compile-time configuration parameters for
@@ -276,8 +277,6 @@ values represent lower priorities.
 \end{schema}
 
 \clearpage
-\section{Per-CPU \emph{HiRTOS} State Variables}
-
 The state variables and internal data structures of each per-CPU \emph{HiRTOS} instance
 are described below:
 
@@ -322,10 +321,13 @@ are described below:
     \bigcap~\{~ i: allThreads @ \{~ zThreadInstances(i).builtinCondvarId ~\} ~\} = \emptyset
 \also
     \bigcap~\{~ i: allThreads @ \{~ zThreadInstances(i).delayTimerId ~\} ~\} = \emptyset
+\also
+    \forall p: ValidThreadPrioirtyType @ \\
+\t1    \forall t: \ran runnableThreadQueues(p) @ t.priority = p
 \end{schema}
 
 \clearpage
-\subsection{\emph{HiRTOS} Initialization}
+\section{\emph{HiRTOS} Initialization}
 
 On boot, before the \verb`HiRTOS.Initialize` \emph{HiRTOS} API is called on any CPU core,
 the global state of \emph{HiRTOS} is as follows:
@@ -395,7 +397,7 @@ and the tick timer thread for that CPU are created. The initial state of the
 \end{schema}
 
 \clearpage
-\subsection{Starting the Per-CPU \emph{HiRTOS} Thread Scheduler}
+\section{Starting the Per-CPU \emph{HiRTOS} Thread Scheduler}
 
 When calling the \verb`HiRTOS.Start_Thread_Scheduler` \emph{HiRTOS} API, on a given
 CPU core, RTOS multi-tasking is started on the given CPU, as described by the
@@ -426,7 +428,7 @@ precondition/postcondition contract shown below:
     currentCpuExecutionMode' = cpuExecutingThread
 \end{schema}
 
-\subsection{Entering \emph{HiRTOS} from Interrupt Context}
+\section{Entering \emph{HiRTOS} from Interrupt Context}
 
 After calling the \verb$HiRTOS.Enter_Interrupt_Context$ \emph{HiRTOS} API, from an ISR on a given CPU core, RTOS multi-tasking
 the \emph{HiRTOS} environment for interrupt context is entered.
@@ -438,7 +440,7 @@ the \emph{HiRTOS} environment for interrupt context is entered.
 \where
 \end{schema}
 
-\subsection{Exiting \emph{HiRTOS} from Interrupt Context}
+\section{Exiting \emph{HiRTOS} from Interrupt Context}
 
 After calling the \verb$HiRTOS.Exit_Interrupt_Context$ \emph{HiRTOS} API, from an ISR on a given CPU core, RTOS multi-tasking
 the \emph{HiRTOS} environment for interrupt context is exited.

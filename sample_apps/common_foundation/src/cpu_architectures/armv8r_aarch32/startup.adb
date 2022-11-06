@@ -27,7 +27,6 @@
 
 with Low_Level_Debug;
 with System.Machine_Code;
-with Interfaces;
 
 package body Startup is
 

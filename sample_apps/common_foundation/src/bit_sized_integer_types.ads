@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2016, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without

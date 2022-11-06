@@ -50,15 +50,13 @@ package body HiRTOS.Thread_Private is
    --  Public Subprograms                                                     --
    -----------------------------------------------------------------------------
 
-   procedure Initialize_Runnable_Thread_Queues (Runnable_Thread_Queues : out Runnable_Thread_Queues_Type)
+   procedure Initialize_Priority_Thread_Queues (Priority_Thread_Queues : out Priority_Thread_Queues_Type)
    is
-      Thread_Queue_Id : Thread_Queue_Id_Type := (Queue_Kind => Run_Queue, Thread_Priority => Invalid_Thread_Priority);
    begin
-      for I in Runnable_Thread_Queues'Range loop
-         Thread_Queue_Id.Thread_Priority := I;
-         Thread_Queue_Package.List_Init (Runnable_Thread_Queues (I), Thread_Queue_Id);
+      for I in Priority_Thread_Queues'Range loop
+         Thread_Queue_Package.List_Init (Priority_Thread_Queues (I), I);
       end loop;
-   end Initialize_Runnable_Thread_Queues;
+   end Initialize_Priority_Thread_Queues;
 
    procedure Increment_Privilege_Nesting (Thread_Obj : in out Thread_Type) is
    begin

@@ -30,7 +30,7 @@
 --
 
 with Generic_Execution_Stack;
-with HiRTOS.Interrupt_Context;
+with HiRTOS.Interrupt_Handling;
 with System.Machine_Code;
 with Interfaces;
 
@@ -127,7 +127,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       --  NOTE: Enter_Interrupt_Context call is assumed to be inlined,
       --  since sp changes to point to the ISR stack, if interrupt nesting was 0.
       --
-      HiRTOS.Interrupt_Context.Enter_Interrupt_Context;
+      HiRTOS.Interrupt_Handling.Enter_Interrupt_Context;
 
       --
       --  NOTE: At this point sp always points to somewhere in the ISR stack
@@ -163,7 +163,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       --  since sp changes to point to the interrupted task's stack if
       --  if interrupt nesting dropped 0.
       --
-      HiRTOS.Interrupt_Context.Exit_Interrupt_Context;
+      HiRTOS.Interrupt_Handling.Exit_Interrupt_Context;
 
       System.Machine_Code.Asm (
          --

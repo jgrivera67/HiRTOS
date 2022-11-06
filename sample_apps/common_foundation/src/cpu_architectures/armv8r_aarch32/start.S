@@ -228,7 +228,7 @@ reset_handler:
         mcr p15, 4, r0, c1, c1, 0
 
         /*
-         * Set HACTLR to allow EL! access to system registers
+         * Set HACTLR to allow EL1 access to system registers
          */
         mov r0, #MULTI_BIT_MASK(15, 0)
         mcr p15, 4, r0, c1, c0, 1
@@ -244,7 +244,7 @@ reset_handler:
         eret
 
 reset_handler_el1:
-                                // CPU in SVC mode (El1)
+                                // CPU in SVC mode (EL1)
         INIT_CPU_REGS_EL1
                                 // CPU in SYS mode (EL1)
 

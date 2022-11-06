@@ -26,12 +26,12 @@
 --
 
 with HiRTOS.RTOS_Private;
-with HiRTOS.Interrupt_Nesting;
+with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS_Cpu_Arch_Interface;
 with System.Storage_Elements;
 
-package body HiRTOS.Interrupt_Context is
+package body HiRTOS.Interrupt_Handling is
    use HiRTOS.RTOS_Private;
    use HiRTOS.Thread_Private;
 
@@ -49,10 +49,10 @@ package body HiRTOS.Interrupt_Context is
       Current_Thread_Id : constant Thread_Id_Type :=
                RTOS_Cpu_Instance.Current_Thread_Id;
    begin
-      HiRTOS.Interrupt_Nesting.Increment_Interrupt_Nesting (
+      HiRTOS.Interrupt_Handling_Private.Increment_Interrupt_Nesting (
          RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack, Stack_Pointer);
 
-      if HiRTOS.Interrupt_Nesting.Get_Current_Interrupt_Nesting
+      if HiRTOS.Interrupt_Handling_Private.Get_Current_Interrupt_Nesting
           (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack) = 1
       then
          --
@@ -95,14 +95,14 @@ package body HiRTOS.Interrupt_Context is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
          HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
    begin
-      HiRTOS.Interrupt_Nesting.Decrement_Interrupt_Nesting (
+      HiRTOS.Interrupt_Handling_Private.Decrement_Interrupt_Nesting (
          RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
 
       --
       --  If interrupt nesting level dropped to 0, run the thread scheduler
       --  in case the highest priority runnable thread has changed:
       --
-      if HiRTOS.Interrupt_Nesting.Get_Current_Interrupt_Nesting
+      if HiRTOS.Interrupt_Handling_Private.Get_Current_Interrupt_Nesting
           (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack) = 0
       then
          HiRTOS.Thread_Private.Run_Thread_Scheduler;
@@ -124,4 +124,4 @@ package body HiRTOS.Interrupt_Context is
       end if;
    end Exit_Interrupt_Context;
 
-end HiRTOS.Interrupt_Context;
+end HiRTOS.Interrupt_Handling;

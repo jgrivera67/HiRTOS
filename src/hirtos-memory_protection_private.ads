@@ -35,23 +35,6 @@ with System.Storage_Elements;
 private package HiRTOS.Memory_Protection_Private
    with SPARK_Mode => On
 is
-   --
-   --  Allocation of logical memory protection regions to memory protection descriptor
-   --  indices
-   --
-   --  NOTE: Higher region id means higher region precedence in case of overlapping regions
-   --
-   type Memory_Region_Id_Type is
-     (Global_Data_Region, Global_Interrupt_Stack_Region,
-      Thread_Stack_Data_Region, Thread_Private_Data_Region,
-      Thread_Private_MMIO_Region, Global_Code_Region,
-      Thread_Private_Code_Region);
-
-   for Memory_Region_Id_Type use
-     (Global_Data_Region         => 0, Global_Interrupt_Stack_Region => 1,
-      Thread_Stack_Data_Region   => 2, Thread_Private_Data_Region => 3,
-      Thread_Private_MMIO_Region => 4, Global_Code_Region => 5,
-      Thread_Private_Code_Region => 6);
 
    type Thread_Memory_Regions_Type is limited private;
 

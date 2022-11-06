@@ -28,7 +28,7 @@
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Platform_External_Interrupts;
 
-private package HiRTOS.Interrupt_Nesting with
+private package HiRTOS.Interrupt_Handling_Private with
   SPARK_Mode => On
 is
    --
@@ -60,6 +60,8 @@ is
          Interrupt_Nesting_Counter_Type'First + 1;
    end record;
 
+   procedure Initialize;
+
    procedure Initialize_Interrupt_Nesting_Level_Stack
      (Interrupt_Nesting_Level_Stack : out Interrupt_Nesting_Level_Stack_Type);
 
@@ -84,4 +86,4 @@ is
       return Interrupt_Nesting_Counter_Type is
      (Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter);
 
-end HiRTOS.Interrupt_Nesting;
+end HiRTOS.Interrupt_Handling_Private;
