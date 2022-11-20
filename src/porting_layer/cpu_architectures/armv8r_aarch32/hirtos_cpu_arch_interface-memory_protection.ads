@@ -31,6 +31,7 @@
 --
 
 with System.Storage_Elements;
+with Interfaces;
 
 package HiRTOS_Cpu_Arch_Interface.Memory_Protection
    with SPARK_Mode => On
@@ -89,7 +90,7 @@ is
 private
 
    ----------------------------------------------------------------------------
-   -- Memory protection unit (MPU) declarations
+   --  Memory protection unit (MPU) declarations
    ----------------------------------------------------------------------------
 
    type Not_Unified_Mpu_Type is (Unified_Memory_Map, Not_Unified_Memory_Map)
@@ -104,7 +105,7 @@ private
                                    Mpu_24_Regions)
       with Size => 8;
 
-    for Mpu_Regions_Count_Type use
+   for Mpu_Regions_Count_Type use
      (Mpu_16_Regions => 16,
       Mpu_20_Regions => 20,
       Mpu_24_Regions => 24);
@@ -171,7 +172,7 @@ private
       XN : Execute_Never_Type := Non_Executable;
       AP : Access_Permissions_Attribute_Type := EL1_Read_Write_EL0_No_Access;
       SH : Sharability_Attribute_Type := Non_Shareable;
-      -- Base address top 26 bits
+      --  Base address top 26 bits
       BASE : Address_Top_26_Bits_Type := 16#0#;
    end record
    with Size => 32,
@@ -223,10 +224,10 @@ private
    --
    type PRLAR_Type is record
       EN : Region_Enable_Type := Region_Disabled;
-      -- Attribute index
+      --  Attribute index
       AttrIndx : AttrIndx_Type := Attr0;
-      -- Limit address top 26 bits
-      LIMIT: Address_Top_26_Bits_Type := 16#0#;
+      --  Limit address top 26 bits
+      LIMIT : Address_Top_26_Bits_Type := 16#0#;
    end record
    with Size => 32,
         Bit_Order => System.Low_Order_First;

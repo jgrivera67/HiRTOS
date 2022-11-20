@@ -26,6 +26,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread_Private;
 
@@ -33,6 +34,7 @@ package body HiRTOS.Thread is
    use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface;
    use HiRTOS_Cpu_Arch_Interface.Thread_Context;
+   use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS.RTOS_Private;
    use HiRTOS.Thread_Private;
 
@@ -66,7 +68,7 @@ package body HiRTOS.Thread is
 
    function Get_Current_Thread_Id return Thread_Id_Type is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
    begin
       return RTOS_Cpu_Instance.Current_Thread_Id;
    end Get_Current_Thread_Id;

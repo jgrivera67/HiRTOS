@@ -25,10 +25,11 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 with HiRTOS.RTOS_Private;
-with HiRTOS.Memory_Protection_Private;
+with HiRTOS_Cpu_Multi_Core_Interface;
 
 package body HiRTOS.Thread_Private is
    use HiRTOS.RTOS_Private;
+   use HiRTOS_Cpu_Multi_Core_Interface;
 
    -----------------------------------------------------------------------------
    --  Private Subprograms Specifications                                     --
@@ -80,7 +81,7 @@ package body HiRTOS.Thread_Private is
 
    procedure Run_Thread_Scheduler is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
       Current_Thread_Obj : Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
       Old_Cpu_Interrupt_Mask : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;

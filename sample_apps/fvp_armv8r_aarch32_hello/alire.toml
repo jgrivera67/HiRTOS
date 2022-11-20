@@ -10,15 +10,15 @@ executables = ["fvp_armv8r_aarch32_hello"]
 
 [[depends-on]]
 hirtos = "*"
-common_foundation = "*"
+#???porting_layer = "*"
 portable_minimal_ada_rts = "*"
 
 [[pins]]
 hirtos = { path='../..' }
-common_foundation = { path='../common_foundation' }
+#???porting_layer = { path='../../porting_layer' }
 portable_minimal_ada_rts = { path='../../third_party/portable_minimal_ada_rts' }
 
 [build-profiles]
 hirtos = "development"
-common_foundation = "development"
+#???porting_layer = "development"
 portable_minimal_ada_rts = "development"

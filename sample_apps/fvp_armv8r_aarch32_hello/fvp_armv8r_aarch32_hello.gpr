@@ -27,7 +27,7 @@ project Fvp_Armv8r_Aarch32_Hello is
         --"-nolibc",
           "-Wl,-Map=" & "memory_map.map",
 			 "-Xlinker", "--gc-sections",
-	       "-T../../common_foundation/src/platforms/" & HiRTOS_Compiler_Flags.Platform & "/memory_layout.ld");
+	       "-T../../src/porting_layer/platforms/" & HiRTOS_Compiler_Flags.Platform & "/memory_layout.ld");
    end Linker;
 
    package Install is

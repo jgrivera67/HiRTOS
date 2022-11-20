@@ -51,7 +51,7 @@ is
 
    type Stack_Entries_Type is
      array (1 ..
-            Stack_Size_In_Bytes / 
+            Stack_Size_In_Bytes /
             (System.Storage_Elements.Integer_Address'Size / System.Storage_Unit)) of Stack_Entry_Type with
      Convention => C,
      Alignment  =>

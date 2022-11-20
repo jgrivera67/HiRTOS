@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2016, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -25,32 +25,35 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
+--
+--  @summary Startup code
+--
+
 with Interfaces;
+with System;
 
---
---  Minimal low-level debugging services
---
-package Low_Level_Debug
-   with No_Elaboration_Code_All, SPARK_Mode => On
+package HiRTOS_Cpu_Startup_Interface with No_Elaboration_Code_All
 is
-   use Interfaces;
 
-   function Get_Char return Character;
+   procedure Reset_Handler (Cpu_Id : Interfaces.Unsigned_32)
+      with Export,
+           Convention => C,
+           External_Name => "ada_reset_handler",
+           No_Return;
+   --
+   --  Reset exception handler
+   --
 
-   procedure Initialize_Rgb_Led;
+   procedure Unexpected_Interrupt_Handler
+      with Export,
+           Convention => C,
+           External_Name => "ada_unexpected_irq_handler";
+   --
+   --  Default handler of unexpected interrupts
+   --
 
-   procedure Initialize_Uart;
+   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer)
+     with No_Return;
+   pragma Export (C, Last_Chance_Handler, "__gnat_last_chance_handler");
 
-   procedure Print_Number_Decimal (Value : Unsigned_32;
-                                   End_Line : Boolean := False);
-
-   procedure Print_Number_Hexadecimal (Value : Unsigned_32;
-                                       End_Line : Boolean := False);
-
-   procedure Print_String (S : String; End_Line : Boolean := False);
-
-   procedure Put_Char (C : Character);
-
-   procedure Set_Rgb_Led (Red_On, Green_On, Blue_On : Boolean := False);
-
-end Low_Level_Debug;
+end HiRTOS_Cpu_Startup_Interface;

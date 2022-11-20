@@ -234,7 +234,7 @@ reset_handler:
         mcr p15, 4, r0, c1, c0, 1
 
         /*
-         * As out of reset, the Cortex-r52 is in EL2 (HYP mode), to go to EL1
+         * As out of reset, the Cortex-R52 is in EL2 (HYP mode), to go to EL1
          * (SVC mode), we need to return from an EL2 exception into EL1.
          */
         mov r0, #CPSR_SUPERVISOR_MODE

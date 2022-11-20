@@ -25,10 +25,12 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
-with HiRTOS_Platform_External_Interrupts;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
 
 package body HiRTOS.Interrupt_Handling_Private is
+   use HiRTOS_Cpu_Multi_Core_Interface;
 
    procedure Initialize_Interrupt_Nesting_Level
      (Interrupt_Nesting_Level : out Interrupt_Nesting_Level_Type);
@@ -38,8 +40,12 @@ package body HiRTOS.Interrupt_Handling_Private is
    -----------------------------------------------------------------------------
 
    procedure Initialize is
+      use type Valid_Cpu_Core_Id_Type;
+      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
    begin
-      pragma Assert (False); --???
+      if Cpu_Id = Valid_Cpu_Core_Id_Type'First then
+         HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
+      end if;
    end Initialize;
 
    procedure Initialize_Interrupt_Nesting_Level_Stack
@@ -91,7 +97,7 @@ package body HiRTOS.Interrupt_Handling_Private is
    is
    begin
       Interrupt_Nesting_Level.Irq_Id :=
-        HiRTOS_Platform_External_Interrupts.Invalid_Irq_Id;
+        HiRTOS_External_Interrupts_Interface.Invalid_Irq_Id;
       Interrupt_Nesting_Level.Interrupt_Nesting_Counter :=
         Active_Interrupt_Nesting_Counter_Type'First;
       Interrupt_Nesting_Level.Saved_Stack_Pointer :=

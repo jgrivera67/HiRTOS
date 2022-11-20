@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2018, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,13 @@
 --
 
 --
---  @summary Startup code
+--  @summary HiRTOS to target CPU architecture interface - External interrupts
 --
 
-with Interfaces;
-with System;
-
-package Startup with No_Elaboration_Code_All
+package HiRTOS_External_Interrupts_Interface with
+  SPARK_Mode => On, No_Elaboration_Code_All
 is
 
-   procedure Reset_Handler (Cpu_Id : Interfaces.Unsigned_32)
-      with Export,
-           Convention => C,
-           External_Name => "ada_reset_handler",
-           No_Return;
-   --
-   --  Reset exception handler
-   --
+   type Irq_Id_Type is (Invalid_Irq_Id);
 
-   procedure Unexpected_Interrupt_Handler
-      with Export,
-           Convention => C,
-           External_Name => "ada_unexpected_irq_handler";
-   --
-   --  Default handler of unexpected interrupts
-   --
-
-   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer)
-     with No_Return;
-   pragma Export (C, Last_Chance_Handler, "__gnat_last_chance_handler");
-
-end Startup;
+end HiRTOS_External_Interrupts_Interface;

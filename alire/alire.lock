@@ -4,15 +4,6 @@
 [solution.context]
 solved = true
 [[solution.state]]
-crate = "common_foundation"
-fulfilment = "linked"
-pinned = false
-transitivity = "direct"
-versions = "*"
-[solution.state.link]
-lockfiled = true
-path = "sample_apps/common_foundation"
-[[solution.state]]
 crate = "gnatprove"
 fulfilment = "solved"
 pinned = false

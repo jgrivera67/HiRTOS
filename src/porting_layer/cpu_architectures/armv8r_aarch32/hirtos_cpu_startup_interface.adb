@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2018, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -25,10 +25,12 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
-with Low_Level_Debug;
+with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Machine_Code;
 
-package body Startup is
+package body HiRTOS_Cpu_Startup_Interface is
+   use HiRTOS_Cpu_Multi_Core_Interface;
 
    ----------------
    -- Enable_FPU --
@@ -52,8 +54,6 @@ package body Startup is
    -------------------
 
    procedure Reset_Handler (Cpu_Id : Interfaces.Unsigned_32) is
-      use type Interfaces.Unsigned_32;
-
       procedure Gnat_Generated_Main with Import,
                                       Convention => C,
                                       External_Name => "main";
@@ -65,16 +65,8 @@ package body Startup is
       --???Memory_Utils.Copy_Data_Section;
       --???Memory_Utils.Clear_BSS_Section;
 
-      Low_Level_Debug.Initialize_Rgb_Led;
-
-      if Cpu_Id = 0 then
-         Low_Level_Debug.Initialize_Uart;
-      else
-         loop --???
-            --  System.Machine_Code.Asm ("wfe", Volatile => True);
-            System.Machine_Code.Asm ("wfi", Volatile => True);
-         end loop; --???
-      end if;
+      HiRTOS_Low_Level_Debug_Interface.Initialize_Led;
+      HiRTOS_Low_Level_Debug_Interface.Initialize_Uart;
 
       Enable_FPU;
 
@@ -110,13 +102,15 @@ package body Startup is
    -- Last_Chance_Handler --
    -------------------------
 
-   Last_Chance_Handler_Running : Boolean := False;
+   Last_Chance_Handler_Running :
+      array (Valid_Cpu_Core_Id_Type) of Boolean := [ others => False ];
 
    procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
       Msg_Text : String (1 .. 128) with Address => Msg;
       Msg_Length : Natural := 0;
+      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
    begin
-      Low_Level_Debug.Set_Rgb_Led (Red_On => True);
+      HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
       --
       --  Calculate length of the null-terminated 'Msg' string:
       --
@@ -125,30 +119,30 @@ package body Startup is
          exit when Msg_Char = ASCII.NUL;
       end loop;
 
-      if Last_Chance_Handler_Running then
-         Low_Level_Debug.Print_String (
+      if Last_Chance_Handler_Running (Cpu_Id) then
+         HiRTOS_Low_Level_Debug_Interface.Print_String (
             "*** Recursive call to Last_Chance_Handler: " &
             Msg_Text (1 .. Msg_Length) & "' at line ");
-         Low_Level_Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
-                                               End_Line => True);
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
+                                                                End_Line => True);
          loop
             System.Machine_Code.Asm ("wfi", Volatile => True);
          end loop;
       end if;
 
-      Last_Chance_Handler_Running := True;
+      Last_Chance_Handler_Running (Cpu_Id) := True;
 
       --
-      --  Print exception message to UART0:
+      --  Print exception message to UART:
       --
       if Line /= 0 then
-         Low_Level_Debug.Print_String (
+         HiRTOS_Low_Level_Debug_Interface.Print_String (
             ASCII.LF & "*** Exception: '" & Msg_Text (1 .. Msg_Length) &
             "' at line ");
-         Low_Level_Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
-                                               End_Line => True);
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
+                                                                End_Line => True);
       else
-         Low_Level_Debug.Print_String (
+         HiRTOS_Low_Level_Debug_Interface.Print_String (
             ASCII.LF &
             "*** Exception: '" & Msg_Text (1 .. Msg_Length) & "'" & ASCII.LF);
       end if;
@@ -159,4 +153,4 @@ package body Startup is
 
    end Last_Chance_Handler;
 
-end Startup;
+end HiRTOS_Cpu_Startup_Interface;

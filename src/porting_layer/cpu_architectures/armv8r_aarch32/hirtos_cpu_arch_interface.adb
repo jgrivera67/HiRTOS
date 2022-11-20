@@ -32,6 +32,7 @@
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with System.Machine_Code;
 with System.Storage_Elements;
+with Interfaces;
 
 package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
@@ -42,8 +43,6 @@ package body HiRTOS_Cpu_Arch_Interface is
    --  CPSR_F_Bit_Mask : constant := 2#0100_0000#; --  bit 6
    CPSR_I_Bit_Mask : constant Cpu_Register_Type := 2#1000_0000#; --  bit 7
    CPSR_Mode_Mask : constant Cpu_Register_Type :=  2#0001_1111#; --  bits [4:0]
-
-   MPIDR_Core_Id_Mask : constant := 2#1111_1111#;
 
    procedure Prefetch_Abort_Exception_App_Handler
       with Import,
@@ -59,18 +58,6 @@ package body HiRTOS_Cpu_Arch_Interface is
       with Import,
            Convention => C,
            External_Name => "external_interrupt_app_handler";
-
-   function Get_Cpu_Id return Cpu_Core_Id_Type is
-      Reg_Value : Cpu_Register_Type;
-   begin
-      System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c0, c0, 5",   -- read MPIDR
-         Outputs => Cpu_Register_Type'Asm_Output ("=r", Reg_Value),           --  %0
-         Volatile => True);
-
-      Reg_Value := @ and MPIDR_Core_Id_Mask;
-      return Cpu_Core_Id_Type (Reg_Value);
-   end Get_Cpu_Id;
 
    function Get_Cpu_Status_Register return Cpu_Register_Type is
       Reg_Value : Cpu_Register_Type;

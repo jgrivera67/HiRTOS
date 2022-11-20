@@ -31,6 +31,7 @@ with HiRTOS.Condvar_Private;
 with HiRTOS.Timer_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
 
 --
@@ -39,46 +40,48 @@ with System.Storage_Elements;
 private package HiRTOS.RTOS_Private with
  SPARK_Mode => On
 is
-  use HiRTOS.Thread_Private;
-  use HiRTOS.Mutex_Private;
-  use HiRTOS.Condvar_Private;
-  use HiRTOS.Timer_Private;
-  use HiRTOS.Interrupt_Handling_Private;
+   use HiRTOS.Thread_Private;
+   use HiRTOS.Mutex_Private;
+   use HiRTOS.Condvar_Private;
+   use HiRTOS.Timer_Private;
+   use HiRTOS.Interrupt_Handling_Private;
+   use HiRTOS_Cpu_Multi_Core_Interface;
 
-  type Thread_Scheduler_State_Type is
-   (Thread_Scheduler_Stopped, Thread_Scheduler_Running);
+   type Thread_Scheduler_State_Type is
+     (Thread_Scheduler_Stopped, Thread_Scheduler_Running);
 
-  type Cpu_Execution_Mode_Type is
-   (
-  --  Upon releasing the CPU from reset,  it jumps to execute the reset
-  --  exception handler
-  Cpu_Executing_Reset_Handler,
+   type Cpu_Execution_Mode_Type is
+     (
+        --  Upon releasing the CPU from reset,  it jumps to execute the reset
+        --  exception handler
+        Cpu_Executing_Reset_Handler,
 
-    --  Asynchronous interrupt (IRQ) or synchronous exception`
-    Cpu_Executing_Interrupt_Handler,
+        --  Asynchronous interrupt (IRQ) or synchronous exception`
+        Cpu_Executing_Interrupt_Handler,
 
-    --  Upon starting the RTOS scheduler, the CPU executes thread code
-    --  as long as interrupts or exceptions don't get triggered.
-    Cpu_Executing_Thread);
+        --  Upon starting the RTOS scheduler, the CPU executes thread code
+        --  as long as interrupts or exceptions don't get triggered.
+        Cpu_Executing_Thread
+     );
 
   package Per_Cpu_Thread_List_Package is new Generic_Linked_List
-   (List_Id_Type    => HiRTOS_Cpu_Arch_Interface.Cpu_Core_Id_Type,
-    Null_List_Id    => HiRTOS_Cpu_Arch_Interface.Invalid_Cpu_Core_Id,
+   (List_Id_Type    => Cpu_Core_Id_Type,
+    Null_List_Id    => Invalid_Cpu_Core_Id,
     Element_Id_Type => Thread_Id_Type, Null_Element_Id => Invalid_Thread_Id);
 
   package Per_Cpu_Mutex_List_Package is new Generic_Linked_List
-   (List_Id_Type    => HiRTOS_Cpu_Arch_Interface.Cpu_Core_Id_Type,
-    Null_List_Id    => HiRTOS_Cpu_Arch_Interface.Invalid_Cpu_Core_Id,
+   (List_Id_Type    => Cpu_Core_Id_Type,
+    Null_List_Id    => Invalid_Cpu_Core_Id,
     Element_Id_Type => Mutex_Id_Type, Null_Element_Id => Invalid_Mutex_Id);
 
   package Per_Cpu_Condvar_List_Package is new Generic_Linked_List
-   (List_Id_Type    => HiRTOS_Cpu_Arch_Interface.Cpu_Core_Id_Type,
-    Null_List_Id    => HiRTOS_Cpu_Arch_Interface.Invalid_Cpu_Core_Id,
+   (List_Id_Type    => Cpu_Core_Id_Type,
+    Null_List_Id    => Invalid_Cpu_Core_Id,
     Element_Id_Type => Condvar_Id_Type, Null_Element_Id => Invalid_Condvar_Id);
 
   package Per_Cpu_Timer_List_Package is new Generic_Linked_List
-   (List_Id_Type    => HiRTOS_Cpu_Arch_Interface.Cpu_Core_Id_Type,
-    Null_List_Id    => HiRTOS_Cpu_Arch_Interface.Invalid_Cpu_Core_Id,
+   (List_Id_Type    => Cpu_Core_Id_Type,
+    Null_List_Id    => Invalid_Cpu_Core_Id,
     Element_Id_Type => Timer_Id_Type, Null_Element_Id => Invalid_Timer_Id);
 
   --
@@ -104,7 +107,7 @@ is
   --
   type HiRTOS_Cpu_Instance_Type is limited record
     Initialized            : Boolean                     := False;
-    Cpu_Id                 : HiRTOS_Cpu_Arch_Interface.Cpu_Core_Id_Type;
+    Cpu_Id                 : Cpu_Core_Id_Type;
     Thread_Scheduler_State : Thread_Scheduler_State_Type :=
      Thread_Scheduler_Stopped;
     Current_Atomic_Level              : Atomic_Level_Type := Atomic_Level_None;
@@ -129,8 +132,7 @@ is
    Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
 
   type HiRTOS_Cpu_Instance_Array_Type is
-   array
-    (HiRTOS_Cpu_Arch_Interface.Cpu_Core_Id_Type) of HiRTOS_Cpu_Instance_Type;
+    array (Valid_Cpu_Core_Id_Type) of HiRTOS_Cpu_Instance_Type;
 
   --
   --  State variables of the HiRTOS kernel

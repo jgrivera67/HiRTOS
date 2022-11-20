@@ -26,22 +26,30 @@
 --
 
 with Interfaces;
-with Low_Level_Debug;
+with HiRTOS_Low_Level_Debug_Interface;
 with GNAT.Source_Info;
-with Startup;
+with HiRTOS_Cpu_Startup_Interface;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS;
 
-pragma Unreferenced (Startup);
+pragma Unreferenced (HiRTOS_Cpu_Startup_Interface);
 
 procedure Fvp_Armv8r_Aarch32_Hello is
+   use HiRTOS_Cpu_Multi_Core_Interface;
 
    procedure Print_Console_Greeting is
+      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
    begin
-      Low_Level_Debug.Print_String (
+      HiRTOS_Low_Level_Debug_Interface.Print_String (
         "FVP ARMv8-R Hello (Written in Ada 2012, built on " &
         GNAT.Source_Info.Compilation_Date &
         " at " & GNAT.Source_Info.Compilation_Time & ")" & ASCII.LF);
-      null;
+
+      HiRTOS_Low_Level_Debug_Interface.Print_String (
+         "CPU ");
+      HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+         Interfaces.Unsigned_32 (Cpu_Id),
+         End_Line => True);
    end Print_Console_Greeting;
 
    -- ** --
@@ -63,15 +71,15 @@ begin -- Main
    Print_Console_Greeting;
 
    HiRTOS.Initialize;
-   pragma Assert (False); --???
+
    loop
-      Low_Level_Debug.Print_String ("JGR "); --???
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR "); --???
       if Turn_LED_On then
          Turn_LED_On := False;
-         Low_Level_Debug.Set_Rgb_Led (True, True, True);
+         HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
       else
          Turn_LED_On := True;
-         Low_Level_Debug.Set_Rgb_Led (False, False, False);
+         HiRTOS_Low_Level_Debug_Interface.Set_Led (False);
       end if;
 
       Naive_Delay (10_000_000);

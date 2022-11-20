@@ -31,10 +31,12 @@
 
 with Generic_Execution_Stack;
 with HiRTOS.Interrupt_Handling;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Machine_Code;
 with Interfaces;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
+   use HiRTOS_Cpu_Multi_Core_Interface;
    use ASCII;
 
    ISR_Stack_Size_In_Bytes : constant := 4 * 1024; -- 4KiB

@@ -29,6 +29,8 @@
 --  @summary RTOS to target platform interface - Tick timer driver
 --
 
+with Interfaces;
+
 package HiRTOS_Cpu_Arch_Interface.Tick_Timer
    with SPARK_Mode => On
 is

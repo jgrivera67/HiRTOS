@@ -29,15 +29,75 @@
 --  @summary RTOS to target platform interface - Interrupt controller driver
 --
 
+with HiRTOS.Memory_Protection;
 with System.Machine_Code;
+with System.Address_To_Access_Conversions;
+with System.Storage_Elements;
 
-package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with SPARK_Mode => On is
+package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with SPARK_Mode => Off is
+
+   package Address_To_GICD_Pointer is new
+      System.Address_To_Access_Conversions (Object => GICD_Type);
+
+   type Interrupt_Controller_Type is record
+      Initialized : Boolean := False;
+      Max_Number_Interrupt_Sources : Interfaces.Unsigned_16;
+      GICD_Pointer : access GICD_Type := null;
+   end record
+      with Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment,
+           Warnings => Off;
+
+   Interrupt_Controller_Obj : Interrupt_Controller_Type;
+
+   ----------------------------------------------------------------------------
+   --  Public Subprograms
+   ----------------------------------------------------------------------------
 
    procedure Initialize is
+      use System.Storage_Elements;
+      use type Interfaces.Unsigned_16;
       IMP_CBAR_Value : constant IMP_CBAR_Type := Get_IMP_CBAR;
+      Old_Mmio_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
+      Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
+      GICD_Pointer : access GICD_Type;
+      GICD_CTLR_Value : GICD_CTLR_Type;
+      GICD_TYPER_Value : GICD_TYPER_Type;
    begin
+      pragma Assert (not Interrupt_Controller_Obj.Initialized);
       pragma Assert (IMP_CBAR_Value.RES0 = 0);
-      pragma Assert (False); --???
+
+      --  Get address of GICD
+      GICD_Pointer := Address_To_GICD_Pointer.To_Pointer (
+                        To_Address (Integer_Address (IMP_CBAR_Value.Value)));
+
+      HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access (
+         Address_To_GICD_Pointer.To_Address (Address_To_GICD_Pointer.Object_Pointer (GICD_Pointer)),
+         GICD_Pointer.all'Size,
+         Old_Mmio_Range);
+
+      --  Disable interrupts from group0 and group1 before configuring the GIC:
+      GICD_CTLR_Value := GICD_Pointer.GICD_CTLR;
+      GICD_CTLR_Value.EnableGrp0 := Group_Interrupts_Disabled;
+      GICD_CTLR_Value.EnableGrp1 := Group_Interrupts_Disabled;
+      GICD_Pointer.GICD_CTLR := GICD_CTLR_Value;
+
+      GICD_TYPER_Value := GICD_Pointer.GICD_TYPER;
+      pragma Assert (GICD_TYPER_Value.IDBits = ARM_Cortex_R52_GICD_TYPER_IDbits);
+
+      HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
+
+      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access (
+         Interrupt_Controller_Obj'Address,
+         Interrupt_Controller_Obj'Size,
+         Old_Data_Range);
+
+      Interrupt_Controller_Obj.GICD_Pointer := GICD_Pointer;
+      Interrupt_Controller_Obj.Max_Number_Interrupt_Sources :=
+          (32 * Interfaces.Unsigned_16 (GICD_TYPER_Value.ITLinesNumber)) + 1;
+
+      Interrupt_Controller_Obj.Initialized := True;
+
+      HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize;
 
    ----------------------------------------------------------------------------

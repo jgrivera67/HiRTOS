@@ -29,11 +29,13 @@ with HiRTOS.RTOS_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
 
 package body HiRTOS.Interrupt_Handling is
    use HiRTOS.RTOS_Private;
    use HiRTOS.Thread_Private;
+   use HiRTOS_Cpu_Multi_Core_Interface;
 
    --
    --  Inline subprogram to be invoked from Interrupt_Handler_Prolog.
@@ -43,7 +45,7 @@ package body HiRTOS.Interrupt_Handling is
    --
    procedure Enter_Interrupt_Context is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       Stack_Pointer : constant HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type :=
          HiRTOS_Cpu_Arch_Interface.Get_Stack_Pointer;
       Current_Thread_Id : constant Thread_Id_Type :=
@@ -93,7 +95,7 @@ package body HiRTOS.Interrupt_Handling is
    --
    procedure Exit_Interrupt_Context is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (HiRTOS_Cpu_Arch_Interface.Get_Cpu_Id);
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
    begin
       HiRTOS.Interrupt_Handling_Private.Decrement_Interrupt_Nesting (
          RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);

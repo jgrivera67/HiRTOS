@@ -26,7 +26,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface;
-with HiRTOS_Platform_External_Interrupts;
+with HiRTOS_External_Interrupts_Interface;
 
 private package HiRTOS.Interrupt_Handling_Private with
   SPARK_Mode => On
@@ -43,8 +43,8 @@ is
    --
    type Interrupt_Nesting_Level_Type is limited record
       Initialized : Boolean := False;
-      Irq_Id : HiRTOS_Platform_External_Interrupts.Irq_Id_Type :=
-              HiRTOS_Platform_External_Interrupts.Invalid_Irq_Id;
+      Irq_Id : HiRTOS_External_Interrupts_Interface.Irq_Id_Type :=
+              HiRTOS_External_Interrupts_Interface.Invalid_Irq_Id;
       Interrupt_Nesting_Counter : Active_Interrupt_Nesting_Counter_Type;
       Saved_Stack_Pointer       : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       Atomic_Level              : Atomic_Level_Type := Atomic_Level_None;

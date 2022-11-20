@@ -26,41 +26,31 @@
 --
 
 --
---  @summary HiRTOS Memory protection services
+--  @summary HiRTOS multi-core CPU interface
 --
 
-with HiRTOS.Memory_Protection_Private;
+with HiRTOS_Platform_Parameters;
+with Interfaces;
 
-package body HiRTOS.Memory_Protection with
-  SPARK_Mode => On
+package HiRTOS_Cpu_Multi_Core_Interface
+   with SPARK_Mode => On,
+        No_Elaboration_Code_All
 is
+   --
+   --  Ids of CPU cores
+   --
+   --  NOTE: +1 to allow for an invalid CPU Id
+   --
+   type Cpu_Core_Id_Type is mod HiRTOS_Platform_Parameters.Num_Cpu_Cores + 1
+     with Size => Interfaces.Unsigned_8'Size;
 
-   procedure Begin_Data_Range_Write_Access (
-      Start_Address : System.Address;
-      Size_In_Bits : Memory_Range_Size_In_Bits_Type;
-      Old_Data_Range : out Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end Begin_Data_Range_Write_Access;
+   subtype Valid_Cpu_Core_Id_Type is
+     Cpu_Core_Id_Type range Cpu_Core_Id_Type'First .. Cpu_Core_Id_Type'Last - 1;
 
-   procedure End_Data_Range_Access (
-      Old_Data_Range : Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end End_Data_Range_Access;
+   Invalid_Cpu_Core_Id : constant Cpu_Core_Id_Type := Cpu_Core_Id_Type'Last;
 
-   procedure Begin_Mmio_Range_Write_Access (
-      Start_Address : System.Address;
-      Size_In_Bits : Memory_Range_Size_In_Bits_Type;
-      Old_Mmio_Range : out Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end Begin_Mmio_Range_Write_Access;
+   function Get_Cpu_Id return Valid_Cpu_Core_Id_Type
+      with Inline_Always,
+           Suppress => All_Checks;
 
-   procedure End_Mmio_Range_Access (
-      Old_Mmio_Range : Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end End_Mmio_Range_Access;
-
-end HiRTOS.Memory_Protection;
+end HiRTOS_Cpu_Multi_Core_Interface;

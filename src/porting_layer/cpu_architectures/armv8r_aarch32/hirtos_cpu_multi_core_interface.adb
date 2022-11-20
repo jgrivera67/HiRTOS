@@ -26,13 +26,26 @@
 --
 
 --
---  @summary HiRTOS to target CPU architecture interface - External interrupts
+--  @summary HiRTOS multi-core CPU interface for ARMv8-R architecture
 --
 
-package HiRTOS_Platform_External_Interrupts with
-  SPARK_Mode => On, No_Elaboration_Code_All
-is
+with System.Machine_Code;
 
-   type Irq_Id_Type is (Invalid_Irq_Id);
+package body HiRTOS_Cpu_Multi_Core_Interface is
 
-end HiRTOS_Platform_External_Interrupts;
+   MPIDR_Core_Id_Mask : constant := 2#1111_1111#;
+
+   function Get_Cpu_Id return Valid_Cpu_Core_Id_Type is
+      use type Interfaces.Unsigned_32;
+      Reg_Value : Interfaces.Unsigned_32;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 0, %0, c0, c0, 5",   -- read MPIDR
+         Outputs => Interfaces.Unsigned_32'Asm_Output ("=r", Reg_Value), --  %0
+         Volatile => True);
+
+      Reg_Value := @ and MPIDR_Core_Id_Mask;
+      return Valid_Cpu_Core_Id_Type (Reg_Value);
+   end Get_Cpu_Id;
+
+end HiRTOS_Cpu_Multi_Core_Interface;

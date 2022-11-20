@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2012, German Rivera
+--  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
 --  Redistribution and use in source and binary forms, with or without
@@ -25,11 +25,13 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
+with HiRTOS_Cpu_Multi_Core_Interface;
 with Number_Conversion_Utils;
 with Bit_Sized_Integer_Types;
 with System;
 
-package body Low_Level_Debug with SPARK_Mode => Off is
+package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
+   use HiRTOS_Cpu_Multi_Core_Interface;
    use type Bit_Sized_Integer_Types.Bit_Type;
 
    --
@@ -521,6 +523,14 @@ package body Low_Level_Debug with SPARK_Mode => Off is
 
       UART3_Periph : aliased UART_Peripheral
       with Import, Address => UART3_Base;
+
+      UART_Periph_Pointers : constant
+         array (Valid_Cpu_Core_Id_Type) of access UART_Peripheral :=
+        [ Valid_Cpu_Core_Id_Type'First => UART0_Periph'Access,
+          Valid_Cpu_Core_Id_Type'First + 1 => UART1_Periph'Access,
+          Valid_Cpu_Core_Id_Type'First + 2 => UART2_Periph'Access,
+          Valid_Cpu_Core_Id_Type'First + 3 => UART3_Periph'Access ];
+
    end UART;
 
    Baud_Rate : constant := 115_200;
@@ -532,24 +542,30 @@ package body Low_Level_Debug with SPARK_Mode => Off is
    function Get_Char return Character is
       UARTFR_Value : UART.UARTFR_Register;
       UARTDR_Value : UART.UARTDR_Register;
+      UART_Periph_Pointer : constant access UART.UART_Peripheral :=
+         UART.UART_Periph_Pointers (Get_Cpu_Id);
    begin
       loop
-         UARTFR_Value := UART.UART0_Periph.UARTFR;
+         UARTFR_Value := UART_Periph_Pointer.UARTFR;
          exit when UARTFR_Value.RXFE /= 0;
       end loop;
 
-      UARTDR_Value := UART.UART0_Periph.UARTDR;
+      UARTDR_Value := UART_Periph_Pointer.UARTDR;
       return Character'Val (UARTDR_Value.DATA);
    end Get_Char;
 
    ------------------------
-   -- Initialize_Rgb_Led --
+   -- Initialize_Led --
    ------------------------
 
-   procedure Initialize_Rgb_Led is
+   procedure Initialize_Led is
+      SYS_LED_Value : Word_Bit_Array_Type;
+      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
    begin
-      SYS_LED_Periph := [others => 0];
-   end Initialize_Rgb_Led;
+      SYS_LED_Value := SYS_LED_Periph;
+      SYS_LED_Value (Word_Bit_Index_Type (Cpu_Id)) := 0;
+      SYS_LED_Periph := SYS_LED_Value;
+   end Initialize_Led;
 
    ---------------------
    -- Initialize_Uart --
@@ -572,29 +588,32 @@ package body Low_Level_Debug with SPARK_Mode => Off is
       UARTLCR_H_Value : UART.UARTLCR_H_Register;
       UARTCR_Value : UART.UARTCR_Register;
       UARTIMSC_Value : UART.UARTIMSC_Register;
+      UART_Periph_Pointer : constant access UART.UART_Peripheral :=
+         UART.UART_Periph_Pointers (Get_Cpu_Id);
+
    begin
       --  Set baud rate:
       Calculate_Divisors (Baud_Rate, UARTIBRD_Value.BAUD_DIVINT, UARTFBRD_Value.BAUD_DIVFRAC);
 
-      UART.UART0_Periph.UARTIBRD := UARTIBRD_Value;
-      UART.UART0_Periph.UARTFBRD := UARTFBRD_Value;
+      UART_Periph_Pointer.UARTIBRD := UARTIBRD_Value;
+      UART_Periph_Pointer.UARTFBRD := UARTFBRD_Value;
 
       --  Configure data frame format to be 8-N-1 (8 data bits, no parity, 1 stop bit)
       UARTLCR_H_Value.WLEN := 2#11#;
       UARTLCR_H_Value.STP2 := 2#0#;
       UARTLCR_H_Value.PEN := 2#0#;
-      UART.UART0_Periph.UARTLCR_H := UARTLCR_H_Value;
+      UART_Periph_Pointer.UARTLCR_H := UARTLCR_H_Value;
 
       --  Disable (mask) all interrupts:
       UARTIMSC_Value := (others => 2#1#);
-      UART.UART0_Periph.UARTIMSC := UARTIMSC_Value;
+      UART_Periph_Pointer.UARTIMSC := UARTIMSC_Value;
 
       --  Enable UART Tx/Rx and UART peripheral itself:
-      UARTCR_Value := UART.UART0_Periph.UARTCR;
+      UARTCR_Value := UART_Periph_Pointer.UARTCR;
       UARTCR_Value.TXE := 2#1#;
       UARTCR_Value.RXE := 2#1#;
       UARTCR_Value.UARTEN := 2#1#;
-      UART.UART0_Periph.UARTCR := UARTCR_Value;
+      UART_Periph_Pointer.UARTCR := UARTCR_Value;
    end Initialize_Uart;
 
    ------------------
@@ -650,28 +669,29 @@ package body Low_Level_Debug with SPARK_Mode => Off is
    procedure Put_Char (C : Character) is
       UARTFR_Value : UART.UARTFR_Register;
       UARTDR_Value : UART.UARTDR_Register;
+      UART_Periph_Pointer : constant access UART.UART_Peripheral :=
+         UART.UART_Periph_Pointers (Get_Cpu_Id);
    begin
       loop
-         UARTFR_Value := UART.UART0_Periph.UARTFR;
+         UARTFR_Value := UART_Periph_Pointer.UARTFR;
          exit when UARTFR_Value.TXFF = 0;
       end loop;
 
       UARTDR_Value.DATA := Interfaces.Unsigned_8 (Character'Pos (C));
-      UART.UART0_Periph.UARTDR := UARTDR_Value;
+      UART_Periph_Pointer.UARTDR := UARTDR_Value;
    end Put_Char;
 
    -------------
    -- Set_Led --
    -------------
 
-   procedure Set_Rgb_Led (Red_On, Green_On, Blue_On : Boolean := False) is
+   procedure Set_Led (On : Boolean) is
       SYS_LED_Value : Word_Bit_Array_Type;
+      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
    begin
       SYS_LED_Value := SYS_LED_Periph;
-      SYS_LED_Value (0) := Boolean'Pos (Red_On);
-      SYS_LED_Value (1) := Boolean'Pos (Green_On);
-      SYS_LED_Value (2) := Boolean'Pos (Blue_On);
+      SYS_LED_Value (Word_Bit_Index_Type (Cpu_Id)) := Boolean'Pos (On);
       SYS_LED_Periph := SYS_LED_Value;
-   end Set_Rgb_Led;
+   end Set_Led;
 
-end Low_Level_Debug;
+end HiRTOS_Low_Level_Debug_Interface;

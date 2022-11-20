@@ -30,6 +30,9 @@
 --  for ARMv8-R MPU
 --
 
+private with System;
+with Interfaces;
+
 package HiRTOS_Cpu_Arch_Interface.Interrupt_Controller
    with SPARK_Mode => On
 is
@@ -52,7 +55,7 @@ private
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
    --  aIMP_CBARs it is not memory-mapped. It is accessed via MRC/MCR instructions.
    --
-   type IMP_CBAR_Type (As_Word : Boolean := False) is record
+   type IMP_CBAR_Type (As_Word : Boolean := True) is record
       case As_Word is
          when True =>
             Value : Interfaces.Unsigned_32 := 0;
@@ -125,7 +128,7 @@ private
    --  configured for Cortex-R52.
    --  Valid interrupt INTID range is 0 to 32*(ITLinesNumber + 1) - 1.
    --
-   type ITLinesNumber_Type is mod 2 ** 5
+   type ITLinesNumber_Type is range 1 .. 30
       with Size => 5;
 
    --
@@ -134,6 +137,8 @@ private
    --
    type TYPER_IDBits_Type is mod 2 ** 5
       with Size => 5;
+
+   ARM_Cortex_R52_GICD_TYPER_IDbits : constant TYPER_IDBits_Type := 2#01001#; --  9 = 10 - 1
 
    type GICD_TYPER_Type is record
       ITLinesNumber : ITLinesNumber_Type := ITLinesNumber_Type'First;
@@ -665,7 +670,7 @@ private
    type CTLR_IDbits_Type is mod 2 ** 3
       with Size => 3;
 
-   ARM_Cortex_R52_IDbits : constant CTLR_IDbits_Type := 2#000#; --  16
+   ARM_Cortex_R52_ICC_CTLR_IDbits : constant CTLR_IDbits_Type := 2#000#; --  16
 
    --
    --  Interrupt Controller Control Register (EL1)

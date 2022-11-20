@@ -25,42 +25,32 @@
 --  POSSIBILITY OF SUCH DAMAGE.
 --
 
---
---  @summary HiRTOS Memory protection services
---
+with Interfaces;
 
-with HiRTOS.Memory_Protection_Private;
-
-package body HiRTOS.Memory_Protection with
-  SPARK_Mode => On
+--
+--  Minimal low-level debugging services
+--
+package HiRTOS_Low_Level_Debug_Interface
+   with No_Elaboration_Code_All, SPARK_Mode => On
 is
+   use Interfaces;
 
-   procedure Begin_Data_Range_Write_Access (
-      Start_Address : System.Address;
-      Size_In_Bits : Memory_Range_Size_In_Bits_Type;
-      Old_Data_Range : out Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end Begin_Data_Range_Write_Access;
+   function Get_Char return Character;
 
-   procedure End_Data_Range_Access (
-      Old_Data_Range : Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end End_Data_Range_Access;
+   procedure Initialize_Led;
 
-   procedure Begin_Mmio_Range_Write_Access (
-      Start_Address : System.Address;
-      Size_In_Bits : Memory_Range_Size_In_Bits_Type;
-      Old_Mmio_Range : out Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end Begin_Mmio_Range_Write_Access;
+   procedure Initialize_Uart;
 
-   procedure End_Mmio_Range_Access (
-      Old_Mmio_Range : Memory_Range_Type) is
-   begin
-      pragma Assert (False); --  ???
-   end End_Mmio_Range_Access;
+   procedure Print_Number_Decimal (Value : Unsigned_32;
+                                   End_Line : Boolean := False);
 
-end HiRTOS.Memory_Protection;
+   procedure Print_Number_Hexadecimal (Value : Unsigned_32;
+                                       End_Line : Boolean := False);
+
+   procedure Print_String (S : String; End_Line : Boolean := False);
+
+   procedure Put_Char (C : Character);
+
+   procedure Set_Led (On : Boolean);
+
+end HiRTOS_Low_Level_Debug_Interface;
