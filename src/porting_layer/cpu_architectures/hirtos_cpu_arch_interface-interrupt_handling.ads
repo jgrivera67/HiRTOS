@@ -2,27 +2,7 @@
 --  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
---  Redistribution and use in source and binary forms, with or without
---  modification, are permitted provided that the following conditions are met:
---
---  * Redistributions of source code must retain the above copyright notice,
---    this list of conditions and the following disclaimer.
---
---  * Redistributions in binary form must reproduce the above copyright notice,
---    this list of conditions and the following disclaimer in the documentation
---    and/or other materials provided with the distribution.
---
---  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
---  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
---  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
---  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
---  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
---  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
---  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
---  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
---  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
---  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
---  POSSIBILITY OF SUCH DAMAGE.
+--  SPDX-License-Identifier: BSD-3-Clause
 --
 
 --
@@ -46,5 +26,55 @@ is
 
    procedure Interrupt_Handler_Epilog
       with Inline_Always;
+
+private
+
+   --
+   --  Entry point of the undefined instruction exception handler
+   --
+   procedure Undefined_Instruction_Exception_Handler
+      with Export,
+           External_Name => "undefined_instruction_exception_handler";
+   pragma Machine_Attribute (Undefined_Instruction_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the supervisor call exception handler
+   --
+   procedure Supervisor_Call_Exception_Handler
+      with Export,
+           External_Name => "supervisor_call_exception_handler";
+   pragma Machine_Attribute (Supervisor_Call_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the prefetch abort exception handler
+   --
+   procedure Prefetch_Abort_Exception_Handler
+      with Export,
+           External_Name => "prefetch_abort_exception_handler";
+   pragma Machine_Attribute (Prefetch_Abort_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the data abort exception handler
+   --
+   procedure Data_Abort_Exception_Handler
+      with Export,
+           External_Name => "data_abort_exception_handler";
+   pragma Machine_Attribute (Data_Abort_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the IRQ interrupt handler
+   --
+   procedure Irq_Interrupt_Handler
+      with Export,
+           External_Name => "irq_interrupt_handler";
+   pragma Machine_Attribute (Irq_Interrupt_Handler, "naked");
+
+   --
+   --  Entry point of the FIQ interrupt handler
+   --
+   procedure Fiq_Interrupt_Handler
+      with Export,
+           External_Name => "fiq_interrupt_handler";
+   pragma Machine_Attribute (Fiq_Interrupt_Handler, "naked");
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;

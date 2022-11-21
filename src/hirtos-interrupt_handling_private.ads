@@ -2,31 +2,11 @@
 --  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
---  Redistribution and use in source and binary forms, with or without
---  modification, are permitted provided that the following conditions are met:
---
---  * Redistributions of source code must retain the above copyright notice,
---    this list of conditions and the following disclaimer.
---
---  * Redistributions in binary form must reproduce the above copyright notice,
---    this list of conditions and the following disclaimer in the documentation
---    and/or other materials provided with the distribution.
---
---  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
---  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
---  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
---  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
---  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
---  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
---  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
---  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
---  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
---  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
---  POSSIBILITY OF SUCH DAMAGE.
+--  SPDX-License-Identifier: BSD-3-Clause
 --
 
 with HiRTOS_Cpu_Arch_Interface;
-with HiRTOS_External_Interrupts_Interface;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 
 private package HiRTOS.Interrupt_Handling_Private with
   SPARK_Mode => On
@@ -43,8 +23,8 @@ is
    --
    type Interrupt_Nesting_Level_Type is limited record
       Initialized : Boolean := False;
-      Irq_Id : HiRTOS_External_Interrupts_Interface.Irq_Id_Type :=
-              HiRTOS_External_Interrupts_Interface.Invalid_Irq_Id;
+      Interrupt_Id : HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Id_Type :=
+              HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Invalid_Interrupt_Id;
       Interrupt_Nesting_Counter : Active_Interrupt_Nesting_Counter_Type;
       Saved_Stack_Pointer       : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       Atomic_Level              : Atomic_Level_Type := Atomic_Level_None;

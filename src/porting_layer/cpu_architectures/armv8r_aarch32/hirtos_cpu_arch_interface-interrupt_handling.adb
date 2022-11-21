@@ -2,27 +2,7 @@
 --  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
---  Redistribution and use in source and binary forms, with or without
---  modification, are permitted provided that the following conditions are met:
---
---  * Redistributions of source code must retain the above copyright notice,
---    this list of conditions and the following disclaimer.
---
---  * Redistributions in binary form must reproduce the above copyright notice,
---    this list of conditions and the following disclaimer in the documentation
---    and/or other materials provided with the distribution.
---
---  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
---  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
---  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
---  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
---  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
---  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
---  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
---  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
---  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
---  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
---  POSSIBILITY OF SUCH DAMAGE.
+--  SPDX-License-Identifier: BSD-3-Clause
 --
 
 --
@@ -32,12 +12,28 @@
 with Generic_Execution_Stack;
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Multi_Core_Interface;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with System.Machine_Code;
 with Interfaces;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use HiRTOS_Cpu_Multi_Core_Interface;
    use ASCII;
+
+   procedure Do_Synchronous_Context_Switch
+      with Export,
+           External_Name => "do_synchronous_context_switch";
+   pragma Machine_Attribute (Do_Synchronous_Context_Switch, "naked");
+
+   procedure Stay_In_Cpu_Privileged_Mode
+      with Export,
+           External_Name => "stay_in_cpu_privileged_mode";
+   pragma Machine_Attribute (Stay_In_Cpu_Privileged_Mode, "naked");
+
+   procedure Handle_Invalid_SVC_Exception
+      with Export,
+           External_Name => "handle_invalid_svc_exception";
+   pragma Machine_Attribute (Handle_Invalid_SVC_Exception, "naked");
 
    ISR_Stack_Size_In_Bytes : constant := 4 * 1024; -- 4KiB
 
@@ -198,5 +194,158 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
                                               HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)), -- %0
          Volatile => True);
    end Interrupt_Handler_Epilog;
+
+   ----------------------------------------------------------------------------
+   --  Interrupt and Exception Handlers
+   ----------------------------------------------------------------------------
+
+   procedure Undefined_Instruction_Exception_Handler is
+   begin
+      raise Program_Error;
+   end Undefined_Instruction_Exception_Handler;
+
+   --
+   --  SVC instruction exception handler
+   --
+   --  Register r0 indicates the action to perform:
+   --  - 0 perform RTOS task synchronous context switch
+   --  - 1 switch to privileged mode and return to the caller
+   --
+   --  CAUTION: This subprogram cannot use any stack space as we
+   --  do not define a stack for SVC mode.
+   --
+   procedure Supervisor_Call_Exception_Handler is
+   begin
+      System.Machine_Code.Asm (
+         --  TODO: Change to get the SVC instruction immediate operand
+         --  "ldr r0, [lr, #-4]" & LF &
+         --  "ubfx r0, r0, #0, #24" & LF &
+         "teq r0, #0" & LF & --  RTOS synchronous task context switch?
+         "beq do_synchronous_context_switch" & LF &
+         "teq r0, #1" & LF & --  Enter_Cpu_Privileged_Mode call?
+         "beq stay_in_cpu_privileged_mode" & LF &
+         "b handle_invalid_svc_exception",
+         Clobber => "r0",
+         Volatile => True);
+   end Supervisor_Call_Exception_Handler;
+
+   --
+   --  CAUTION: This subprogram cannot use any stack space, before
+   --  it calls Interrupt_Hanlder_Prolog, as we do not define a stack
+   --  for SVC mode.
+   --
+   procedure Do_Synchronous_Context_Switch is
+   begin
+      --  Save the current thread's CPU state on its own stack
+      Interrupt_Handler_Prolog;
+
+      --  Run the thread scheduler to select next thread to run and
+      --  resume execution of the newly selected thread
+      Interrupt_Handler_Epilog;
+   end Do_Synchronous_Context_Switch;
+
+   procedure Stay_In_Cpu_Privileged_Mode is
+   begin
+      System.Machine_Code.Asm (
+         --
+         --  Set CPU mode to system mode in spsr
+         --
+         "mrs r0, spsr" & LF &
+         "orr r0, r0, %0" & LF &
+         "msr spsr, r0" & LF &
+
+         --
+         --  Return from the exception:
+         --  (see Cortex-R5 Technical Reference Manual, section 3.8.1)
+         --
+         --  NOTE: For the SVC exception, lr points the instruction right
+         --  after the svc instruction that brought us here.
+         --
+         "movs pc, lr",
+         Inputs => Interfaces.Unsigned_8'Asm_Input ("g", CPSR_System_Mode), --  %0
+         Clobber => "r0",
+         Volatile => True);
+   end Stay_In_Cpu_Privileged_Mode;
+
+   procedure Handle_Invalid_SVC_Exception is
+   begin
+      raise Program_Error;
+   end Handle_Invalid_SVC_Exception;
+
+   procedure Prefetch_Abort_Exception_Handler is
+   begin
+      --
+      --  NOTE: We cannot call Interrupt_Handler_Prolog to save the
+      --  current thread's CPU state on its own stack, because if the
+      --  data abort is caused by a stack overflow, that will cause another
+      --  data abort (recursively)
+      --
+      --  TODO: Set up abort mode stack in the reset handler
+      --
+
+      raise Program_Error;
+   end Prefetch_Abort_Exception_Handler;
+
+   procedure Data_Abort_Exception_Handler is
+   begin
+      --
+      --  NOTE: We cannot call Interrupt_Handler_Prolog to save the
+      --  current thread's CPU state on its own stack, because if the
+      --  data abort is caused by a stack overflow, that will cause another
+      --  data abort (recursively).
+      --
+      --  TODO: Set up abort mode stack in the reset handler
+      --
+
+      raise Program_Error;
+   end Data_Abort_Exception_Handler;
+
+   procedure Irq_Interrupt_Handler is
+   begin
+      --
+      --  Adjust lr to point to the instruction we need to return to after
+      --  handling the interrupt (see table B1-7, section B1.8.3 in ARMv7-AR ARM)
+      --
+      System.Machine_Code.Asm (
+         "sub lr, lr, %0",
+         Inputs =>
+            (Interfaces.Unsigned_8'Asm_Input ("g",
+                                              HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)), -- %0
+         Volatile => True);
+
+      --  Save the current thread's CPU state on its own stack
+      Interrupt_Handler_Prolog;
+
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.GIC_Interrupt_Handler (
+         HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Irq);
+
+      --  Run the thread scheduler to select next thread to run and
+      --  resume execution of the newly selected thread
+      Interrupt_Handler_Epilog;
+   end Irq_Interrupt_Handler;
+
+   procedure Fiq_Interrupt_Handler is
+   begin
+      --
+      --  Adjust lr to point to the instruction we need to return to after
+      --  handling the interrupt (see table B1-7, section B1.8.3 in ARMv7-AR ARM)
+      --
+      System.Machine_Code.Asm (
+         "sub lr, lr, %0",
+         Inputs =>
+            (Interfaces.Unsigned_8'Asm_Input ("g",
+                                              HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)), -- %0
+         Volatile => True);
+
+      --  Save the current thread's CPU state on its own stack
+      Interrupt_Handler_Prolog;
+
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.GIC_Interrupt_Handler (
+         HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Fiq);
+
+      --  Run the thread scheduler to select next thread to run and
+      --  resume execution of the newly selected thread
+      Interrupt_Handler_Epilog;
+   end Fiq_Interrupt_Handler;
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;

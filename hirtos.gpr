@@ -1,4 +1,11 @@
 --
+--  Copyright (c) 2022, German Rivera
+--  All rights reserved.
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
+
+--
 --  NOTE: Before building for the first time, make sure the path of
 --  corresponding cross compiler toolchain is in $PATH. (After running
 --  running `alr toolchain --select`, the cross compiler will be installed
@@ -61,7 +68,6 @@ project Hirtos is
                               "HiRTOS_Cpu_Arch_Interface.Tick_Timer",
                               "HiRTOS_Cpu_Multi_Core_Interface",
                               "HiRTOS_Cpu_Startup_Interface",
-                              "HiRTOS_External_Interrupts_Interface",
                               "HiRTOS_Low_Level_Debug_Interface");
 
    for Library_Auto_Init use "False";

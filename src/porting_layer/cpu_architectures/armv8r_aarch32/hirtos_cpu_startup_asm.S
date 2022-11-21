@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022, German Rivera
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
         .syntax unified
         .cpu cortex-r52
@@ -24,7 +30,7 @@
 #define FPEXC_EN_BIT_MASK BIT(30u)
 
 /**
- * ARM-CR5 privilege modes
+ * ARM-CR52 privilege modes
  */
 #define CPSR_USER_MODE 0x10u
 #define CPSR_FAST_INTERRUPT_MODE 0x11u
@@ -36,9 +42,6 @@
 #define CPSR_UNDEFINED_MODE 0x1Bu
 #define CPSR_SYSTEM_MODE 0x1Fu
 
-/*
- * ARM-CR5 interrupts mode
- */
 #define CPSR_NO_INT ((CPSR_F_BIT_MASK) | (CPSR_I_BIT_MASK))
 
 /**
@@ -59,44 +62,27 @@
  */
 	.extern isr_stack			            /* defined in startup.adb */
 	.extern ada_reset_handler			    /* defined in startup.adb */
+	.extern undefined_instruction_exception_handler     /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern supervisor_call_exception_handler           /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern prefetch_abort_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern data_abort_exception_handler                /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern irq_interrupt_handler                       /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern fiq_interrupt_handler                       /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
-/*
- * Interrupt vector jump table
- *
- * Each entry is a branch instruction to the jump to the corresponding
- * interrupt/exception handler, except for the last entry. For the last
- * entry (FIQ interrupt), the entry is the first instruction of the
- * corresponding interrupt handler.
+/**
+ * Cortex-R52 interrupt vector table
  */
         .section .text.hidden.interrupt_vector_table, "ax"
         .global interrupt_vector_table
 interrupt_vector_table:
-	b reset_handler                 /* Reset */
-	b .                             /* Undefined Instruction */
-	b .                             /* Supervisor Call */
-	b .                             /* Abort (prefetch) */
-	b .                             /* Abort (data) */
-	nop                             /* Reserved */
-	b .                             /* IRQ */
-
-/*
- * FIQ (fast IRQ) interrupt handler
- *
- * NOTE: This routine must be right after the interrupt vector table. This is
- * because the first instruction of this routine is actually the last entry of
- * the interrupt vector jump table (to save a branch to jump to this interrupt
- * handler).
- */
-fiq_handler:
-        b . /*???*/
-        /*
-         * Adjust lr to point to the instruction we need to return to after
-         * handling the interrupt (see table B1-7, section B1.8.3 in ARMv7-AR ARM)
-        sub lr, lr, #ARM_INSTRUCTION_SIZE
-        INTERRUPT_HANDLER_PROLOG
-        bl external_interrupt_handler
-        INTERRUPT_HANDLER_EPILOG
-         */
+	b reset_handler                           /* Reset */
+	b undefined_instruction_exception_handler /* Undefined Instruction */
+	b supervisor_call_exception_handler       /* Supervisor Call */
+	b prefetch_abort_exception_handler        /* Abort (prefetch) */
+	b data_abort_exception_handler            /* Abort (data) */
+	nop                                       /* Reserved */
+	b irq_interrupt_handler                   /* IRQ */
+        b fiq_interrupt_handler                   /* FIQ */
 
 /**
  * Get sctlr
@@ -122,7 +108,8 @@ fiq_handler:
 	.macro GET_CPU_ID _dest_reg_
         mrc p15, 0, \_dest_reg_, c0, c0, 5      // read MPIDR
         and \_dest_reg_, \_dest_reg_, #MPIDR_CORE_ID_MASK
-        lsr \_dest_reg_, \_dest_reg_, #MPIDR_CORE_ID_SHIFT //??? Remove this as is shift is 0
+        // NOTE: lsr below is not necessary as shift is 0
+        //lsr \_dest_reg_, \_dest_reg_, #MPIDR_CORE_ID_SHIFT
 	.endm
 
 /**
@@ -211,7 +198,7 @@ fiq_handler:
 	.endm
 
 /**
- * System Reset handler entry point and this will always be built using ARM ISA
+ * System Reset handler entry point
  */
 	.section .text.hidden.reset_handler
 	.align 2

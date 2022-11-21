@@ -2,27 +2,7 @@
 --  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
---  Redistribution and use in source and binary forms, with or without
---  modification, are permitted provided that the following conditions are met:
---
---  * Redistributions of source code must retain the above copyright notice,
---    this list of conditions and the following disclaimer.
---
---  * Redistributions in binary form must reproduce the above copyright notice,
---    this list of conditions and the following disclaimer in the documentation
---    and/or other materials provided with the distribution.
---
---  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
---  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
---  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
---  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
---  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
---  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
---  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
---  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
---  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
---  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
---  POSSIBILITY OF SUCH DAMAGE.
+--  SPDX-License-Identifier: BSD-3-Clause
 --
 
 --
@@ -33,7 +13,8 @@ with HiRTOS_Cpu_Arch_Parameters;
 with System;
 
 package HiRTOS_Cpu_Arch_Interface
-   with SPARK_Mode => On
+   with SPARK_Mode => On,
+        No_Elaboration_Code_All
 is
    type Cpu_Register_Type is mod 2 ** HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits
       with Size => HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits;
@@ -71,6 +52,9 @@ is
       with Pre => Cpu_In_Privileged_Mode and then
                   Cpu_Interrupting_Disabled;
 
+   procedure Enable_Cpu_Interrupting
+      with Pre => Cpu_In_Privileged_Mode;
+
    function Cpu_In_Privileged_Mode return Boolean;
 
    --
@@ -98,6 +82,19 @@ is
       with Inline_Always,
            Suppress => All_Checks;
 
+   procedure Wait_For_Event
+      with Inline_Always;
+
+   procedure Send_Event
+      with Inline_Always;
+
+   procedure Memory_Barrier;
+
+   function Atomic_Test_Set
+     (Flag_Address : System.Address) return  Boolean
+      with Inline_Always,
+           Suppress => All_Checks;
+
    function Atomic_Fetch_Add
      (Counter_Address : System.Address;
       Value : Cpu_Register_Type) return Cpu_Register_Type
@@ -110,47 +107,17 @@ is
       with Inline_Always,
            Suppress => All_Checks;
 
-   --
-   --  Perform the first thread thread context switch
-   --
-   procedure First_Thread_Context_Switch;
+   function Count_Leading_Zeros (Value : Cpu_Register_Type)
+      return Cpu_Register_Type
+      with Import,
+           Convention => C,
+           External_Name => "__builtin_clz";
 
-   --
-   --  Perform a synchronous thread context switch
-   --
-   procedure Synchronous_Thread_Context_Switch;
-
-   --
-   --  Entry point of the supervisor call exception handler
-   --
-   procedure Supervisor_Call_Exception_Handler
-      with Export,
-           External_Name => "supervisor_call_exception_handler";
-   pragma Machine_Attribute (Supervisor_Call_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the prefetch abort exception handler
-   --
-   procedure Prefetch_Abort_Exception_Handler
-      with Export,
-           External_Name => "prefetch_abort_exception_handler";
-   pragma Machine_Attribute (Prefetch_Abort_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the data abort exception handler
-   --
-   procedure Data_Abort_Exception_Handler
-      with Export,
-           External_Name => "data_abort_exception_handler";
-   pragma Machine_Attribute (Data_Abort_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the external interrupt handler
-   --
-   procedure External_Interrupt_Handler
-      with Export,
-           External_Name => "external_interrupt_handler";
-   pragma Machine_Attribute (External_Interrupt_Handler, "naked");
+   function Count_Trailing_Zeros (Value : Cpu_Register_Type)
+      return Cpu_Register_Type
+      with Import,
+           Convention => C,
+           External_Name => "__builtin_ctz";
 
 private
 

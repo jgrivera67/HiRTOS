@@ -1,3 +1,9 @@
+--
+--  Copyright (c) 2022, German Rivera
+--  All rights reserved.
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
 with Generic_Linked_List;
 with AUnit.Assertions;
 

@@ -2,35 +2,12 @@
 --  Copyright (c) 2022, German Rivera
 --  All rights reserved.
 --
---  Redistribution and use in source and binary forms, with or without
---  modification, are permitted provided that the following conditions are met:
---
---  * Redistributions of source code must retain the above copyright notice,
---    this list of conditions and the following disclaimer.
---
---  * Redistributions in binary form must reproduce the above copyright notice,
---    this list of conditions and the following disclaimer in the documentation
---    and/or other materials provided with the distribution.
---
---  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
---  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
---  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
---  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
---  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
---  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
---  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
---  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
---  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
---  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
---  POSSIBILITY OF SUCH DAMAGE.
+--  SPDX-License-Identifier: BSD-3-Clause
 --
 
-with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
-with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
 
 package body HiRTOS.Interrupt_Handling_Private is
-   use HiRTOS_Cpu_Multi_Core_Interface;
 
    procedure Initialize_Interrupt_Nesting_Level
      (Interrupt_Nesting_Level : out Interrupt_Nesting_Level_Type);
@@ -40,12 +17,8 @@ package body HiRTOS.Interrupt_Handling_Private is
    -----------------------------------------------------------------------------
 
    procedure Initialize is
-      use type Valid_Cpu_Core_Id_Type;
-      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
    begin
-      if Cpu_Id = Valid_Cpu_Core_Id_Type'First then
-         HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
-      end if;
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
    end Initialize;
 
    procedure Initialize_Interrupt_Nesting_Level_Stack
@@ -96,8 +69,8 @@ package body HiRTOS.Interrupt_Handling_Private is
      (Interrupt_Nesting_Level : out Interrupt_Nesting_Level_Type)
    is
    begin
-      Interrupt_Nesting_Level.Irq_Id :=
-        HiRTOS_External_Interrupts_Interface.Invalid_Irq_Id;
+      Interrupt_Nesting_Level.Interrupt_Id :=
+        HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Invalid_Interrupt_Id;
       Interrupt_Nesting_Level.Interrupt_Nesting_Counter :=
         Active_Interrupt_Nesting_Counter_Type'First;
       Interrupt_Nesting_Level.Saved_Stack_Pointer :=

@@ -1,3 +1,9 @@
+--
+--  Copyright (c) 2022, German Rivera
+--  All rights reserved.
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
 abstract project Hirtos_Compiler_Flags is
 
    type CPU_Core_Type is ("arm_cortex_m0plus", "arm_cortex_m4", "arm_cortex_r5", "arm_cortex_r52", "riscv32");

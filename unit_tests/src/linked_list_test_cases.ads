@@ -1,3 +1,9 @@
+--
+--  Copyright (c) 2022, German Rivera
+--  All rights reserved.
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
 with AUnit;
 with AUnit.Test_Fixtures;
 
