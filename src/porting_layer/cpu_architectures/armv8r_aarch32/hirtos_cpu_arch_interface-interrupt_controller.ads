@@ -44,8 +44,13 @@ is
    --  Priority 0 is the highest priority and prioirty 31 is the lowest
    type Interrupt_Priority_Type is mod 2 ** 5;
 
-   type Interrupt_Handler_Entry_Point_Type is access procedure (Arg : System.Address)
-      with Convention => C;
+   Highest_Interrupt_Priority : constant
+      Interrupt_Priority_Type := Interrupt_Priority_Type'First;
+
+   Lowest_Interrupt_Priority : constant
+      Interrupt_Priority_Type := Interrupt_Priority_Type'Last;
+
+   type Interrupt_Handler_Entry_Point_Type is access procedure (Arg : System.Address);
 
    type Cpu_Interrupt_Line_Type is (Cpu_Interrupt_Fiq,
                                     Cpu_Interrupt_Irq);
@@ -54,11 +59,11 @@ is
       (Cpu_Interrupt_Fiq => 2#0#,
        Cpu_Interrupt_Irq => 2#1#);
 
-   type Interrupt_Trigger_Mode_Type is (Interrupt_Level_Triggered,
+   type Interrupt_Trigger_Mode_Type is (Interrupt_Level_Sensitive,
                                         Interrupt_Edge_Triggered);
 
    for Interrupt_Trigger_Mode_Type use
-      (Interrupt_Level_Triggered => 2#0#,
+      (Interrupt_Level_Sensitive => 2#0#,
        Interrupt_Edge_Triggered => 2#1#);
 
    ----------------------------------------------------------------------------

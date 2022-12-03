@@ -9,13 +9,21 @@
 --  @summary RTOS to target platform interface - Tick timer driver
 --
 
+with HiRTOS;
+private with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with Interfaces;
 
 package HiRTOS_Cpu_Arch_Interface.Tick_Timer
    with SPARK_Mode => On
 is
+   use type HiRTOS.Time_Ms_Type;
 
    procedure Initialize;
+
+   procedure Start_Timer (Expiration_Time_Ms : HiRTOS.Time_Ms_Type)
+      with Pre => Expiration_Time_Ms /= 0;
+
+   procedure Stop_Timer;
 
 private
 
@@ -23,9 +31,15 @@ private
    --  ARMv8-R Generic timer declarations
    ----------------------------------------------------------------------------
 
+   Generic_Timer_Interrupt_Id : constant
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Internal_Interrupt_Id_Type := 30;
+
    type CNTFRQ_Type is new Interfaces.Unsigned_32;
 
    function Get_CNTFRQ return CNTFRQ_Type
+      with Inline_Always;
+
+   procedure Set_CNTFRQ (CNTFRQ_Value : CNTFRQ_Type)
       with Inline_Always;
 
    type Timer_Enable_Type is (Timer_Disabled, Timer_Enabled)
@@ -105,6 +119,37 @@ private
       with Inline_Always;
 
    procedure Set_CNTP_TVAL (CNTP_TVAL_Value : CNTP_TVAL_Type)
+      with Inline_Always;
+
+   --
+   --  Counter-timer Physical Count register (Free-running counter)
+   --
+   --  NOTE: We don't need to declare this register with Volatile_Full_Access,
+   --  as it is not memory-mapped. It is accessed via an MRRC instruction.
+   --
+   type CNTPCT_Type (As_Two_Words : Boolean := True) is record
+      case As_Two_Words is
+         when True =>
+            Low_Word : Interfaces.Unsigned_32 := 0;
+            High_Word : Interfaces.Unsigned_32 := 0;
+         when False =>
+            Value : Interfaces.Unsigned_64;
+      end case;
+   end record
+      with Size => 64,
+           Unchecked_Union,
+           Bit_Order => System.Low_Order_First;
+
+   for CNTPCT_Type use record
+      Low_Word at 16#0# range 0 .. 31;
+      High_Word at 16#4# range 0 .. 31;
+      Value at 16#0# range 0 .. 63;
+   end record;
+
+   function Get_CNTPCT return CNTPCT_Type
+      with Inline_Always;
+
+   function Get_CNTPCTSS return CNTPCT_Type
       with Inline_Always;
 
 end HiRTOS_Cpu_Arch_Interface.Tick_Timer;

@@ -17,4 +17,6 @@ is
       with Inline_Always,
            Suppress => All_Checks;
 
+   procedure RTOS_Tick_Timer_Interrupt_Handler;
+
 end HiRTOS.Interrupt_Handling;

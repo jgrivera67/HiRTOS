@@ -106,4 +106,9 @@ package body HiRTOS.Interrupt_Handling is
       end if;
    end Exit_Interrupt_Context;
 
+   procedure RTOS_Tick_Timer_Interrupt_Handler is
+   begin
+      pragma Assert (False); --???
+   end RTOS_Tick_Timer_Interrupt_Handler;
+
 end HiRTOS.Interrupt_Handling;

@@ -14,6 +14,7 @@ with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
+with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
 
@@ -54,6 +55,7 @@ is
    begin
       HiRTOS.Memory_Protection_Private.Initialize;
       HiRTOS.Interrupt_Handling_Private.Initialize;
+      HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
 
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
@@ -191,4 +193,5 @@ is
    begin
       pragma Assert (Old_Atomic_Level /= Atomic_Level_None); --???
    end Exit_Atomic_Level;
+
 end HiRTOS;
