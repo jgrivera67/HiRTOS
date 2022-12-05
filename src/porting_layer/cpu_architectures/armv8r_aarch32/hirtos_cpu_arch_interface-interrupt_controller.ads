@@ -89,7 +89,8 @@ is
       with Pre => Initialized;
 
    --
-   --  NOTE: The external interrupt is configured to fire on the CPU on which    --  this subprogram is called for that interrupt.
+   --  NOTE: The external interrupt is configured to fire on the CPU on which
+   --  this subprogram is called for that interrupt.
    --
    procedure Configure_External_Interrupt (
       External_Interrupt_Id : External_Interrupt_Id_Type;

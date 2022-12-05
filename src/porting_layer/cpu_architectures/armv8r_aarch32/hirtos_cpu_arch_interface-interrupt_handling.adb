@@ -11,13 +11,11 @@
 
 with Generic_Execution_Stack;
 with HiRTOS.Interrupt_Handling;
-with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with System.Machine_Code;
 with Interfaces;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
-   use HiRTOS_Cpu_Multi_Core_Interface;
    use ASCII;
 
    procedure Do_Synchronous_Context_Switch
@@ -51,9 +49,10 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    -- Get_ISR_Stack_Info --
    ------------------------
 
-   function Get_ISR_Stack_Info return ISR_Stack_Info_Type is
+   function Get_ISR_Stack_Info (Cpu_Id : Cpu_Core_Id_Type)
+      return ISR_Stack_Info_Type
+   is
       use type System.Storage_Elements.Integer_Address;
-      Cpu_Id : constant Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type :=
          (Base_Address => ISR_Stacks (Cpu_Id).Stack_Entries'Address,
           Size_In_Bytes => ISR_Stacks (Cpu_Id).Stack_Entries'Size / System.Storage_Unit);

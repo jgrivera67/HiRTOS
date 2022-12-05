@@ -193,6 +193,11 @@ package body HiRTOS_Cpu_Arch_Interface is
       return Result = 0;
    end Strex_Word;
 
+   procedure Wait_For_Interrupt is
+   begin
+      System.Machine_Code.Asm ("wfi", Volatile => True);
+   end Wait_For_Interrupt;
+
    procedure Wait_For_Event is
    begin
       System.Machine_Code.Asm ("wfe", Volatile => True);

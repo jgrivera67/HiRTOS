@@ -42,10 +42,10 @@ abstract project Hirtos_Compiler_Flags is
          CPU_Arch := "armv7r";
          Target_Compiler_Selector := "arm-eabi";
          CPU_Core_Switches := ("-mcpu=cortex-r5",
-			                      "-mlittle-endian",
-			                    --"-mhard-float",
-			                    --"-mfpu=fpv4-sp-d16",
-			                      "-fno-omit-frame-pointer",
+			                         "-mlittle-endian",
+                               "-mfloat-abi=softfp",
+                               "-mfpu=vfpv3xd",
+			                         "-fno-omit-frame-pointer",
                                "-funwind-tables");
 
       when "arm_cortex_r52" =>

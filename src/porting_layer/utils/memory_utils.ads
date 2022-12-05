@@ -15,10 +15,6 @@ is
 
    type Words_Array_Type is array (Integer_Address range <>) of Unsigned_32;
 
-   function Get_Flash_Used return Unsigned_32;
-
-   function Get_Sram_Used return Unsigned_32;
-
    function How_Many (M : Unsigned_32; N : Unsigned_32) return Unsigned_32
    is (((M - 1) / N) + 1);
 

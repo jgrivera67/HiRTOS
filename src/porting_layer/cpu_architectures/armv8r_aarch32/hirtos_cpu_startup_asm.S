@@ -145,56 +145,56 @@ interrupt_vector_table:
  * @post Interrupts are disabled at the CPU in all CPU modes
  */
 	.macro INIT_CPU_REGS_EL1
-    // Starting in SVC mode
-    mov     r0,   #0
-    mov     r1,   #0
-    mov     r2,   #0
-    mov     r3,   #0
-    mov     r4,   #0
-    mov     r5,   #0
-    mov     r6,   #0
-    mov     r7,   #0
-    mov     r8,   #0
-    mov     r9,   #0
-    mov     r10,  #0
-    mov     r11,  #0
-    mov     r12,  #0
-    mov     sp,   #0
-    mov     lr,   #0
-    msr     spsr, #0
+        // Starting in SVC mode
+        mov     r0,   #0
+        mov     r1,   #0
+        mov     r2,   #0
+        mov     r3,   #0
+        mov     r4,   #0
+        mov     r5,   #0
+        mov     r6,   #0
+        mov     r7,   #0
+        mov     r8,   #0
+        mov     r9,   #0
+        mov     r10,  #0
+        mov     r11,  #0
+        mov     r12,  #0
+        mov     sp,   #0
+        mov     lr,   #0
+        msr     spsr, #0
 
-    msr     CPSR_c, #(CPSR_FAST_INTERRUPT_MODE | CPSR_NO_INT)
-    mov     r8,   #0
-    mov     r9,   #0
-    mov     r10,  #0
-    mov     r11,  #0
-    mov     r12,  #0
-    mov     sp,   #0
-    mov     lr,   #0
-    msr     spsr, #0
+        msr     CPSR_c, #(CPSR_FAST_INTERRUPT_MODE | CPSR_NO_INT)
+        mov     r8,   #0
+        mov     r9,   #0
+        mov     r10,  #0
+        mov     r11,  #0
+        mov     r12,  #0
+        mov     sp,   #0
+        mov     lr,   #0
+        msr     spsr, #0
 
-    msr     CPSR_c, #(CPSR_INTERRUPT_MODE | CPSR_NO_INT)
-    mov     sp,   #0
-    mov     lr,   #0
-    msr     spsr, #0
+        msr     CPSR_c, #(CPSR_INTERRUPT_MODE | CPSR_NO_INT)
+        mov     sp,   #0
+        mov     lr,   #0
+        msr     spsr, #0
 
-    msr     CPSR_c, #(CPSR_ABORT_MODE | CPSR_NO_INT)
-    mov     sp,   #0
-    mov     lr,   #0
-    msr     spsr, #0
+        msr     CPSR_c, #(CPSR_ABORT_MODE | CPSR_NO_INT)
+        mov     sp,   #0
+        mov     lr,   #0
+        msr     spsr, #0
 
-    msr     CPSR_c, #(CPSR_UNDEFINED_MODE | CPSR_NO_INT)
-    mov     sp,   #0
-    mov     lr,   #0
-    msr     spsr, #0
+        msr     CPSR_c, #(CPSR_UNDEFINED_MODE | CPSR_NO_INT)
+        mov     sp,   #0
+        mov     lr,   #0
+        msr     spsr, #0
 
-    /*
-     * NOTE: SYS mode and USR mode share the same sp and lr
-     * and they don't have spsr.
-     */
-    msr     CPSR_c, #(CPSR_SYSTEM_MODE | CPSR_NO_INT)
-    mov     sp,   #0
-    mov     lr,   #0
+        /*
+         * NOTE: SYS mode and USR mode share the same sp and lr
+         * and they don't have spsr.
+         */
+        msr     CPSR_c, #(CPSR_SYSTEM_MODE | CPSR_NO_INT)
+        mov     sp,   #0
+        mov     lr,   #0
 	.endm
 
 /**
@@ -236,7 +236,7 @@ reset_handler_el1:
                                 // CPU in SYS mode (EL1)
 
         /*
-         * Set ISR stacks for all CPUs:
+         * Set ISR stack for calling CPU:
          */
         GET_CPU_ID r0           // r0 = CPU id
         ldr     r1, =isr_stacks

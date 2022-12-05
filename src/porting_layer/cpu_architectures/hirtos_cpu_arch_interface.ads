@@ -82,6 +82,9 @@ is
       with Inline_Always,
            Suppress => All_Checks;
 
+   procedure Wait_For_Interrupt
+      with Inline_Always;
+
    procedure Wait_For_Event
       with Inline_Always;
 

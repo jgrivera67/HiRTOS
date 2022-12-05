@@ -30,6 +30,12 @@ is
 
    type Stats_Counter_Type is new Interfaces.Unsigned_32;
 
+  --
+   --  Tell if current exectuion context on the current CPU core is an
+   --  interrupt context (ISR)
+   --
+   function Current_Execution_Context_Is_Interrupt return Boolean;
+
    --
    --  Initialize RTOS internal state variables for the calling CPU
    --
@@ -39,21 +45,17 @@ is
    --  privileged mode. So only threads will run in unprivileged mode.
    --
    procedure Initialize with
+     Pre => Current_Execution_Context_Is_Interrupt,
      Export, Convention => C, External_Name => "hirtos_initialize";
 
    --
    --  Start RTOS tick timer and RTOS thread scheduler for the calling CPU
    --
    procedure Start_Thread_Scheduler with
+     Pre => Current_Execution_Context_Is_Interrupt,
      Export, Convention => C, External_Name => "hirtos_start_thread_scheduler";
 
    function Thread_Scheduler_Started return Boolean;
-
-   --
-   --  Tell if current exectuion context on the current CPU core is an
-   --  interrupt context (ISR)
-   --
-   function Current_Execution_Context_Is_Interrupt return Boolean;
 
    --
    --  Raises the CPU privilege level. If the old privilege level is 0

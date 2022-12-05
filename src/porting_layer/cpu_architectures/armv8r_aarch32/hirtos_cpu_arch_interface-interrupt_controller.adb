@@ -9,7 +9,6 @@
 --  @summary RTOS to target platform interface - Interrupt controller driver
 --
 
-with HiRTOS.Interrupt_Handling;
 with System.Machine_Code;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
@@ -419,7 +418,6 @@ is
    end Disable_External_Interrupt;
 
    procedure GIC_Interrupt_Handler (Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type) is
-      use type HiRTOS.Interrupt_Nesting_Counter_Type;
       ICC_IAR_Value : constant ICC_IAR_Type :=
          Get_ICC_IAR (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line));
       Interrupt_Id : constant Valid_Interrupt_Id_Type :=

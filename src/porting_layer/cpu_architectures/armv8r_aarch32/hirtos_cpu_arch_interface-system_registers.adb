@@ -32,4 +32,23 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => On is
          Volatile => True);
    end Set_SCTLR;
 
+   function Get_CPACR return CPACR_Type is
+      CPACR_Value : CPACR_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 0, %0, c1, c0, 2",
+         Outputs => CPACR_Type'Asm_Output ("=r", CPACR_Value), --  %0
+         Volatile => True);
+
+      return CPACR_Value;
+   end Get_CPACR;
+
+   procedure Set_CPACR (CPACR_Value : CPACR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c1, c0, 2",
+         Inputs => CPACR_Type'Asm_Input ("r", CPACR_Value), --  %0
+         Volatile => True);
+   end Set_CPACR;
+
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

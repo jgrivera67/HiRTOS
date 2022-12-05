@@ -10,12 +10,14 @@
 --  for ARMv8-R MPU
 --
 
+with HiRTOS_Cpu_Arch_Parameters;
 with System.Storage_Elements;
 with Interfaces;
 
 package HiRTOS_Cpu_Arch_Interface.Memory_Protection
    with SPARK_Mode => On
 is
+   use System.Storage_Elements;
    use type System.Address;
    use type System.Storage_Elements.Integer_Address;
 
@@ -26,19 +28,35 @@ is
                                     Read_Write,
                                     Read_Execute);
 
+   type Region_Attributes_Type is (
+      --  MMIO space:
+      Device_Memory_Mapped_Io,
+      --  RAM space:
+      Normal_Memory_Non_Cacheable,
+      Normal_Memory_Write_Through_Cacheable,
+      Normal_Memory_Write_Back_Cacheable);
+
    Max_Num_Memory_Regions : constant := 24;
 
    type Memory_Region_Id_Type is mod Max_Num_Memory_Regions;
 
    --
+   --  Load all memory attributes supported into the MPU's MAIR0 and MAIR1 registers:
+   --
+   procedure Load_Memory_Attributes_Lookup_Table
+      with Pre => Cpu_In_Privileged_Mode;
+
+   --
    --  Enables memory protection hardware
    --
-   procedure Enable_Memory_Protection;
+   procedure Enable_Memory_Protection
+      with Pre => Cpu_In_Privileged_Mode;
 
    --
    --  Disables memory protection hardware
    --
-   procedure Disable_Memory_Protection;
+   procedure Disable_Memory_Protection
+      with Pre => Cpu_In_Privileged_Mode;
 
    --
    --  Initializes state of a memory protection descriptor object
@@ -47,10 +65,17 @@ is
       Region_Descriptor : out Memory_Region_Descriptor_Type;
       Start_Address : System.Address;
       Size_In_Bytes : System.Storage_Elements.Integer_Address;
-      Permissions : Region_Permissions_Type)
-      with Pre => Start_Address /= System.Null_Address and then
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+      with Pre => To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
                   Size_In_Bytes > 0 and then
-                  Permissions /= None;
+                  Size_In_Bytes mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0;
+
+   procedure Initialize_Memory_Region_Descriptor_Disabled (
+      Region_Descriptor : out Memory_Region_Descriptor_Type);
 
    --
    --  Copies saved state of a memory protection descriptor to the
@@ -58,14 +83,16 @@ is
    --
    procedure Restore_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
-      Region_Descriptor : Memory_Region_Descriptor_Type);
+      Region_Descriptor : Memory_Region_Descriptor_Type)
+      with Pre => Cpu_In_Privileged_Mode;
 
    --
    --  Saves state of a memory protection descriptor from the MPU
    --
    procedure Save_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
-      Region_Descriptor : out Memory_Region_Descriptor_Type);
+      Region_Descriptor : out Memory_Region_Descriptor_Type)
+      with Pre => Cpu_In_Privileged_Mode;
 
 private
 
@@ -128,6 +155,21 @@ private
       EL1_Read_Only_EL0_No_Access => 2#10#,
       EL1_and_EL0_Read_Only => 2#11#);
 
+   --
+   --  Shareability of memory in multi-processor systems:
+   --  - Non-shareable: memory accessible only by a single processor or other agent,
+   --    so memory accesses never need to be synchronized with other processors.
+   --    This domain is not typically used in SMP systems.
+   --  - Inner shareable: memory that can be shared by multiple processors,
+   --    but not necessarily all of the agents in the system. A system might have multiple
+   --    Inner Shareable domains. An operation that affects one Inner Shareable domain does
+   --    not affect other Inner Shareable domains in the system. An example of such a domain
+   --    might be a quad-core CPU cluster.
+   --  - Outer shareable: memory that can be shared by multiple agents and can consist of
+   --    one or more inner shareable domains. An operation that affects an outer shareable
+   --    domain also implicitly affects all inner shareable domains inside it.
+   --    However, it does not otherwise behave as an inner shareable operation.
+   --
    type Sharability_Attribute_Type is
       (Non_Shareable,
        Outer_Shareable,
@@ -175,26 +217,8 @@ private
       Region_Enabled => 2#1#);
 
    --  Attribute indices from within the associated Memory Attribute Indirection Register
-   type AttrIndx_Type is
-      (Attr0, --  Select the Attr0 field from MAIR0.
-       Attr1, --  Select the Attr1 field from MAIR0.
-       Attr2, --  Select the Attr2 field from MAIR0.
-       Attr3, --  Select the Attr3 field from MAIR0.
-       Attr4, --  Select the Attr4 field from MAIR1.
-       Attr5, --  Select the Attr5 field from MAIR1.
-       Attr6, --  Select the Attr6 field from MAIR1.
-       Attr7) --  Select the Attr7 field from MAIR1.
+   type AttrIndx_Type is mod 2 ** 3
       with Size => 3;
-
-   for AttrIndx_Type use
-     (Attr0 => 2#000#,
-      Attr1 => 2#001#,
-      Attr2 => 2#010#,
-      Attr3 => 2#011#,
-      Attr4 => 2#100#,
-      Attr5 => 2#101#,
-      Attr6 => 2#110#,
-      Attr7 => 2#111#);
 
    --
    --  Region limit address register
@@ -205,7 +229,7 @@ private
    type PRLAR_Type is record
       EN : Region_Enable_Type := Region_Disabled;
       --  Attribute index
-      AttrIndx : AttrIndx_Type := Attr0;
+      AttrIndx : AttrIndx_Type := 0;
       --  Limit address top 26 bits
       LIMIT : Address_Top_26_Bits_Type := 16#0#;
    end record
@@ -242,19 +266,19 @@ private
    function Get_MPUIR return MPUIR_Type
       with Inline_Always;
 
-   function Get_PRBAR return PRBAR_Type
+   function Get_Selected_PRBAR return PRBAR_Type
       with Inline_Always;
 
    function Get_PRBAR (Region_Id : Memory_Region_Id_Type) return PRBAR_Type
       with Inline_Always;
 
-   procedure Set_PRBAR (PRBAR_Value : PRBAR_Type)
+   procedure Set_Selected_PRBAR (PRBAR_Value : PRBAR_Type)
       with Inline_Always;
 
    procedure Set_PRBAR (Region_Id : Memory_Region_Id_Type; PRBAR_Value : PRBAR_Type)
       with Inline_Always;
 
-   function Get_PRLAR return PRLAR_Type
+   function Get_Selected_PRLAR return PRLAR_Type
       with Inline_Always;
 
    function Get_PRLAR (Region_Id : Memory_Region_Id_Type) return PRLAR_Type
@@ -270,6 +294,84 @@ private
       with Inline_Always;
 
    procedure Set_PRSELR (PRSELR_Value : PRSELR_Type)
+      with Inline_Always;
+
+   type MAIR_Memory_Kind_Type is
+      (Device_Memory,
+       Normal_Memory_Outer_Non_Cacheable,
+       Normal_Memory_Outer_Write_Through,
+       Normal_Memory_Outer_Write_Back)
+      with Size => 4;
+
+   for MAIR_Memory_Kind_Type use
+      (Device_Memory => 2#0000#,
+       Normal_Memory_Outer_Non_Cacheable => 2#0100#,
+       Normal_Memory_Outer_Write_Through => 2#1000#,
+       Normal_Memory_Outer_Write_Back => 2#1100#);
+
+   type MAIR_Device_Memory_Subkind_Type is
+      (Device_Memory_nGnRnE, --  non-gather, non-reorder, non-early-ack
+       Device_Memory_nGnRE, --  non-gather, non-reorder, early-ack
+       Device_Memory_nGRE, --  non-gather, reorder, early-ack
+       Device_Memory_GRE --  gather, reorder, early-ack
+      )
+      with Size => 4;
+
+   for MAIR_Device_Memory_Subkind_Type use
+      (Device_Memory_nGnRnE => 2#0000#,
+       Device_Memory_nGnRE => 2#0100#,
+       Device_Memory_nGRE => 2#1000#,
+       Device_Memory_GRE => 2#1100#);
+
+   type MAIR_Normal_Memory_Subkind_Type is
+      (Normal_Memory_Inner_Non_Cacheable,
+       Normal_Memory_Inner_Write_Through,
+       Normal_Memory_Inner_Write_Back)
+      with Size => 4;
+
+   for MAIR_Normal_Memory_Subkind_Type use
+      (Normal_Memory_Inner_Non_Cacheable => 2#0100#,
+       Normal_Memory_Inner_Write_Through => 2#1000#,
+       Normal_Memory_Inner_Write_Back => 2#1100#);
+
+   type MAIR_Attr_Type (Memory_Kind : MAIR_Memory_Kind_Type := Device_Memory) is record
+      case Memory_Kind is
+         when Device_Memory =>
+             Device_Memory_Subkind : MAIR_Device_Memory_Subkind_Type := Device_Memory_nGnRnE;
+         when others =>
+             Normal_Memory_Subkind : MAIR_Normal_Memory_Subkind_Type;
+      end case;
+   end record
+      with Size => 8,
+           Bit_Order => System.Low_Order_First;
+
+   for MAIR_Attr_Type use record
+      Device_Memory_Subkind at 0 range 0 .. 3;
+      Normal_Memory_Subkind at 0 range 0 .. 3;
+      Memory_Kind at 0 range 4 .. 7;
+   end record;
+
+   type MAIR_Attr_Array_Type is array (0 .. 7) of MAIR_Attr_Type
+      with Component_Size => 8,
+           Size => 64;
+
+   --  Memory Attribute Indirection Registers 0 and 1
+   type MAIR_Pair_Type (As_Words : Boolean := True)  is record
+      case As_Words is
+         when True =>
+            MAIR0 : Interfaces.Unsigned_32;
+            MAIR1 : Interfaces.Unsigned_32;
+         when False =>
+            Attr_Array : MAIR_Attr_Array_Type;
+      end case;
+   end record
+      with Unchecked_Union,
+           Size => 64;
+
+   function Get_MAIR_Pair return MAIR_Pair_Type
+      with Inline_Always;
+
+   procedure Set_MAIR_Pair (MAIR_Pair : MAIR_Pair_Type)
       with Inline_Always;
 
    --  Data fault address register
@@ -381,5 +483,20 @@ private
       PRLAR_Value : PRLAR_Type;
    end record
      with Convention => C;
+
+   Memory_Attributes_Lookup_Table : constant MAIR_Attr_Array_Type :=
+      [ Device_Memory_Mapped_Io'Enum_Rep =>
+            (Memory_Kind => Device_Memory,
+             Device_Memory_Subkind => Device_Memory_nGnRnE),
+        Normal_Memory_Non_Cacheable'Enum_Rep =>
+            (Memory_Kind => Normal_Memory_Outer_Non_Cacheable,
+             Normal_Memory_Subkind => Normal_Memory_Inner_Non_Cacheable),
+        Normal_Memory_Write_Through_Cacheable'Enum_Rep =>
+            (Memory_Kind => Normal_Memory_Outer_Write_Through,
+             Normal_Memory_Subkind => Normal_Memory_Inner_Write_Through),
+        Normal_Memory_Write_Back_Cacheable'Enum_Rep =>
+            (Memory_Kind => Normal_Memory_Outer_Write_Back,
+             Normal_Memory_Subkind => Normal_Memory_Inner_Write_Back),
+        others => <> ];
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

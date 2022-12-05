@@ -15,7 +15,7 @@ with System;
 package HiRTOS_Cpu_Startup_Interface with No_Elaboration_Code_All
 is
 
-   procedure Reset_Handler (Cpu_Id : Interfaces.Unsigned_32)
+   procedure Ada_Reset_Handler
       with Export,
            Convention => C,
            External_Name => "ada_reset_handler",

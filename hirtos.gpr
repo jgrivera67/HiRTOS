@@ -14,12 +14,12 @@
 with "config/hirtos_config.gpr";
 with "hirtos_compiler_flags.gpr";
 
-project Hirtos is
+project HiRTOS is
    for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
    for Runtime ("Ada") use "third_party/portable_minimal_ada_rts";
    for Languages use ("Ada", "C", "Asm_Cpp");
 
-   for Library_Name use "Hirtos";
+   for Library_Name use "HiRTOS";
    for Library_Version use Project'Library_Name & ".a." & Hirtos_Config.Crate_Version;
 
    for Source_Dirs use ("src",
@@ -84,4 +84,4 @@ project Hirtos is
    --package Builder is
    --   for Global_Compilation_Switches ("Ada") use ("-gnateT=target.atp");
    --end Builder;
-end Hirtos;
+end HIRTOS;

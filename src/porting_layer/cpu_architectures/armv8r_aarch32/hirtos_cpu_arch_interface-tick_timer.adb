@@ -14,7 +14,6 @@ with HiRTOS.Interrupt_Handling;
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
-   use HiRTOS_Cpu_Arch_Interface;
 
    procedure Tick_Timer_Interrupt_Handler (Arg : System.Address);
 
@@ -27,6 +26,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
    procedure Initialize is
       CNTP_CTL_Value : CNTP_CTL_Type;
    begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
       Set_CNTFRQ (CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
 
       --  Configure generic timer interrupt in the GIC:
@@ -53,6 +53,8 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       --  peipheral when Start_Timer is called and disabled when Stop_Timer
       --  is called.
       --
+
+      HiRTOS.Exit_Cpu_Privileged_Mode;
    end Initialize;
 
    procedure Start_Timer (Expiration_Time_Ms : HiRTOS.Time_Ms_Type) is
@@ -60,6 +62,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_TVAL_Value : constant CNTP_TVAL_Type :=
          CNTP_TVAL_Type (Expiration_Time_Ms * Timer_Ticks_Per_Ms);
    begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
       Set_CNTP_TVAL (CNTP_TVAL_Value);
 
       --
@@ -83,11 +86,14 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       --  Enable generic timer interrupt in the GIC:
       Interrupt_Controller.Enable_Internal_Interrupt (Generic_Timer_Interrupt_Id);
 
+      HiRTOS.Exit_Cpu_Privileged_Mode;
    end  Start_Timer;
 
    procedure Stop_Timer is
       CNTP_CTL_Value : CNTP_CTL_Type;
    begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
       --  Disable generic timer interrupt in the GIC:
       Interrupt_Controller.Disable_Internal_Interrupt (Generic_Timer_Interrupt_Id);
 
@@ -96,6 +102,8 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_CTL_Value.ENABLE := Timer_Disabled;
       CNTP_CTL_Value.IMASK := Timer_Interrupt_Masked;
       Set_CNTP_CTL (CNTP_CTL_Value);
+
+      HiRTOS.Exit_Cpu_Privileged_Mode;
    end Stop_Timer;
 
    ----------------------------------------------------------------------------

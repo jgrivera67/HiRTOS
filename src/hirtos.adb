@@ -17,6 +17,7 @@ with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 --
 --  @summary HiRTOS implementation
@@ -27,6 +28,7 @@ is
    use HiRTOS.RTOS_Private;
    use HiRTOS.Thread_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
+   use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 
    Idle_Thread_Stack : Small_Thread_Stack_Package.Execution_Stack_Type;
 
@@ -43,16 +45,14 @@ is
    is
       use type System.Storage_Elements.Integer_Address;
       Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
-      ISR_Stack_Info :
-        constant HiRTOS_Cpu_Arch_Interface.Interrupt_Handling
-          .ISR_Stack_Info_Type :=
-        HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Get_ISR_Stack_Info;
-      RTOS_Cpu_Instance :
-        HiRTOS_Cpu_Instance_Type renames
+      ISR_Stack_Info : constant ISR_Stack_Info_Type :=
+         Get_ISR_Stack_Info (Cpu_Id);
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
         HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
       Error          : Error_Type;
       Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("Here HIRTOS.0" & ASCII.LF);--???
       HiRTOS.Memory_Protection_Private.Initialize;
       HiRTOS.Interrupt_Handling_Private.Initialize;
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
@@ -114,14 +114,17 @@ is
 
    procedure Enter_Cpu_Privileged_Mode is
    begin
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS.117" & ASCII.LF);--???
       --
       --  If we are in interrupt context, we don't need to do anything,
       --  as ISRs and the reset handler always run in provileged mode.
       --
       if Current_Execution_Context_Is_Interrupt then
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS.123" & ASCII.LF);--???
          return;
       end if;
 
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS.127" & ASCII.LF);--???
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
@@ -130,14 +133,18 @@ is
          Current_Thread_Obj :
            Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
       begin
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS.136" & ASCII.LF);--???
          if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS.138" & ASCII.LF);--???
             HiRTOS_Cpu_Arch_Interface.Switch_Cpu_To_Privileged_Mode;
          else
             pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
          end if;
 
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS.144" & ASCII.LF);--???
          Thread_Private.Increment_Privilege_Nesting (Current_Thread_Obj);
       end;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS.147" & ASCII.LF);--???
    end Enter_Cpu_Privileged_Mode;
 
    procedure Exit_Cpu_Privileged_Mode is

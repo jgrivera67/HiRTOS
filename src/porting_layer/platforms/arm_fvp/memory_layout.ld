@@ -38,6 +38,8 @@ ENTRY(reset_handler);
 
 WORD_SIZE = 4;
 
+MPU_REGION_ALIGNMENT = 64;
+
 MEMORY
 {
   TCM(rwx) : ORIGIN = 0x00000000, LENGTH = 1024K
@@ -47,14 +49,13 @@ SECTIONS
 {
  .text :
   {
-    __mpu_global_text_region_start = .;
+    __global_text_region_start = .;
 
     KEEP (*(.text.hidden.interrupt_vector_table))
 
     *(.text.hidden.*)
 
-    __hidden_text_end = .;
-    __mpu_hidden_text_region_end = .;
+    __hidden_text_region_end = .;
 
     PROVIDE (_text_start = .);
 
@@ -146,6 +147,8 @@ SECTIONS
   } >TCM
 
   PROVIDE (_text_end = .);
+  . = ALIGN(MPU_REGION_ALIGNMENT);
+  __global_text_region_end = .;
 
   .rodata :
   {
@@ -153,19 +156,16 @@ SECTIONS
     *(.rdata)
     *(.rodata .rodata.*)
     *(.gnu.linkonce.r.*)
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     PROVIDE_HIDDEN (__rodata_end = .);
   } >TCM
 
-  . = ALIGN(WORD_SIZE);
   PROVIDE( __data_load = . );
-
-  __mpu_global_text_region_end = .;
 
   .data :  AT (__data_load)
   {
-  . = ALIGN(WORD_SIZE);
-    __mpu_global_data_region_start = .;
-    PROVIDE( _data = . );
+    __global_data_region_start = .;
+    PROVIDE( __data_start = . );
     *(.data .data.*)
     *(.gnu.linkonce.d.*)
     *(.sdata .sdata.*)
@@ -181,20 +181,18 @@ SECTIONS
      * Hidden initialized global variables (not accessible by default)
      * are located at the end of the data section
      */
-    __mpu_hidden_data_region_start = .;
-    __hidden_data_and_bss_start = .;
+    __hidden_data_region_start = .;
     __hidden_data_start = .;
     *(.hidden_data)
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     __hidden_data_end = .;
   } >TCM
 
-  PROVIDE( _edata = . );
-  PROVIDE( edata = . );
+  PROVIDE( __data_end = . );
 
   PROVIDE( __bss_start = . );
   .bss (NOLOAD)  :
   {
-    . = ALIGN(WORD_SIZE);
    /*
     * Hidden uninitialized global variables (not accessible by default)
     * are located the beginning of the bss section
@@ -202,8 +200,8 @@ SECTIONS
     __hidden_bss_start = .;
     *(.hidden_bss)
     __hidden_bss_end = .;
-    __hidden_data_and_bss_end = .;
-    __mpu_hidden_data_region_end = .;
+    . = ALIGN(MPU_REGION_ALIGNMENT);
+    __hidden_data_region_end = .;
 
     *(.sbss*)
     *(.gnu.linkonce.sb.*)
@@ -214,21 +212,16 @@ SECTIONS
 
   PROVIDE( __bss_end = . );
 
-  __mpu_global_data_region_end = .;
+  . = ALIGN(MPU_REGION_ALIGNMENT);
+  __global_data_region_end = .;
 
-  /*
-   * NOTE: the ISR stack is allocated before (lower in memory) the thread stacks,
-   * so that in case of ISR stack overflow, the thread stacks are not corrupted.
-   * A thread stack overflow cannot corrupt the ISR stack, as a thread never
-   * preempts an ISR. A thread stack overflow can corrupt another thread stack,
-   * if the thread with stack overflow is running in privileged mode, unless
-   * stack guard regions are placed in fron of each stack.
-   */
   .stack (NOLOAD)  :
   {
     _stacks_start = .;
     *(.isr_stack)
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     *(.thread_stacks)
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     _stacks_end = .;
   } >TCM
 }

@@ -10,7 +10,8 @@
 --
 
 package HiRTOS_Cpu_Arch_Interface.System_Registers
-   with SPARK_Mode => On
+   with SPARK_Mode => On,
+        No_Elaboration_Code_All
 is
 
    type EL1_Mpu_Enable_Type is (EL1_Mpu_Disabled, EL1_Mpu_Enabled)
@@ -177,5 +178,49 @@ is
    function Get_SCTLR return SCTLR_Type;
 
    procedure Set_SCTLR (SCTLR_Value : SCTLR_Type);
+
+   type Advanced_SIMD_Disable_Type is
+      (Advanced_SIMD_Not_Disabled,
+       Advanced_SIMD_Disabled)
+   with Size => 1;
+
+   for Advanced_SIMD_Disable_Type use
+     (Advanced_SIMD_Not_Disabled => 2#0#,
+      Advanced_SIMD_Disabled => 2#1#);
+
+   type Advanced_SIMD_And_Floating_Point_Enable_Type is
+     (Advanced_SIMD_And_Floating_Point_Disabled_For_EL0_EL1,
+      Advanced_SIMD_And_Floating_Point_Enabled_For_EL1_Only,
+      Advanced_SIMD_And_Floating_Point_Enabled_For_EL0_EL1)
+      with Size => 2;
+
+   for Advanced_SIMD_And_Floating_Point_Enable_Type use
+     (Advanced_SIMD_And_Floating_Point_Disabled_For_EL0_EL1 => 2#00#,
+      Advanced_SIMD_And_Floating_Point_Enabled_For_EL1_Only => 2#01#,
+      Advanced_SIMD_And_Floating_Point_Enabled_For_EL0_EL1 => 2#11#);
+
+   --
+   --  Architectural Feature Access Control Register
+   --
+   --  NOTE: We don't need to declare this register with Volatile_Full_Access,
+   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --
+   type CPACR_Type is record
+      cp10 : Advanced_SIMD_And_Floating_Point_Enable_Type := Advanced_SIMD_And_Floating_Point_Disabled_For_EL0_EL1;
+      cp11 : Advanced_SIMD_And_Floating_Point_Enable_Type := Advanced_SIMD_And_Floating_Point_Disabled_For_EL0_EL1;
+      ASEDIS : Advanced_SIMD_Disable_Type := Advanced_SIMD_Not_Disabled;
+   end record
+   with Size => 32,
+        Bit_Order => System.Low_Order_First;
+
+   for CPACR_Type use record
+      cp10 at 0 range 20 .. 21;
+      cp11 at 0 range 22 .. 23;
+      ASEDIS at 0 range 31 .. 31;
+   end record;
+
+   function Get_CPACR return CPACR_Type;
+
+   procedure Set_CPACR (CPACR_Value : CPACR_Type);
 
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

@@ -10,41 +10,127 @@
 --  for ARMv8-R MPU
 --
 
+with HiRTOS;
+with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
+   use HiRTOS_Cpu_Arch_Interface.System_Registers;
+
+   procedure Load_Memory_Attributes_Lookup_Table is
+      MAIR_Pair : MAIR_Pair_Type;
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      MAIR_Pair.Attr_Array := Memory_Attributes_Lookup_Table;
+      Set_MAIR_Pair (MAIR_Pair);
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+   end Load_Memory_Attributes_Lookup_Table;
 
    procedure Enable_Memory_Protection is
+      SCTLR_Value : SCTLR_Type;
    begin
-      pragma Assert (False); -- ????
+      Memory_Barrier;
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      SCTLR_Value := Get_SCTLR;
+      SCTLR_Value.M := EL1_Mpu_Enabled;
+      SCTLR_Value.A := Alignment_Check_Enabled;
+      SCTLR_Value.C := Cacheable;
+      SCTLR_Value.BR := Background_Region_Enabled;
+      Set_SCTLR (SCTLR_Value);
+      HiRTOS.Exit_Cpu_Privileged_Mode;
    end Enable_Memory_Protection;
 
    procedure Disable_Memory_Protection is
+      SCTLR_Value : SCTLR_Type;
    begin
-      pragma Assert (False); -- ????
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      SCTLR_Value := Get_SCTLR;
+      SCTLR_Value.M := EL1_Mpu_Disabled;
+      Set_SCTLR (SCTLR_Value);
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+      Memory_Barrier;
    end Disable_Memory_Protection;
 
    procedure Initialize_Memory_Region_Descriptor (
       Region_Descriptor : out Memory_Region_Descriptor_Type;
       Start_Address : System.Address;
       Size_In_Bytes : System.Storage_Elements.Integer_Address;
-      Permissions : Region_Permissions_Type) is
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+   is
+      PRBAR_Value : PRBAR_Type;
+      PRLAR_Value : PRLAR_Type;
    begin
-      pragma Assert (False); --  ???
+      PRBAR_Value.BASE := Address_Top_26_Bits_Type (
+         Interfaces.Shift_Right (
+            Interfaces.Unsigned_32 (To_Integer (Start_Address)), 6));
+      PRBAR_Value.SH := Outer_Shareable;
+      PRBAR_Value.XN := Non_Executable;
+      case Privileged_Permissions is
+         when Read_Write =>
+            if Unprivileged_Permissions = Read_Write then
+               PRBAR_Value.AP := EL1_and_EL0_Read_Write;
+            else
+               pragma Assert (Unprivileged_Permissions = None);
+               PRBAR_Value.AP := EL1_Read_Write_EL0_No_Access;
+            end if;
+         when Read_Only =>
+            if Unprivileged_Permissions = Read_Only then
+               PRBAR_Value.AP := EL1_and_EL0_Read_Only;
+            else
+               pragma Assert (Unprivileged_Permissions = None);
+               PRBAR_Value.AP := EL1_Read_Only_EL0_No_Access;
+            end if;
+         when Read_Execute =>
+            PRBAR_Value.XN := Executable;
+            if Unprivileged_Permissions = Read_Execute then
+               PRBAR_Value.AP := EL1_and_EL0_Read_Only;
+            else
+               pragma Assert (Unprivileged_Permissions = None);
+               PRBAR_Value.AP := EL1_Read_Only_EL0_No_Access;
+            end if;
+         when others =>
+            pragma Assert (False);
+      end case;
+
+      PRLAR_Value.LIMIT := Address_Top_26_Bits_Type (
+         Interfaces.Shift_Right (
+            Interfaces.Unsigned_32 (To_Integer (Start_Address) +
+                                    Size_In_Bytes - 1), 6));
+
+      PRLAR_Value.AttrIndx := AttrIndx_Type (Region_Attributes'Enum_Rep);
+      PRLAR_Value.EN := Region_Enabled;
+
+      Region_Descriptor.PRBAR_Value := PRBAR_Value;
+      Region_Descriptor.PRLAR_Value := PRLAR_Value;
    end Initialize_Memory_Region_Descriptor;
+
+   procedure Initialize_Memory_Region_Descriptor_Disabled (
+      Region_Descriptor : out Memory_Region_Descriptor_Type) is
+   begin
+      Region_Descriptor.PRLAR_Value.EN := Region_Disabled;
+   end Initialize_Memory_Region_Descriptor_Disabled;
 
    procedure Restore_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
       Region_Descriptor : Memory_Region_Descriptor_Type) is
    begin
-      pragma Assert (False); --  ???
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      Set_PRBAR (Region_Id, Region_Descriptor.PRBAR_Value);
+      Set_PRLAR (Region_Id, Region_Descriptor.PRLAR_Value);
+      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS.Exit_Cpu_Privileged_Mode;
    end Restore_Memory_Region_Descriptor;
 
    procedure Save_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
       Region_Descriptor : out Memory_Region_Descriptor_Type) is
    begin
-      pragma Assert (False); --  ???
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      Region_Descriptor.PRBAR_Value := Get_PRBAR (Region_Id);
+      Region_Descriptor.PRLAR_Value := Get_PRLAR (Region_Id);
+      HiRTOS.Exit_Cpu_Privileged_Mode;
    end Save_Memory_Region_Descriptor;
 
    ----------------------------------------------------------------------------
@@ -62,7 +148,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       return MPUIR_Value;
    end Get_MPUIR;
 
-   function Get_PRBAR return PRBAR_Type is
+   function Get_Selected_PRBAR return PRBAR_Type is
       PRBAR_Value : PRBAR_Type;
    begin
       System.Machine_Code.Asm (
@@ -71,7 +157,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
          Volatile => True);
 
       return PRBAR_Value;
-   end Get_PRBAR;
+   end Get_Selected_PRBAR;
 
    function Get_PRBAR (Region_Id : Memory_Region_Id_Type) return PRBAR_Type is
       PRBAR_Value : PRBAR_Type;
@@ -206,13 +292,13 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       return PRBAR_Value;
    end Get_PRBAR;
 
-   procedure Set_PRBAR (PRBAR_Value : PRBAR_Type) is
+   procedure Set_Selected_PRBAR (PRBAR_Value : PRBAR_Type) is
    begin
       System.Machine_Code.Asm (
          "mcr p15, 0, %0, c6, c3, 0",
          Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
          Volatile => True);
-   end Set_PRBAR;
+   end Set_Selected_PRBAR;
 
    procedure Set_PRBAR (Region_Id : Memory_Region_Id_Type; PRBAR_Value : PRBAR_Type) is
    begin
@@ -344,7 +430,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       end case;
    end Set_PRBAR;
 
-   function Get_PRLAR return PRLAR_Type is
+   function Get_Selected_PRLAR return PRLAR_Type is
       PRLAR_Value : PRLAR_Type;
    begin
       System.Machine_Code.Asm (
@@ -353,7 +439,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
          Volatile => True);
 
       return PRLAR_Value;
-   end Get_PRLAR;
+   end Get_Selected_PRLAR;
 
    function Get_PRLAR (Region_Id : Memory_Region_Id_Type) return PRLAR_Type is
       PRLAR_Value : PRLAR_Type;
@@ -644,6 +730,35 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
          Inputs => PRSELR_Type'Asm_Input ("r", PRSELR_Value), --  %0
          Volatile => True);
    end Set_PRSELR;
+
+   function Get_MAIR_Pair return MAIR_Pair_Type is
+      MAIR_Pair : MAIR_Pair_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 0, %0, c10, c2, 0",
+         Outputs => Interfaces.Unsigned_32'Asm_Output ("=r", MAIR_Pair.MAIR0), --  %0
+         Volatile => True);
+
+      System.Machine_Code.Asm (
+         "mrc p15, 0, %0, c10, c2, 1",
+         Outputs => Interfaces.Unsigned_32'Asm_Output ("=r", MAIR_Pair.MAIR1), --  %0
+         Volatile => True);
+
+      return MAIR_Pair;
+   end Get_MAIR_Pair;
+
+   procedure Set_MAIR_Pair (MAIR_Pair : MAIR_Pair_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c10, c2, 0",
+         Inputs => Interfaces.Unsigned_32'Asm_Input ("r", MAIR_Pair.MAIR0), --  %0
+         Volatile => True);
+
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c10, c2, 1",
+         Inputs => Interfaces.Unsigned_32'Asm_Input ("r", MAIR_Pair.MAIR1), --  %0
+         Volatile => True);
+   end Set_MAIR_Pair;
 
    function Get_DFAR return DFAR_Type is
       DFAR_Value : DFAR_Type;

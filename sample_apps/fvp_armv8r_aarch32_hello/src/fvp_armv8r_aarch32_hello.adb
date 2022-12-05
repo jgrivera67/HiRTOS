@@ -17,6 +17,11 @@ pragma Unreferenced (HiRTOS_Cpu_Startup_Interface);
 procedure Fvp_Armv8r_Aarch32_Hello is
    use HiRTOS_Cpu_Multi_Core_Interface;
 
+   procedure HiRTOSinit with
+      Import,
+      Convention => C,
+      External_Name => "HiRTOSinit";
+
    procedure Print_Console_Greeting is
       Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
    begin
@@ -47,9 +52,12 @@ procedure Fvp_Armv8r_Aarch32_Hello is
    -- ** --
 
    Turn_LED_On : Boolean := True;
+
 begin -- Main
+   HiRTOSinit;
    Print_Console_Greeting;
 
+   HiRTOS_Low_Level_Debug_Interface.Print_String ("MAin.0" & ASCII.LF);--???
    HiRTOS.Initialize;
 
    loop

@@ -5,40 +5,23 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 
+with HiRTOS_Platform_Parameters;
+
 package body Memory_Utils is
-   --
-   --  Constants
-   --
-
-   Flash_Used_End_Marker : constant Unsigned_32;
-   pragma Import (Asm, Flash_Used_End_Marker, "__rom_end");
-   --  Address of the end of the used area of Flash
-
-   Sram_Start_Marker : constant Unsigned_32;
-   pragma Import (Asm, Sram_Start_Marker, "__data_start");
-   --  Start address of of SRAM
-
-   Statically_Allocated_Sram_End_Marker : constant Unsigned_32;
-   pragma Import (Asm, Statically_Allocated_Sram_End_Marker, "_end");
-   --  End address of the statically allocated portion of SRAM
 
    -----------------------
    -- Clear_BSS_Section --
    -----------------------
 
    procedure Clear_BSS_Section is
-      --  Start address of the .bss section in SRAM
-      BSS_Start : Unsigned_32;
-      pragma Import (Asm, BSS_Start, "__bss_start");
-
       --  Size in 32-bit words of the .bss section
-      BSS_Words : constant Unsigned_32;
-      pragma Import (Asm, BSS_Words, "__bss_words");
-
       Num_BSS_Words : constant Integer_Address :=
-        To_Integer (BSS_Words'Address);
+         (To_Integer (HiRTOS_Platform_Parameters.BSS_Section_End_Address) -
+          To_Integer (HiRTOS_Platform_Parameters.BSS_Section_Start_Address)) /
+         (Interfaces.Unsigned_32'Size / System.Storage_Unit);
+
       BSS_Section : Words_Array_Type (1 .. Num_BSS_Words) with
-        Address => BSS_Start'Address;
+        Address => HiRTOS_Platform_Parameters.BSS_Section_Start_Address;
    begin
       BSS_Section := [others => 0];
    end Clear_BSS_Section;
@@ -48,42 +31,18 @@ package body Memory_Utils is
    -----------------------
 
    procedure Copy_Data_Section is
-      --  Start address of the .data section in SRAM
-      Data_Start : Unsigned_32;
-      pragma Import (Asm, Data_Start, "__data_start");
-
-      --  Size in 32-bit words of the .data section
-      Data_Words : constant Unsigned_32;
-      pragma Import (Asm, Data_Words, "__data_words");
-
-      --  Start address of the .data section in flash
-      Data_Load : constant Unsigned_32;
-      pragma Import (Asm, Data_Load, "__data_load");
-
       Num_Data_Words : constant Integer_Address :=
-        To_Integer (Data_Words'Address);
+         (To_Integer (HiRTOS_Platform_Parameters.Data_Section_End_Address) -
+          To_Integer (HiRTOS_Platform_Parameters.Data_Section_Start_Address)) /
+         (Interfaces.Unsigned_32'Size / System.Storage_Unit);
+
       Data_Section : Words_Array_Type (1 .. Num_Data_Words) with
-         Address => Data_Start'Address;
+         Address => HiRTOS_Platform_Parameters.Data_Section_Start_Address;
       Data_Section_Initializers : Words_Array_Type (1 .. Num_Data_Words) with
-         Address => Data_Load'Address;
+         Address => HiRTOS_Platform_Parameters.Data_Load_Section_Start_Address;
    begin
       Data_Section := Data_Section_Initializers;
    end Copy_Data_Section;
-
-   --------------------
-   -- Get_Flash_Used --
-   --------------------
-
-   function Get_Flash_Used return Unsigned_32 is
-      (Unsigned_32 (To_Integer (Flash_Used_End_Marker'Address)));
-
-   -------------------
-   -- Get_Sram_Used --
-   -------------------
-
-   function Get_Sram_Used return Unsigned_32 is
-     (Unsigned_32 (To_Integer (Statically_Allocated_Sram_End_Marker'Address) -
-                   To_Integer (Sram_Start_Marker'Address)));
 
    ----------------------
    -- Compute_Checksum --
