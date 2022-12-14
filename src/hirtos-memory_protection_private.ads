@@ -53,7 +53,7 @@ is
 
    procedure Initialize
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
-           Post => not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
+           Post => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    --
    --  Initializes the thread-private memory protection region descriptors

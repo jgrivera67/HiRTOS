@@ -57,7 +57,6 @@ begin -- Main
    HiRTOSinit;
    Print_Console_Greeting;
 
-   HiRTOS_Low_Level_Debug_Interface.Print_String ("MAin.0" & ASCII.LF);--???
    HiRTOS.Initialize;
 
    loop

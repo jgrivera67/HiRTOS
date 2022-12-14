@@ -11,7 +11,6 @@
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -24,11 +23,8 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
    begin
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("Here 0" & ASCII.LF);--???
       Disable_Memory_Protection;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("Here 1" & ASCII.LF);--???
       Load_Memory_Attributes_Lookup_Table;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("Here 2" & ASCII.LF);--???
 
       --
       --  Disable all region descriptors:
@@ -125,11 +121,7 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
       Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Interrupt_Stack_Region'Enum_Rep),
                                         Region_Descriptor);
 
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("Here 1" & ASCII.LF);--???
-      Enable_Memory_Protection;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("Here 2" & ASCII.LF);--???
-      Exit_Cpu_Privileged_Mode;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("Here 3" & ASCII.LF);--???
+      --Enable_Memory_Protection;
    end Initialize;
 
    procedure Initialize_Thread_Memory_Regions (Stack_Base_Addr : System.Address;

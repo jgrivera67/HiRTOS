@@ -128,4 +128,5 @@ abstract project Hirtos_Compiler_Flags is
 
       for Local_Configuration_Pragmas use "gnat_pragmas.adc";
    end Compiler;
+
 end Hirtos_Compiler_Flags;

@@ -10,6 +10,7 @@ with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with Memory_Utils;
 with System.Machine_Code;
+with Interfaces;
 
 package body HiRTOS_Cpu_Startup_Interface is
    use HiRTOS_Cpu_Multi_Core_Interface;

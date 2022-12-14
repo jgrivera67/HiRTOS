@@ -124,6 +124,6 @@ is
       System'To_Address (16#8000_0000# + 16#1C01_0000#);
 
    Global_Mmio_Range_End_Address : constant System.Address :=
-      System'To_Address (16#8000_0000# + 16#1C0D_0000#);
+      System'To_Address (16#8000_0000# + 16#3000_0000#);
 
 end HiRTOS_Platform_Parameters;

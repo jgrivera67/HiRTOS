@@ -31,7 +31,7 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
    procedure Spinlock_Acquire (Spinlock : in out Spinlock_Type) is
    begin
       while HiRTOS_Cpu_Arch_Interface.Atomic_Test_Set (Spinlock.Atomic_Flag'Address) loop
-         HiRTOS_Cpu_Arch_Interface.Wait_For_Event;
+         HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
       end loop;
 
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
@@ -39,9 +39,9 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
 
    procedure Spinlock_Release (Spinlock : in out Spinlock_Type) is
    begin
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
       Spinlock.Atomic_Flag := 0;
-      HiRTOS_Cpu_Arch_Interface.Send_Event;
+      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
    end Spinlock_Release;
 
 end HiRTOS_Cpu_Multi_Core_Interface;

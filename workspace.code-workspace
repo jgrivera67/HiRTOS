@@ -1,10 +1,14 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-   ],
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
   "settings": {
-    "editor.tabSize": 3
+    "editor.tabSize": 3,
+    "editor.fontSize": 12,
+    "editor.formatOnType": false,
+    "editor.defaultFormatter": null,
+    "editor.detectIndentation": false
   }
 }

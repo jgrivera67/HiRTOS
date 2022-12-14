@@ -198,15 +198,15 @@ package body HiRTOS_Cpu_Arch_Interface is
       System.Machine_Code.Asm ("wfi", Volatile => True);
    end Wait_For_Interrupt;
 
-   procedure Wait_For_Event is
+   procedure Wait_For_Multicore_Event is
    begin
       System.Machine_Code.Asm ("wfe", Volatile => True);
-   end Wait_For_Event;
+   end Wait_For_Multicore_Event;
 
-   procedure Send_Event is
+   procedure Send_Multicore_Event is
    begin
       System.Machine_Code.Asm ("sev", Volatile => True);
-   end Send_Event;
+   end Send_Multicore_Event;
 
    procedure Memory_Barrier is
    begin
@@ -256,5 +256,19 @@ package body HiRTOS_Cpu_Arch_Interface is
 
       return Old_Value;
    end Atomic_Fetch_Sub;
+
+   function Atomic_Fetch_Or
+     (Counter_Address : System.Address;
+      Value : Cpu_Register_Type) return Cpu_Register_Type
+   is
+      Old_Value : Cpu_Register_Type;
+   begin
+      loop
+         Old_Value := Ldrex_Word (Counter_Address);
+         exit when Strex_Word (Counter_Address, Old_Value or Value);
+      end loop;
+
+      return Old_Value;
+   end Atomic_Fetch_Or;
 
 end HiRTOS_Cpu_Arch_Interface;

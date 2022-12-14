@@ -9,6 +9,7 @@ with System;
 with Interfaces;
 with HiRTOS_Config_Parameters;
 with HiRTOS_Cpu_Arch_Parameters;
+with HiRTOS_Cpu_Arch_Interface;
 with Generic_Execution_Stack;
 private with Generic_Linked_List;
 
@@ -63,7 +64,9 @@ is
    --  enabled. Otherwise, it leaves the CPU in its current privileged-mode and leaves
    --  the interrupt-enable state unchanged.
    --
-   procedure Enter_Cpu_Privileged_Mode;
+   procedure Enter_Cpu_Privileged_Mode
+    with Pre => (if Current_Execution_Context_Is_Interrupt then HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode),
+         Post => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    --
    --  Lowers the CPU privilege level. If the old privilege level is 1
@@ -71,7 +74,9 @@ is
    --  user-mode with interrupts enabled. Otherwise, it leaves the CPU in
    --  privileged mode and leaves the interrupt-enable state unchanged.
    --
-   procedure Exit_Cpu_Privileged_Mode;
+   procedure Exit_Cpu_Privileged_Mode
+    with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
+         Post => (if Current_Execution_Context_Is_Interrupt then HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
 
    --
    --  Tell if we are running in CPU privileged mode

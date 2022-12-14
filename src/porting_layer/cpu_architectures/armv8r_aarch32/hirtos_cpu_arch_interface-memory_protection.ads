@@ -94,6 +94,12 @@ is
       Region_Descriptor : out Memory_Region_Descriptor_Type)
       with Pre => Cpu_In_Privileged_Mode;
 
+   procedure Handle_Prefetch_Abort_Exception
+      with Pre => Cpu_In_Privileged_Mode;
+
+   procedure Handle_Data_Abort_Exception
+      with Pre => Cpu_In_Privileged_Mode;
+
 private
 
    ----------------------------------------------------------------------------
@@ -498,5 +504,28 @@ private
             (Memory_Kind => Normal_Memory_Outer_Write_Back,
              Normal_Memory_Subkind => Normal_Memory_Inner_Write_Back),
         others => <> ];
+
+   No_Fault_Str : aliased constant String := "None";
+   Translation_Fault_Level0_Str : aliased constant String := "Translation_Fault_Level0";
+   Permission_Fault_Level0_Str : aliased constant String := "Permission_Fault_Level0";
+   Synchronous_External_Abort_Str : aliased constant String := "Synchronous_External_Abort";
+   Asynchronous_External_Abort_Str : aliased constant String := "Asynchronous_External_Abort";
+   Synchronous_Parity_Error_On_Memory_Access_Str : aliased constant String := "Synchronous_Parity_Error_On_Memory_Access";
+   Asynchronous_Parity_Error_On_Memory_Access_Str : aliased constant String := "Asynchronous_Parity_Error_On_Memory_Access";
+   Alignment_Fault_Str : aliased constant String := "Alignment_Fault";
+   Debug_Event_Str : aliased constant String := "Debug_Event";
+   Unsupported_Exclusive_Access_Fault_Str : aliased constant String := "Unsupported_Exclusive_Access_Fault";
+
+   Fault_Name_Pointer_Array : constant array (DFSR_Status_Type) of not null access constant String :=
+      [No_Fault => No_Fault_Str'Access,
+         Translation_Fault_Level0 => Translation_Fault_Level0_Str'Access,
+         Permission_Fault_Level0 => Permission_Fault_Level0_Str'Access,
+         Synchronous_External_Abort => Synchronous_External_Abort_Str'Access,
+         Asynchronous_External_Abort => Asynchronous_External_Abort_Str'Access,
+         Synchronous_Parity_Error_On_Memory_Access => Synchronous_Parity_Error_On_Memory_Access_Str'Access,
+         Asynchronous_Parity_Error_On_Memory_Access => Asynchronous_Parity_Error_On_Memory_Access_Str'Access,
+         Alignment_Fault => Alignment_Fault_Str'Access,
+         Debug_Event => Debug_Event_Str'Access,
+         Unsupported_Exclusive_Access_Fault => Unsupported_Exclusive_Access_Fault_Str'Access];
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

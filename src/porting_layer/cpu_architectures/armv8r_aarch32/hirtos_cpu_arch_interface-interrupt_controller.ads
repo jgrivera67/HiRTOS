@@ -15,118 +15,122 @@ private with HiRTOS.Memory_Protection;
 private with System;
 private with Interfaces;
 
-package HiRTOS_Cpu_Arch_Interface.Interrupt_Controller
-   with SPARK_Mode => On
+package HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with
+  SPARK_Mode => On
 is
    Max_Num_Interrupts_Supported : constant := 992;
 
    type Interrupt_Id_Type is range 0 .. Max_Num_Interrupts_Supported;
 
-   subtype Valid_Interrupt_Id_Type is Interrupt_Id_Type
-      range Interrupt_Id_Type'First .. Interrupt_Id_Type'Last - 1;
+   subtype Valid_Interrupt_Id_Type is
+     Interrupt_Id_Type range Interrupt_Id_Type'First ..
+         Interrupt_Id_Type'Last - 1;
 
    Invalid_Interrupt_Id : constant Interrupt_Id_Type := Interrupt_Id_Type'Last;
 
    subtype Internal_Interrupt_Id_Type is Interrupt_Id_Type range 0 .. 31;
 
    --  IDs of (per-CPU) software-generated interrupts (SGIs)
-   subtype Soft_Gen_Interrupt_Id_Type is Internal_Interrupt_Id_Type
-      range 0 .. 15;
+   subtype Soft_Gen_Interrupt_Id_Type is
+     Internal_Interrupt_Id_Type range 0 .. 15;
 
    --  IDs of (per-CPU) private peripheral interrupts (PPIs) in the GIC
-   subtype Private_Interrupt_Id_Type is Internal_Interrupt_Id_Type
-      range 16 .. 31;
+   subtype Private_Interrupt_Id_Type is
+     Internal_Interrupt_Id_Type range 16 .. 31;
 
    --  IDs of (global) shared peripheral interrupts (SPIs) in the GIC
-   subtype External_Interrupt_Id_Type is Interrupt_Id_Type
-      range 32 .. 991;
+   subtype External_Interrupt_Id_Type is Interrupt_Id_Type range 32 .. 991;
 
    --  Priority 0 is the highest priority and prioirty 31 is the lowest
-   type Interrupt_Priority_Type is mod 2 ** 5;
+   type Interrupt_Priority_Type is mod 2**5;
 
-   Highest_Interrupt_Priority : constant
-      Interrupt_Priority_Type := Interrupt_Priority_Type'First;
+   Highest_Interrupt_Priority : constant Interrupt_Priority_Type :=
+     Interrupt_Priority_Type'First;
 
-   Lowest_Interrupt_Priority : constant
-      Interrupt_Priority_Type := Interrupt_Priority_Type'Last;
+   Lowest_Interrupt_Priority : constant Interrupt_Priority_Type :=
+     Interrupt_Priority_Type'Last;
 
-   type Interrupt_Handler_Entry_Point_Type is access procedure (Arg : System.Address);
+   type Interrupt_Handler_Entry_Point_Type is
+     access procedure (Arg : System.Address);
 
-   type Cpu_Interrupt_Line_Type is (Cpu_Interrupt_Fiq,
-                                    Cpu_Interrupt_Irq);
+   type Cpu_Interrupt_Line_Type is (Cpu_Interrupt_Fiq, Cpu_Interrupt_Irq);
 
    for Cpu_Interrupt_Line_Type use
-      (Cpu_Interrupt_Fiq => 2#0#,
-       Cpu_Interrupt_Irq => 2#1#);
+     (Cpu_Interrupt_Fiq => 2#0#, Cpu_Interrupt_Irq => 2#1#);
 
-   type Interrupt_Trigger_Mode_Type is (Interrupt_Level_Sensitive,
-                                        Interrupt_Edge_Triggered);
+   type Interrupt_Trigger_Mode_Type is
+     (Interrupt_Level_Sensitive, Interrupt_Edge_Triggered);
 
    for Interrupt_Trigger_Mode_Type use
-      (Interrupt_Level_Sensitive => 2#0#,
-       Interrupt_Edge_Triggered => 2#1#);
+     (Interrupt_Level_Sensitive => 2#0#, Interrupt_Edge_Triggered => 2#1#);
 
    ----------------------------------------------------------------------------
    --  Public Subprograms
    ----------------------------------------------------------------------------
 
-   function Initialized return Boolean with Ghost;
+   function Per_Cpu_Initialized return Boolean with
+     Ghost;
 
-   procedure Initialize
-      with Pre => not Initialized,
-           Post => Initialized;
+   procedure Initialize with
+     Pre  => not Per_Cpu_Initialized and then Cpu_In_Privileged_Mode,
+     Post => Per_Cpu_Initialized;
 
    --
    --  NOTE: Internal interrupts always fire in the local CPU
    --
-   procedure Configure_Internal_Interrupt (
-      Internal_Interrupt_Id : Internal_Interrupt_Id_Type;
-      Priority : Interrupt_Priority_Type;
-      Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type;
-      Trigger_Mode : Interrupt_Trigger_Mode_Type;
+   procedure Configure_Internal_Interrupt
+     (Internal_Interrupt_Id         : Internal_Interrupt_Id_Type;
+      Priority                      : Interrupt_Priority_Type;
+      Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
+      Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
-      Interrupt_Handler_Arg : System.Address := System.Null_Address)
-      with Pre => Initialized;
+      Interrupt_Handler_Arg : System.Address := System.Null_Address) with
+     Pre => Per_Cpu_Initialized;
 
    --
    --  NOTE: The external interrupt is configured to fire on the CPU on which
    --  this subprogram is called for that interrupt.
    --
-   procedure Configure_External_Interrupt (
-      External_Interrupt_Id : External_Interrupt_Id_Type;
-      Priority : Interrupt_Priority_Type;
-      Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type;
-      Trigger_Mode : Interrupt_Trigger_Mode_Type;
+   procedure Configure_External_Interrupt
+     (External_Interrupt_Id         : External_Interrupt_Id_Type;
+      Priority                      : Interrupt_Priority_Type;
+      Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
+      Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
-      Interrupt_Handler_Arg : System.Address := System.Null_Address)
-      with Pre => Initialized;
+      Interrupt_Handler_Arg : System.Address := System.Null_Address) with
+     Pre => Per_Cpu_Initialized;
 
-   procedure Enable_Internal_Interrupt (Internal_Interrupt_Id : Internal_Interrupt_Id_Type)
-      with Pre => Initialized;
+   procedure Enable_Internal_Interrupt
+     (Internal_Interrupt_Id : Internal_Interrupt_Id_Type) with
+     Pre => Per_Cpu_Initialized;
 
-   procedure Enable_External_Interrupt (External_Interrupt_Id : External_Interrupt_Id_Type)
-      with Pre => Initialized;
+   procedure Enable_External_Interrupt
+     (External_Interrupt_Id : External_Interrupt_Id_Type) with
+     Pre => Per_Cpu_Initialized;
 
-   procedure Disable_Internal_Interrupt (Internal_Interrupt_Id : Internal_Interrupt_Id_Type)
-      with Pre => Initialized;
+   procedure Disable_Internal_Interrupt
+     (Internal_Interrupt_Id : Internal_Interrupt_Id_Type) with
+     Pre => Per_Cpu_Initialized;
 
-   procedure Disable_External_Interrupt (External_Interrupt_Id : External_Interrupt_Id_Type)
-      with Pre => Initialized;
+   procedure Disable_External_Interrupt
+     (External_Interrupt_Id : External_Interrupt_Id_Type) with
+     Pre => Per_Cpu_Initialized;
 
-   procedure GIC_Interrupt_Handler (Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type)
-      with Pre => Initialized and then
-                  Cpu_In_Privileged_Mode and then
-                  Cpu_Interrupting_Disabled;
+   procedure GIC_Interrupt_Handler
+     (Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type) with
+     Pre =>
+      Per_Cpu_Initialized and then Cpu_In_Privileged_Mode
+      and then Cpu_Interrupting_Disabled;
 
 private
    pragma SPARK_Mode (Off);
    use HiRTOS_Cpu_Multi_Core_Interface;
 
-   type CBAR_RES0_Type is mod 2 ** 21
-      with Size => 21;
+   type CBAR_RES0_Type is mod 2**21 with
+     Size => 21;
 
-   type CBAR_PERIPHBASE_Type is mod 2 ** 11
-      with Size => 11;
+   type CBAR_PERIPHBASE_Type is mod 2**11 with
+     Size => 11;
 
    --
    --  Configuration Base Address Register
@@ -141,19 +145,17 @@ private
          when True =>
             Value : Interfaces.Unsigned_32 := 0;
          when False =>
-            RES0 : CBAR_RES0_Type;
+            RES0       : CBAR_RES0_Type;
             --  Upper 11 bits of base physical address of GIC registers
             PERIPHBASE : CBAR_PERIPHBASE_Type;
       end case;
-   end record
-     with Size => 32,
-          Bit_Order => System.Low_Order_First,
-          Unchecked_Union;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
    for IMP_CBAR_Type use record
-      RES0 at 0 range 0 .. 20;
+      RES0       at 0 range  0 .. 20;
       PERIPHBASE at 0 range 21 .. 31;
-      Value at 0 range 0 .. 31;
+      Value      at 0 range  0 .. 31;
    end record;
 
    function Get_IMP_CBAR return IMP_CBAR_Type;
@@ -162,44 +164,39 @@ private
    --  GIC distributor registers
    ----------------------------------------------------------------------------
 
-   type Group_Interrupts_Enable_Type is (Group_Interrupts_Disabled,
-                                         Group_Interrupts_Enabled)
-      with Size => 1;
+   type Group_Interrupts_Enable_Type is
+     (Group_Interrupts_Disabled, Group_Interrupts_Enabled) with
+     Size => 1;
 
    for Group_Interrupts_Enable_Type use
-      (Group_Interrupts_Disabled => 2#0#,
-       Group_Interrupts_Enabled => 2#1#);
+     (Group_Interrupts_Disabled => 2#0#, Group_Interrupts_Enabled => 2#1#);
 
-   type Affinity_Routing_Enable_Type is (Affinity_Routing_Disabled,
-                                         Affinity_Routing_Enabled)
-      with Size => 1;
+   type Affinity_Routing_Enable_Type is
+     (Affinity_Routing_Disabled, Affinity_Routing_Enabled) with
+     Size => 1;
 
    for Affinity_Routing_Enable_Type use
-      (Affinity_Routing_Disabled => 2#0#,
-       Affinity_Routing_Enabled => 2#1#);
+     (Affinity_Routing_Disabled => 2#0#, Affinity_Routing_Enabled => 2#1#);
 
-   type Register_Write_Pending_Type is (Register_Write_Not_Pending,
-                                        Register_Write_Pending)
-      with Size => 1;
+   type Register_Write_Pending_Type is
+     (Register_Write_Not_Pending, Register_Write_Pending) with
+     Size => 1;
 
    for Register_Write_Pending_Type use
-      (Register_Write_Not_Pending => 2#0#,
-       Register_Write_Pending => 2#1#);
+     (Register_Write_Not_Pending => 2#0#, Register_Write_Pending => 2#1#);
 
    type GICD_CTLR_Type is record
       EnableGrp0 : Group_Interrupts_Enable_Type := Group_Interrupts_Disabled;
       EnableGrp1 : Group_Interrupts_Enable_Type := Group_Interrupts_Disabled;
-      ARE : Affinity_Routing_Enable_Type := Affinity_Routing_Disabled;
-      RWP : Register_Write_Pending_Type := Register_Write_Not_Pending;
-   end record
-   with Volatile_Full_Access,
-        Size => 32,
-        Bit_Order => System.Low_Order_First;
+      ARE        : Affinity_Routing_Enable_Type := Affinity_Routing_Disabled;
+      RWP        : Register_Write_Pending_Type  := Register_Write_Not_Pending;
+   end record with
+     Volatile_Full_Access, Size => 32, Bit_Order => System.Low_Order_First;
 
    for GICD_CTLR_Type use record
-      EnableGrp0 at 16#0# range 0 .. 0;
-      EnableGrp1 at 16#0# range 1 .. 1;
-      ARE        at 16#0# range 4 .. 4;
+      EnableGrp0 at 16#0# range  0 ..  0;
+      EnableGrp1 at 16#0# range  1 ..  1;
+      ARE        at 16#0# range  4 ..  4;
       RWP        at 16#0# range 31 .. 31;
    end record;
 
@@ -209,28 +206,27 @@ private
    --  configured for Cortex-R52.
    --  Valid interrupt INTID range is 0 to 32*(ITLinesNumber + 1) - 1.
    --
-   type ITLinesNumber_Type is range 1 .. 30
-      with Size => 5;
+   type ITLinesNumber_Type is range 1 .. 30 with
+     Size => 5;
 
    --
    --  Number of INTID bits that the GIC Distributor supports, minus one.
    --  For the Cortex-R52 this value is 0b01001 (INTID is 10 bits).
    --
-   type TYPER_IDBits_Type is mod 2 ** 5
-      with Size => 5;
+   type TYPER_IDBits_Type is mod 2**5 with
+     Size => 5;
 
-   ARM_Cortex_R52_GICD_TYPER_IDbits : constant TYPER_IDBits_Type := 2#01001#; --  9 = 10 - 1
+   ARM_Cortex_R52_GICD_TYPER_IDbits : constant TYPER_IDBits_Type :=
+     2#0_1001#; --  9 = 10 - 1
 
    type GICD_TYPER_Type is record
       ITLinesNumber : ITLinesNumber_Type := ITLinesNumber_Type'First;
-      IDBits : TYPER_IDBits_Type := TYPER_IDBits_Type'First;
-   end record
-   with Volatile_Full_Access,
-        Size => 32,
-        Bit_Order => System.Low_Order_First;
+      IDBits        : TYPER_IDBits_Type  := TYPER_IDBits_Type'First;
+   end record with
+     Volatile_Full_Access, Size => 32, Bit_Order => System.Low_Order_First;
 
    for GICD_TYPER_Type use record
-      ITLinesNumber at 16#0# range 0 .. 4;
+      ITLinesNumber at 16#0# range  0 ..  4;
       IDBits        at 16#0# range 19 .. 23;
    end record;
 
@@ -241,16 +237,16 @@ private
    --  - Group0 routed to FIQ line
    --  - Group1 routed to IRQ line
    --
-   type GIC_Interrupt_Group_Type is new Cpu_Interrupt_Line_Type
-      with Size => 1;
+   type GIC_Interrupt_Group_Type is new Cpu_Interrupt_Line_Type with
+     Size => 1;
 
-   GIC_Interrupt_Group0 : constant GIC_Interrupt_Group_Type := Cpu_Interrupt_Fiq;
-   GIC_Interrupt_Group1 : constant GIC_Interrupt_Group_Type := Cpu_Interrupt_Irq;
+   GIC_Interrupt_Group0 : constant GIC_Interrupt_Group_Type :=
+     Cpu_Interrupt_Fiq;
+   GIC_Interrupt_Group1 : constant GIC_Interrupt_Group_Type :=
+     Cpu_Interrupt_Irq;
 
-   type GIC_IGROUPR_Type is array (0 .. 31) of GIC_Interrupt_Group_Type
-      with Volatile_Full_Access,
-           Size => 32,
-           Component_Size => 1;
+   type GIC_IGROUPR_Type is array (0 .. 31) of GIC_Interrupt_Group_Type with
+     Volatile_Full_Access, Size => 32, Component_Size => 1;
 
    --
    --  The GICD_IGROUPR1-30 registers control whether the corresponding SPI is
@@ -262,13 +258,12 @@ private
    --
    type GICD_IGROUPR_Array_Type is array (1 .. 30) of GIC_IGROUPR_Type;
 
-   type GIC_Interrupt_Bit_Type is mod 2 ** 1
-      with Size => 1;
+   type GIC_Interrupt_Bit_Type is mod 2**1 with
+     Size => 1;
 
-   type GIC_Interrupt_Bits_Register_Type is array (0 .. 31) of GIC_Interrupt_Bit_Type
-      with Size => 32,
-           Component_Size => 1,
-           Volatile_Full_Access;
+   type GIC_Interrupt_Bits_Register_Type is
+     array (0 .. 31) of GIC_Interrupt_Bit_Type with
+     Size => 32, Component_Size => 1, Volatile_Full_Access;
 
    --  Interrupt set-enable register for 32 interrupts
    type GIC_ISENABLER_Type is new GIC_Interrupt_Bits_Register_Type;
@@ -338,22 +333,22 @@ private
    --
    type GICD_ICACTIVER_Array_Type is array (1 .. 30) of GIC_ICACTIVER_Type;
 
-   type GIC_Interrupt_Priority_Type is new Interrupt_Priority_Type
-      with Size => 5;
+   type GIC_Interrupt_Priority_Type is new Interrupt_Priority_Type with
+     Size => 5;
 
    type GIC_IPRIORITYR_Slot_Type is record
-      Interrupt_Priority : GIC_Interrupt_Priority_Type := GIC_Interrupt_Priority_Type'First;
-   end record
-      with Size => 8,
-           Bit_Order => System.Low_Order_First;
+      Interrupt_Priority : GIC_Interrupt_Priority_Type :=
+        GIC_Interrupt_Priority_Type'First;
+   end record with
+     Size => 8, Bit_Order => System.Low_Order_First;
 
    for GIC_IPRIORITYR_Slot_Type use record
       Interrupt_Priority at 16#0# range 3 .. 7;
    end record;
 
-   type GIC_IPRIORITYR_Slot_Array_Type is array (0 .. 3) of GIC_IPRIORITYR_Slot_Type
-      with Component_Size => 8,
-           Size => 32;
+   type GIC_IPRIORITYR_Slot_Array_Type is
+     array (0 .. 3) of GIC_IPRIORITYR_Slot_Type with
+     Component_Size => 8, Size => 32;
 
    type GIC_IPRIORITYR_Type (As_Word : Boolean := True) is record
       case As_Word is
@@ -362,10 +357,8 @@ private
          when False =>
             Slot_Array : GIC_IPRIORITYR_Slot_Array_Type;
       end case;
-   end record
-      with Size => 32,
-           Unchecked_Union,
-           Volatile_Full_Access;
+   end record with
+     Size => 32, Unchecked_Union, Volatile_Full_Access;
 
    --
    --  The GICD_IPRIORITYR8-247 registers provide a 5-bit priority field for each
@@ -379,22 +372,22 @@ private
    --
    type GICD_IPRIORITYR_Array_Type is array (8 .. 247) of GIC_IPRIORITYR_Type;
 
-   type GIC_ICFGR_Interrupt_Trigger_Type is new Interrupt_Trigger_Mode_Type
-      with Size => 1;
+   type GIC_ICFGR_Interrupt_Trigger_Type is
+     new Interrupt_Trigger_Mode_Type with
+     Size => 1;
 
    type GIC_ICFGR_Field_Type is record
       Interrupt_Trigger : GIC_ICFGR_Interrupt_Trigger_Type;
-   end record
-      with Size => 2,
-           Bit_Order => System.Low_Order_First;
+   end record with
+     Size => 2, Bit_Order => System.Low_Order_First;
 
    for GIC_ICFGR_Field_Type use record
       Interrupt_Trigger at 0 range 1 .. 1;
    end record;
 
-   type GIC_ICFGR_Field_Array_Type is array (0 .. 15) of GIC_ICFGR_Field_Type
-      with Component_Size => 2,
-           Size => 32;
+   type GIC_ICFGR_Field_Array_Type is
+     array (0 .. 15) of GIC_ICFGR_Field_Type with
+     Component_Size => 2, Size => 32;
 
    type GIC_ICFGR_Type (As_Word : Boolean := True) is record
       case As_Word is
@@ -403,10 +396,8 @@ private
          when False =>
             Interrupt_Config_Array : GIC_ICFGR_Field_Array_Type;
       end case;
-   end record
-      with Size => 32,
-           Unchecked_Union,
-           Volatile_Full_Access;
+   end record with
+     Size => 32, Unchecked_Union, Volatile_Full_Access;
 
    --
    --  The GICD_ICFGR2-61 registers provide a 2-bit Int_config field for each
@@ -418,32 +409,36 @@ private
    --
    type GICD_ICFGR_Array_Type is array (2 .. 61) of GIC_ICFGR_Type;
 
-   type GICD_IROUTER_Affinity_Type is mod 2 ** 8
-      with Size => 8;
+   type GICD_IROUTER_Affinity_Type is mod 2**8 with
+     Size => 8;
 
    type GICD_IROUTER_Type (As_Two_Words : Boolean := False) is record
       case As_Two_Words is
          when True =>
-            Lower_Word : Interfaces.Unsigned_32 with Volatile_Full_Access;
-            Upper_Word : Interfaces.Unsigned_32 with Volatile_Full_Access;
+            Lower_Word : Interfaces.Unsigned_32 with
+              Volatile_Full_Access;
+            Upper_Word : Interfaces.Unsigned_32 with
+              Volatile_Full_Access;
          when False =>
-            Aff0 : GICD_IROUTER_Affinity_Type := GICD_IROUTER_Affinity_Type'First;
-            Aff1 : GICD_IROUTER_Affinity_Type := GICD_IROUTER_Affinity_Type'First;
-            Aff2 : GICD_IROUTER_Affinity_Type := GICD_IROUTER_Affinity_Type'First;
-            Aff3 : GICD_IROUTER_Affinity_Type := GICD_IROUTER_Affinity_Type'First;
+            Aff0 : GICD_IROUTER_Affinity_Type :=
+              GICD_IROUTER_Affinity_Type'First;
+            Aff1 : GICD_IROUTER_Affinity_Type :=
+              GICD_IROUTER_Affinity_Type'First;
+            Aff2 : GICD_IROUTER_Affinity_Type :=
+              GICD_IROUTER_Affinity_Type'First;
+            Aff3 : GICD_IROUTER_Affinity_Type :=
+              GICD_IROUTER_Affinity_Type'First;
       end case;
-   end record
-      with Size => 64,
-           Unchecked_Union,
-           Bit_Order => System.Low_Order_First;
+   end record with
+     Size => 64, Unchecked_Union, Bit_Order => System.Low_Order_First;
 
    for GICD_IROUTER_Type use record
-      Aff0 at 16#0# range 0 .. 7;
-      Aff1 at 16#0# range 8 .. 15;
-      Aff2 at 16#0# range 16 .. 23;
-      Aff3 at 16#0# range 32 .. 39;
-      Lower_Word at 16#0# range 0 .. 31;
-      Upper_Word at 16#4# range 0 .. 31;
+      Aff0       at 16#0# range  0 ..  7;
+      Aff1       at 16#0# range  8 .. 15;
+      Aff2       at 16#0# range 16 .. 23;
+      Aff3       at 16#0# range 32 .. 39;
+      Lower_Word at 16#0# range  0 .. 31;
+      Upper_Word at 16#4# range  0 .. 31;
    end record;
 
    --
@@ -454,8 +449,8 @@ private
    --
    type GICD_IROUTER_Array_Type is array (32 .. 991) of GICD_IROUTER_Type;
 
-   type GICD_PIDR_Type is new Interfaces.Unsigned_32
-      with Volatile_Full_Access;
+   type GICD_PIDR_Type is new Interfaces.Unsigned_32 with
+     Volatile_Full_Access;
 
    --
    --  The GICD_PIDR0-7 registers provide the peripheral identification information.
@@ -463,76 +458,72 @@ private
    type GICD_PIDR_Array_Type is array (0 .. 7) of GICD_PIDR_Type;
 
    Arm_Cortex_R52_GICD_PIDR_Array : constant GICD_PIDR_Array_Type :=
-      [16#00000092#,
-       16#000000B4#,
-       16#0000003B#,
-       16#00000000#,
-       16#00000044#,
-       16#00000000#,
-       16#00000000#,
-       16#00000000#];
+     [16#0000_0092#, 16#0000_00B4#, 16#0000_003B#, 16#0000_0000#,
+     16#0000_0044#, 16#0000_0000#, 16#0000_0000#, 16#0000_0000#];
 
-   ARM_Cortex_R52_GICR_IIDR_Value : constant Interfaces.Unsigned_32 := 16#0101243B#;
+   ARM_Cortex_R52_GICR_IIDR_Value : constant Interfaces.Unsigned_32 :=
+     16#0101_243B#;
 
-   type GICR_TYPER_Affinity_Type is mod 2 ** 8
-      with Size => 8;
+   type GICR_TYPER_Affinity_Type is mod 2**8 with
+     Size => 8;
 
-   type GICR_TYPER_Processor_Number_Type is mod 2 ** 16
-      with Size => 16;
+   type GICR_TYPER_Processor_Number_Type is mod 2**16 with
+     Size => 16;
 
-   type GICR_TYPER_Last_Type is (Not_Last_Redistributor,
-                                 Last_Redistributor)
-      with Size => 1;
+   type GICR_TYPER_Last_Type is
+     (Not_Last_Redistributor, Last_Redistributor) with
+     Size => 1;
 
    for GICR_TYPER_Last_Type use
-      (Not_Last_Redistributor => 2#0#,
-       Last_Redistributor => 2#1#);
+     (Not_Last_Redistributor => 2#0#, Last_Redistributor => 2#1#);
 
    type GICR_TYPER_Type (As_Two_Words : Boolean := True) is record
       case As_Two_Words is
          when True =>
-            Lower_Word : Interfaces.Unsigned_32 := 0 with Volatile_Full_Access;
-            Upper_Word : Interfaces.Unsigned_32 := 0 with Volatile_Full_Access;
+            Lower_Word : Interfaces.Unsigned_32 := 0 with
+              Volatile_Full_Access;
+            Upper_Word : Interfaces.Unsigned_32 := 0 with
+              Volatile_Full_Access;
          when False =>
-            Last : GICR_TYPER_Last_Type;
+            Last             : GICR_TYPER_Last_Type;
             --  CPU core Id. It is the same as Aff0 with unused MSBs zero-padded
             Processor_Number : GICR_TYPER_Processor_Number_Type;
-            Aff0 : GICR_TYPER_Affinity_Type;
-            Aff1 : GICR_TYPER_Affinity_Type;
-            Aff2 : GICR_TYPER_Affinity_Type;
-            Aff3 : GICR_TYPER_Affinity_Type;
+            Aff0             : GICR_TYPER_Affinity_Type;
+            Aff1             : GICR_TYPER_Affinity_Type;
+            Aff2             : GICR_TYPER_Affinity_Type;
+            Aff3             : GICR_TYPER_Affinity_Type;
       end case;
-   end record
-      with Size => 64,
-           Unchecked_Union,
-           Bit_Order => System.Low_Order_First;
+   end record with
+     Size => 64, Unchecked_Union, Bit_Order => System.Low_Order_First;
 
    for GICR_TYPER_Type use record
-      Last at 16#0# range 4 .. 4;
-      Processor_Number at 16#0# range 8 .. 23;
-      Aff0 at 16#0# range 32 .. 39;
-      Aff1 at 16#0# range 40 .. 47;
-      Aff2 at 16#0# range 48 .. 55;
-      Aff3 at 16#0# range 56 .. 63;
-      Lower_Word at 16#0# range 0 .. 31;
-      Upper_Word at 16#4# range 0 .. 31;
+      Last             at 16#0# range  4 ..  4;
+      Processor_Number at 16#0# range  8 .. 23;
+      Aff0             at 16#0# range 32 .. 39;
+      Aff1             at 16#0# range 40 .. 47;
+      Aff2             at 16#0# range 48 .. 55;
+      Aff3             at 16#0# range 56 .. 63;
+      Lower_Word       at 16#0# range  0 .. 31;
+      Upper_Word       at 16#4# range  0 .. 31;
    end record;
 
-   type GICR_WAKER_Processor_Sleep_Type is (Target_Not_In_Processor_Sleep_State,
-                                           Target_In_Processor_Sleep_State)
-      with Size => 1;
+   type GICR_WAKER_Processor_Sleep_Type is
+     (Target_Not_In_Processor_Sleep_State,
+      Target_In_Processor_Sleep_State) with
+     Size => 1;
 
    for GICR_WAKER_Processor_Sleep_Type use
-      (Target_Not_In_Processor_Sleep_State => 2#0#,
-       Target_In_Processor_Sleep_State => 2#1#);
+     (Target_Not_In_Processor_Sleep_State => 2#0#,
+      Target_In_Processor_Sleep_State     => 2#1#);
 
-   type GICR_WAKER_Children_Asleep_Type is (All_Interfaces_Target_Not_Quiescent,
-                                            All_Interfaces_Target_Quiescent)
-      with Size => 1;
+   type GICR_WAKER_Children_Asleep_Type is
+     (All_Interfaces_Target_Not_Quiescent,
+      All_Interfaces_Target_Quiescent) with
+     Size => 1;
 
    for GICR_WAKER_Children_Asleep_Type use
-      (All_Interfaces_Target_Not_Quiescent => 2#0#,
-       All_Interfaces_Target_Quiescent => 2#1#);
+     (All_Interfaces_Target_Not_Quiescent => 2#0#,
+      All_Interfaces_Target_Quiescent     => 2#1#);
 
    --  Redistributor Wake Register
    type GICR_WAKER_Type (As_Word : Boolean := True) is record
@@ -543,20 +534,18 @@ private
             Processor_Sleep : GICR_WAKER_Processor_Sleep_Type;
             Children_Asleep : GICR_WAKER_Children_Asleep_Type;
       end case;
-   end record
-      with Size => 32,
-           Unchecked_Union,
-           Bit_Order => System.Low_Order_First,
-           Volatile_Full_Access;
+   end record with
+     Size => 32, Unchecked_Union, Bit_Order => System.Low_Order_First,
+     Volatile_Full_Access;
 
    for GICR_WAKER_Type use record
-      Processor_Sleep at 16#0# range 1 .. 1;
-      Children_Asleep at 16#0# range 2 .. 2;
-      Value at 16#0# range 0 .. 31;
+      Processor_Sleep at 16#0# range 1 ..  1;
+      Children_Asleep at 16#0# range 2 ..  2;
+      Value           at 16#0# range 0 .. 31;
    end record;
 
-   type GICR_PIDR_Type is new Interfaces.Unsigned_32
-      with Volatile_Full_Access;
+   type GICR_PIDR_Type is new Interfaces.Unsigned_32 with
+     Volatile_Full_Access;
 
    --
    --  The GICR_PIDR0-7 registers provide the Peripheral identification information.
@@ -564,41 +553,32 @@ private
    type GICR_PIDR_Array_Type is array (0 .. 7) of GICR_PIDR_Type;
 
    Arm_Cortex_R52_GICR_PIDR_Array : constant GICR_PIDR_Array_Type :=
-      [16#00000093#,
-       16#000000B4#,
-       16#0000003B#,
-       16#00000000#,
-       16#00000044#,
-       16#00000000#,
-       16#00000000#,
-       16#00000000#];
+     [16#0000_0093#, 16#0000_00B4#, 16#0000_003B#, 16#0000_0000#,
+     16#0000_0044#, 16#0000_0000#, 16#0000_0000#, 16#0000_0000#];
 
-   type GICR_CIDR_Type is new Interfaces.Unsigned_32
-      with Volatile_Full_Access;
+   type GICR_CIDR_Type is new Interfaces.Unsigned_32 with
+     Volatile_Full_Access;
 
    --  The GICR_CIDR0-3 registers provide the component identification information.
    type GICR_CIDR_Array_Type is array (0 .. 3) of GICR_CIDR_Type;
 
    Arm_Cortex_R52_GICR_CIDR_Array : constant GICR_CIDR_Array_Type :=
-      [16#0000000D#,
-       16#000000F0#,
-       16#00000005#,
-       16#000000B1#];
+     [16#0000_000D#, 16#0000_00F0#, 16#0000_0005#, 16#0000_00B1#];
 
    type GICR_Control_Page_Type is limited record
-      GICR_CTLR : Interfaces.Unsigned_32;
-      GICR_IIDR : Interfaces.Unsigned_32;
-      GICR_TYPER : GICR_TYPER_Type;
-      GICR_WAKER : GICR_WAKER_Type;
+      GICR_CTLR       : Interfaces.Unsigned_32;
+      GICR_IIDR       : Interfaces.Unsigned_32;
+      GICR_TYPER      : GICR_TYPER_Type;
+      GICR_WAKER      : GICR_WAKER_Type;
       GICR_PIDR_Array : GICR_PIDR_Array_Type;
-   end record with Volatile,
-                   Size => 64 * 1024 * System.Storage_Unit;
+   end record with
+     Volatile, Size => 64 * 1_024 * System.Storage_Unit;
 
    for GICR_Control_Page_Type use record
-      GICR_CTLR at 16#0000# range 0 .. 31;
-      GICR_IIDR at 16#0004# range 0 .. 31;
-      GICR_TYPER at 16#0008# range 0 .. 63;
-      GICR_WAKER at 16#0014# range 0 .. 31;
+      GICR_CTLR       at 16#0000# range 0 ..                     31;
+      GICR_IIDR       at 16#0004# range 0 ..                     31;
+      GICR_TYPER      at 16#0008# range 0 ..                     63;
+      GICR_WAKER      at 16#0014# range 0 ..                     31;
       GICR_PIDR_Array at 16#FFE0# range 0 .. ((7 - 0 + 1) * 32) - 1;
    end record;
 
@@ -653,34 +633,35 @@ private
       GICR_IPRIORITYR_Array : GICR_IPRIORITYR_Array_Type;
 
       GICR_ICFGR_Array : GICR_ICFGR_Array_Type;
-   end record with Volatile,
-                   Size => 64 * 1024 * System.Storage_Unit,
-                   Warnings => Off;
+   end record with
+     Volatile, Size => 64 * 1_024 * System.Storage_Unit, Warnings => Off;
 
    for GICR_SGI_And_PPI_Page_Type use record
-      GICR_IGROUPR0 at 16#0080# range 0 .. 31;
-      GICR_ISENABLER0 at 16#0100# range 0 .. 31;
-      GICR_ICENABLER0 at 16#0180# range 0 .. 31;
-      GICR_ISPENDR0 at 16#0200# range 0 .. 31;
-      GICR_ICPENDR0 at 16#0280# range 0 .. 31;
-      GICR_ISACTIVER0 at 16#0300# range 0 .. 31;
-      GICR_ICACTIVER0 at 16#0380# range 0 .. 31;
+      GICR_IGROUPR0         at 16#0080# range 0 ..                     31;
+      GICR_ISENABLER0       at 16#0100# range 0 ..                     31;
+      GICR_ICENABLER0       at 16#0180# range 0 ..                     31;
+      GICR_ISPENDR0         at 16#0200# range 0 ..                     31;
+      GICR_ICPENDR0         at 16#0280# range 0 ..                     31;
+      GICR_ISACTIVER0       at 16#0300# range 0 ..                     31;
+      GICR_ICACTIVER0       at 16#0380# range 0 ..                     31;
       GICR_IPRIORITYR_Array at 16#0400# range 0 .. ((7 - 0 + 1) * 32) - 1;
-      GICR_ICFGR_Array at 16#0C00# range 0 .. ((1 - 0 + 1) * 32) - 1;
+      GICR_ICFGR_Array      at 16#0C00# range 0 .. ((1 - 0 + 1) * 32) - 1;
    end record;
 
    --
    --  Generic Interrupt Controller Redistributor (GICR)
    --
    type GICR_Type is limited record
-      GICR_Control_Page : GICR_Control_Page_Type;
+      GICR_Control_Page     : GICR_Control_Page_Type;
       GICR_SGI_And_PPI_Page : GICR_SGI_And_PPI_Page_Type;
-   end record with Volatile,
-                   Size => 64 * 1024 * 2 * System.Storage_Unit;
+   end record with
+     Volatile, Size => 64 * 1_024 * 2 * System.Storage_Unit;
 
    for GICR_Type use record
-      GICR_Control_Page at 16#0# range 0 .. (64 * 1024 * System.Storage_Unit) - 1;
-      GICR_SGI_And_PPI_Page at 16#1_0000# range 0 .. (64 * 1024 * System.Storage_Unit) - 1;
+      GICR_Control_Page     at      16#0# range 0 ..
+          (64 * 1_024 * System.Storage_Unit) - 1;
+      GICR_SGI_And_PPI_Page at 16#1_0000# range 0 ..
+          (64 * 1_024 * System.Storage_Unit) - 1;
    end record;
 
    type GICR_Array_Type is array (Valid_Cpu_Core_Id_Type) of GICR_Type;
@@ -689,47 +670,55 @@ private
    --  Generic Interrupt Controller Distributor (GICD)
    --
    type GICD_Type is limited record
-      GICD_CTLR : GICD_CTLR_Type;
-      GICD_TYPER : GICD_TYPER_Type;
-      GICD_IIDR : GICD_IIDR_Type;
-      GICD_IGROUPR_Array : GICD_IGROUPR_Array_Type;
-      GICD_ISENABLER_Array : GICD_ISENABLER_Array_Type;
-      GICD_ICENABLER_Array : GICD_ICENABLER_Array_Type;
-      GICD_ISPENDR_Array : GICD_ISPENDR_Array_Type;
-      GICD_ICPENDR_Array : GICD_ICPENDR_Array_Type;
-      GICD_ISACTIVER_Array : GICD_ISACTIVER_Array_Type;
-      GICD_ICACTIVER_Array : GICD_ICACTIVER_Array_Type;
+      GICD_CTLR             : GICD_CTLR_Type;
+      GICD_TYPER            : GICD_TYPER_Type;
+      GICD_IIDR             : GICD_IIDR_Type;
+      GICD_IGROUPR_Array    : GICD_IGROUPR_Array_Type;
+      GICD_ISENABLER_Array  : GICD_ISENABLER_Array_Type;
+      GICD_ICENABLER_Array  : GICD_ICENABLER_Array_Type;
+      GICD_ISPENDR_Array    : GICD_ISPENDR_Array_Type;
+      GICD_ICPENDR_Array    : GICD_ICPENDR_Array_Type;
+      GICD_ISACTIVER_Array  : GICD_ISACTIVER_Array_Type;
+      GICD_ICACTIVER_Array  : GICD_ICACTIVER_Array_Type;
       GICD_IPRIORITYR_Array : GICD_IPRIORITYR_Array_Type;
-      GICD_ICFGR_Array : GICD_ICFGR_Array_Type;
-      GICD_IROUTER_Array : GICD_IROUTER_Array_Type;
-      GICD_PIDR_Array : GICD_PIDR_Array_Type;
-      GICR_Array : GICR_Array_Type;
-   end record with Volatile;
+      GICD_ICFGR_Array      : GICD_ICFGR_Array_Type;
+      GICD_IROUTER_Array    : GICD_IROUTER_Array_Type;
+      GICD_PIDR_Array       : GICD_PIDR_Array_Type;
+      GICR_Array            : GICR_Array_Type;
+   end record with
+     Volatile;
 
    for GICD_Type use record
-      GICD_CTLR at 16#0# range 0 .. 31;
-      GICD_TYPER at 16#4# range 0 .. 31;
-      GICD_IIDR at 16#8# range 0 .. 31;
-      GICD_IGROUPR_Array at 16#0084# range 0 .. ((30 - 1 + 1) * 32) - 1;
-      GICD_ISENABLER_Array at 16#0104# range 0 .. ((30 - 1 + 1) * 32) - 1;
-      GICD_ICENABLER_Array at 16#0184# range 0 .. ((30 - 1 + 1) * 32) - 1;
-      GICD_ISPENDR_Array at 16#0204# range 0 .. ((30 - 1 + 1) * 32) - 1;
-      GICD_ICPENDR_Array at 16#0284# range 0 .. ((30 - 1 + 1) * 32) - 1;
-      GICD_ISACTIVER_Array at 16#0304# range 0 .. ((30 - 1 + 1) * 32) - 1;
-      GICD_ICACTIVER_Array at 16#0384# range 0 .. ((30 - 1 + 1) * 32) - 1;
-      GICD_IPRIORITYR_Array at 16#0420# range 0 .. ((247 - 8 + 1) * 32) - 1;
-      GICD_ICFGR_Array at 16#0C08# range 0 .. ((61 - 2 + 1) * 32) - 1;
-      GICD_IROUTER_Array at 16#6100# range 0 .. ((991 - 32 + 1) * 64) - 1;
-      GICD_PIDR_Array at 16#FFE0# range 0 .. ((7 - 0 + 1) * 32) - 1;
-      GICR_Array at 16#100000# range 0 .. ((16#180000# - 16#100000#) * System.Storage_Unit) - 1;
+      GICD_CTLR             at       16#0# range 0 .. 31;
+      GICD_TYPER            at       16#4# range 0 .. 31;
+      GICD_IIDR             at       16#8# range 0 .. 31;
+      GICD_IGROUPR_Array    at    16#0084# range 0 .. ((30 - 1 + 1) * 32) - 1;
+      GICD_ISENABLER_Array  at    16#0104# range 0 .. ((30 - 1 + 1) * 32) - 1;
+      GICD_ICENABLER_Array  at    16#0184# range 0 .. ((30 - 1 + 1) * 32) - 1;
+      GICD_ISPENDR_Array    at    16#0204# range 0 .. ((30 - 1 + 1) * 32) - 1;
+      GICD_ICPENDR_Array    at    16#0284# range 0 .. ((30 - 1 + 1) * 32) - 1;
+      GICD_ISACTIVER_Array  at    16#0304# range 0 .. ((30 - 1 + 1) * 32) - 1;
+      GICD_ICACTIVER_Array  at    16#0384# range 0 .. ((30 - 1 + 1) * 32) - 1;
+      GICD_IPRIORITYR_Array at    16#0420# range 0 .. ((247 - 8 + 1) * 32) - 1;
+      GICD_ICFGR_Array      at    16#0C08# range 0 .. ((61 - 2 + 1) * 32) - 1;
+      GICD_IROUTER_Array    at 16#6100# range 0 .. ((991 - 32 + 1) * 64) - 1;
+      GICD_PIDR_Array       at    16#FFE0# range 0 .. ((7 - 0 + 1) * 32) - 1;
+      GICR_Array            at 16#10_0000# range 0 ..
+          ((16#18_0000# - 16#10_0000#) * System.Storage_Unit) - 1;
    end record;
+
+   GICD_Base_Address : constant System.Address :=
+     System'To_Address (16#8000_0000# + 16#2F00_0000#);
+
+   GICD : aliased GICD_Type with
+     Import, Address => GICD_Base_Address;
 
    ----------------------------------------------------------------------------
    --  GIC CPU intterface registers
    ----------------------------------------------------------------------------
 
-   type INTID_Type is mod 2 ** 10
-      with Size => 10;
+   type INTID_Type is mod 2**10 with
+     Size => 10;
 
    --
    --  Interrupt Controller Interrupt Acknowledge Register
@@ -739,9 +728,8 @@ private
    --
    type ICC_IAR_Type is record
       INTID : INTID_Type := INTID_Type'First;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
 
    for ICC_IAR_Type use record
       INTID at 0 range 0 .. 9;
@@ -751,13 +739,14 @@ private
    --  The ICC_IARx register contains the INTID of the signaled Group x interrupt.
    --  When the core reads this INTID, it acts as an acknowledge for the interrupt.
    --
-   function Get_ICC_IAR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type)
-      return ICC_IAR_Type
-      with Inline_Always;
+   function Get_ICC_IAR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_IAR_Type with
+     Inline_Always;
 
-   procedure Set_ICC_IAR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-                          ICC_IAR_Value : ICC_IAR_Type)
-      with Inline_Always;
+   procedure Set_ICC_IAR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
+      ICC_IAR_Value       : ICC_IAR_Type) with
+     Inline_Always;
 
    --
    --  Interrupt Controller End Of Interrupt Register
@@ -767,9 +756,8 @@ private
    --
    type ICC_EOIR_Type is record
       INTID : INTID_Type := INTID_Type'First;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
 
    for ICC_EOIR_Type use record
       INTID at 0 range 0 .. 9;
@@ -781,13 +769,14 @@ private
    --  In normal operation, the highest priority set group x priority bit is
    --  cleared and additionally the interrupt is deactivated if ICC_CTLR.EOImode == 0.
    --
-   function Get_ICC_EOIR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type)
-      return ICC_EOIR_Type
-      with Inline_Always;
+   function Get_ICC_EOIR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_EOIR_Type with
+     Inline_Always;
 
-   procedure Set_ICC_EOIR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-                           ICC_EOIR_Value : ICC_EOIR_Type)
-      with Inline_Always;
+   procedure Set_ICC_EOIR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
+      ICC_EOIR_Value      : ICC_EOIR_Type) with
+     Inline_Always;
 
    --
    --  Interrupt Controller Highest Priority Pending Interrupt Register
@@ -797,9 +786,8 @@ private
    --
    type ICC_HPPIR_Type is record
       INTID : INTID_Type := INTID_Type'First;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
 
    for ICC_HPPIR_Type use record
       INTID at 0 range 0 .. 9;
@@ -809,13 +797,15 @@ private
    --  The ICC_HPPIRx register indicates the highest priority pending Group x
    --  interrupt on the CPU interface without changing the state of the GIC.
    --
-   function Get_ICC_HPPIR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type)
-      return ICC_HPPIR_Type
-      with Inline_Always;
+   function Get_ICC_HPPIR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type)
+      return ICC_HPPIR_Type with
+     Inline_Always;
 
-   procedure Set_ICC_HPPIR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-                            ICC_HPPIR_Value : ICC_HPPIR_Type)
-      with Inline_Always;
+   procedure Set_ICC_HPPIR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
+      ICC_HPPIR_Value     : ICC_HPPIR_Type) with
+     Inline_Always;
 
    --
    --  This value controls how the 5-bit interrupt priority field is split into
@@ -823,8 +813,8 @@ private
    --  subpriority field. See Table 9-87 ICC_BPR0 relationship between binary
    --  point value and group priority, subpriority fields on page 9-318.
    --
-   type Binary_Point_Type is mod 2 ** 3
-      with Size => 3;
+   type Binary_Point_Type is mod 2**3 with
+     Size => 3;
 
    --
    --  Interrupt Controller Binary Point Register
@@ -839,10 +829,8 @@ private
          when False =>
             Binary_Point : Binary_Point_Type;
       end case;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First,
-           Unchecked_Union;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
    for ICC_BPR_Type use record
       Binary_Point at 0 range 0 .. 2;
@@ -853,13 +841,14 @@ private
    --  split into two parts, the group priority field and the subpriority field.
    --  The group priority field determines Group 0 interrupt preemption.
    --
-   function Get_ICC_BPR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type)
-      return ICC_BPR_Type
-      with Inline_Always;
+   function Get_ICC_BPR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_BPR_Type with
+     Inline_Always;
 
-   procedure Set_ICC_BPR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-                          ICC_BPR_Value : ICC_BPR_Type)
-      with Inline_Always;
+   procedure Set_ICC_BPR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
+      ICC_BPR_Value       : ICC_BPR_Type) with
+     Inline_Always;
 
    --
    --  Interrupt Controller Deactivate Interrupt
@@ -869,19 +858,18 @@ private
    --
    type ICC_DIR_Type is record
       INTID : INTID_Type := INTID_Type'First;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
 
    for ICC_DIR_Type use record
       INTID at 0 range 0 .. 9;
    end record;
 
-   function Get_ICC_DIR return ICC_DIR_Type
-      with Inline_Always;
+   function Get_ICC_DIR return ICC_DIR_Type with
+     Inline_Always;
 
-   procedure Set_ICC_DIR (ICC_DIR_Value : ICC_DIR_Type)
-      with Inline_Always;
+   procedure Set_ICC_DIR (ICC_DIR_Value : ICC_DIR_Type) with
+     Inline_Always;
 
    --
    --  Interrupt Controller Interrupt Priority Mask Register
@@ -894,54 +882,76 @@ private
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
    --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
    --
-   type ICC_PMR_Type (As_Word : Boolean := True) is record
-      case As_Word is
-         when True =>
-            Value : Interfaces.Unsigned_32 := 0;
-         when False =>
-            Priority : GIC_Interrupt_Priority_Type;
-      end case;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First,
-           Unchecked_Union,
-           Volatile_Full_Access;
+   type ICC_PMR_Type is record
+      Priority : GIC_Interrupt_Priority_Type;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
 
    for ICC_PMR_Type use record
       Priority at 0 range 3 .. 7;
    end record;
 
-   function Get_ICC_PMR return ICC_PMR_Type
-      with Inline_Always;
+   function Get_ICC_PMR return ICC_PMR_Type with
+     Inline_Always;
 
-   procedure Set_ICC_PMR (ICC_PMR_Value : ICC_PMR_Type)
-      with Inline_Always;
+   procedure Set_ICC_PMR (ICC_PMR_Value : ICC_PMR_Type) with
+     Inline_Always;
 
-   type CBPR_Type is (Use_ICC_BPR0_For_Interrupt_Preemption_Disabled,
-                      Use_ICC_BPR0_For_Interrupt_Preemption_Enabled)
-      with Size => 1;
+   --
+   --  Interrupt Controller Running Priority Register
+   --
+   --  It indicates the highest active priority across Groups 0 and 1, of the CPU interface.
+   --
+   type ICC_RPR_Type is record
+      --
+      --  Current running interrupt priority. Returns the value 0xFF when ICC_AP0R0
+      --  and ICC_AP1R0 are both 0x0. Otherwise returns the index in bits [7:3]
+      --  of the lowest set bit from ICC_AP0R0 and ICC_AP1R0.
+      --
+      --  NOTE: We don't need to declare this register with Volatile_Full_Access,
+      --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+      --
+      Priority : Interfaces.Unsigned_8;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
+
+   for ICC_RPR_Type use record
+      Priority at 0 range 0 .. 7;
+   end record;
+
+   function Get_ICC_RPR return ICC_RPR_Type with
+     Inline_Always;
+
+   procedure Set_ICC_RPR (ICC_RPR_Value : ICC_RPR_Type) with
+     Inline_Always;
+
+   type CBPR_Type is
+     (Use_ICC_BPR0_For_Interrupt_Preemption_Disabled,
+      Use_ICC_BPR0_For_Interrupt_Preemption_Enabled) with
+     Size => 1;
 
    for CBPR_Type use
-      (Use_ICC_BPR0_For_Interrupt_Preemption_Disabled => 2#0#,
-       Use_ICC_BPR0_For_Interrupt_Preemption_Enabled => 2#1#);
+     (Use_ICC_BPR0_For_Interrupt_Preemption_Disabled => 2#0#,
+      Use_ICC_BPR0_For_Interrupt_Preemption_Enabled  => 2#1#);
 
-   type EOImode_Type is (ICC_EOIRx_Write_Deactives_Interrupt_Disabled,
-                         ICC_EOIRx_Write_Deactives_Interrupt_Enabled)
-      with Size => 1;
+   type EOImode_Type is
+     (ICC_EOIRx_Write_Deactives_Interrupt_Disabled,
+      ICC_EOIRx_Write_Deactives_Interrupt_Enabled) with
+     Size => 1;
 
    for EOImode_Type use
-      (ICC_EOIRx_Write_Deactives_Interrupt_Disabled => 2#0#,
-       ICC_EOIRx_Write_Deactives_Interrupt_Enabled => 2#1#);
+     (ICC_EOIRx_Write_Deactives_Interrupt_Disabled => 2#0#,
+      ICC_EOIRx_Write_Deactives_Interrupt_Enabled  => 2#1#);
 
    --  Number of priority bits implemented, minus one
-   type PRIbits_Type is mod 2 ** 3
-      with Size => 3;
+   type PRIbits_Type is mod 2**3 with
+     Size => 3;
 
    ARM_Cortex_R52_PRIbits : constant PRIbits_Type := 2#100#; --  5 - 1
 
    --  Number of physical interrupt identifier bits supported
-   type CTLR_IDbits_Type is mod 2 ** 3
-      with Size => 3;
+   type CTLR_IDbits_Type is mod 2**3 with
+     Size => 3;
 
    ARM_Cortex_R52_ICC_CTLR_IDbits : constant CTLR_IDbits_Type := 2#000#; --  16
 
@@ -952,34 +962,64 @@ private
    --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
    --
    type ICC_CTLR_Type is record
-      CBPR : CBPR_Type := Use_ICC_BPR0_For_Interrupt_Preemption_Disabled;
+      CBPR    : CBPR_Type := Use_ICC_BPR0_For_Interrupt_Preemption_Disabled;
       EOImode : EOImode_Type := ICC_EOIRx_Write_Deactives_Interrupt_Disabled;
-      PRIbits : PRIbits_Type := PRIbits_Type'First;
-      IDbits : CTLR_IDbits_Type := CTLR_IDbits_Type'First;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First;
+      PRIbits : PRIbits_Type     := PRIbits_Type'First;
+      IDbits  : CTLR_IDbits_Type := CTLR_IDbits_Type'First;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
 
    for ICC_CTLR_Type use record
-      CBPR at 0 range 0 .. 0;
-      EOImode at 0 range 1 .. 1;
-      PRIbits at 0 range 8 .. 10;
-      IDbits at 0 range 11 .. 13;
+      CBPR    at 0 range  0 ..  0;
+      EOImode at 0 range  1 ..  1;
+      PRIbits at 0 range  8 .. 10;
+      IDbits  at 0 range 11 .. 13;
    end record;
 
-   function Get_ICC_CTLR return ICC_CTLR_Type
-      with Inline_Always;
+   function Get_ICC_CTLR return ICC_CTLR_Type with
+     Inline_Always;
 
-   procedure Set_ICC_CTLR (ICC_CTLR_Value : ICC_CTLR_Type)
-      with Inline_Always;
+   procedure Set_ICC_CTLR (ICC_CTLR_Value : ICC_CTLR_Type) with
+     Inline_Always;
 
-   type Interrupt_Group_Enable_Type is (Interrupt_Group_Disabled,
-                                        Interrupt_Group_Enabled)
-      with Size => 1;
+   type GIC_CPU_Interface_System_Registers_Enable_Type is
+     (GIC_CPU_Interface_System_Registers_Disabled,
+      GIC_CPU_Interface_System_Registers_Enabled);
+
+   for GIC_CPU_Interface_System_Registers_Enable_Type use
+     (GIC_CPU_Interface_System_Registers_Disabled => 2#0#,
+      GIC_CPU_Interface_System_Registers_Enabled  => 2#1#);
+
+   --
+   --  Interrupt Controller System Register Enable Register (EL1)
+   --
+   --  This indicates that system registers are used to access the GIC CPU interface.
+   --
+   --  NOTE: We don't need to declare this register with Volatile_Full_Access,
+   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --
+   type ICC_SRE_Type is record
+      SRE : GIC_CPU_Interface_System_Registers_Enable_Type :=
+        GIC_CPU_Interface_System_Registers_Disabled;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First;
+
+   for ICC_SRE_Type use record
+      SRE at 0 range 0 .. 0;
+   end record;
+
+   function Get_ICC_SRE return ICC_SRE_Type with
+     Inline_Always;
+
+   procedure Set_ICC_SRE (ICC_SRE_Value : ICC_SRE_Type) with
+     Inline_Always;
+
+   type Interrupt_Group_Enable_Type is
+     (Interrupt_Group_Disabled, Interrupt_Group_Enabled) with
+     Size => 1;
 
    for Interrupt_Group_Enable_Type use
-      (Interrupt_Group_Disabled => 2#0#,
-       Interrupt_Group_Enabled => 2#1#);
+     (Interrupt_Group_Disabled => 2#0#, Interrupt_Group_Enabled => 2#1#);
 
    --
    --  Interrupt Controller Interrupt Group Enable Register for software
@@ -998,43 +1038,43 @@ private
          when False =>
             Enable : Interrupt_Group_Enable_Type := Interrupt_Group_Disabled;
       end case;
-   end record
-      with Size => 32,
-           Bit_Order => System.Low_Order_First,
-           Unchecked_Union;
+   end record with
+     Size => 32, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
    for ICC_IGRPEN_Type use record
       Enable at 0 range 0 .. 0;
    end record;
 
-   function Get_ICC_IGRPEN (GIC_Interrupt_Group : GIC_Interrupt_Group_Type)
-      return ICC_IGRPEN_Type
-      with Inline_Always;
+   function Get_ICC_IGRPEN
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type)
+      return ICC_IGRPEN_Type with
+     Inline_Always;
 
-   procedure Set_ICC_IGRPEN (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-                             ICC_IGRPEN_Value : ICC_IGRPEN_Type)
-      with Inline_Always;
+   procedure Set_ICC_IGRPEN
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
+      ICC_IGRPEN_Value    : ICC_IGRPEN_Type) with
+     Inline_Always;
 
    --
    --  Set of cores for which SGI interrupts are generated. Each bit corresponds
    --  to the core within a cluster with an Affinity 0 value equal to the bit
    --  number.
    --
-   type ICC_SGIR_Target_List_Type is mod 2 ** 5
-      with Size => 5;
+   type ICC_SGIR_Target_List_Type is mod 2**5 with
+     Size => 5;
 
    --  Software generated interrupts:
-   type SGI_INTID_Type is mod 2 ** 4
-      with Size => 4;
+   type SGI_INTID_Type is mod 2**4 with
+     Size => 4;
 
    type Interrupt_Routing_Mode_Type is
-      (Interrupts_Routed_To_Selected_Cores, --  cores specified by Aff3.Aff2.Aff1.<target list>
-       Interrupts_Routed_To_All_Cores_But_Self)
-      with Size => 1;
+     (Interrupts_Routed_To_Selected_Cores, --  cores specified by Aff3.Aff2.Aff1.<target list>
+      Interrupts_Routed_To_All_Cores_But_Self) with
+     Size => 1;
 
    for Interrupt_Routing_Mode_Type use
-      (Interrupts_Routed_To_Selected_Cores => 2#0#,
-       Interrupts_Routed_To_All_Cores_But_Self => 2#1#);
+     (Interrupts_Routed_To_Selected_Cores     => 2#0#,
+      Interrupts_Routed_To_All_Cores_But_Self => 2#1#);
 
    --
    --  Interrupt Controller Software Generated Interrupt Group Register.
@@ -1050,64 +1090,121 @@ private
             Lower_Word : Interfaces.Unsigned_32;
             Upper_Word : Interfaces.Unsigned_32;
          when False =>
-            Target_List : ICC_SGIR_Target_List_Type := ICC_SGIR_Target_List_Type'First;
-            Aff1 : GICD_IROUTER_Affinity_Type := GICD_IROUTER_Affinity_Type'First;
-            INTID : SGI_INTID_Type;
-            Aff2 : GICD_IROUTER_Affinity_Type := GICD_IROUTER_Affinity_Type'First;
-            IRM : Interrupt_Routing_Mode_Type := Interrupts_Routed_To_Selected_Cores;
-            Aff3 : GICD_IROUTER_Affinity_Type := GICD_IROUTER_Affinity_Type'First;
+            Target_List : ICC_SGIR_Target_List_Type   :=
+              ICC_SGIR_Target_List_Type'First;
+            Aff1        : GICD_IROUTER_Affinity_Type  :=
+              GICD_IROUTER_Affinity_Type'First;
+            INTID       : SGI_INTID_Type;
+            Aff2        : GICD_IROUTER_Affinity_Type  :=
+              GICD_IROUTER_Affinity_Type'First;
+            IRM         : Interrupt_Routing_Mode_Type :=
+              Interrupts_Routed_To_Selected_Cores;
+            Aff3        : GICD_IROUTER_Affinity_Type  :=
+              GICD_IROUTER_Affinity_Type'First;
       end case;
-   end record
-      with Size => 64,
-           Bit_Order => System.Low_Order_First,
-           Unchecked_Union;
+   end record with
+     Size => 64, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
    for ICC_SGIR_Type use record
-      Target_List at 0 range 0 .. 4;
-      Aff1 at 0 range 16 .. 23;
-      INTID at 0 range 24 .. 27;
-      Aff2 at 0 range 32 .. 39;
-      IRM at 0 range 40 .. 40;
-      Aff3 at 0 range 48 .. 55;
-      Lower_Word at 0 range 0 .. 31;
-      Upper_Word at 4 range 0 .. 31;
+      Target_List at 0 range  0 ..  4;
+      Aff1        at 0 range 16 .. 23;
+      INTID       at 0 range 24 .. 27;
+      Aff2        at 0 range 32 .. 39;
+      IRM         at 0 range 40 .. 40;
+      Aff3        at 0 range 48 .. 55;
+      Lower_Word  at 0 range  0 .. 31;
+      Upper_Word  at 4 range  0 .. 31;
    end record;
 
-   procedure Set_ICC_SGIR (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-                           ICC_SGIR_Value : ICC_SGIR_Type)
-      with Inline_Always;
+   procedure Set_ICC_SGIR
+     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
+      ICC_SGIR_Value      : ICC_SGIR_Type) with
+     Inline_Always;
+
+   --
+   --  Memory-mapped banked interface to the GIC CPU interface for each CPU core
+   --
+   type GICC_Type is limited record
+      GICC_CTLR  : ICC_CTLR_Type with
+        Volatile_Full_Access;
+      GICC_PMR   : ICC_PMR_Type with
+        Volatile_Full_Access;
+      GICC_BPR   : ICC_BPR_Type with
+        Volatile_Full_Access;
+      GICC_IAR   : ICC_IAR_Type with
+        Volatile_Full_Access;
+      GICC_EOIR  : ICC_EOIR_Type with
+        Volatile_Full_Access;
+      GICC_RPR   : ICC_RPR_Type with
+        Volatile_Full_Access;
+      GICC_HPPIR : ICC_HPPIR_Type with
+        Volatile_Full_Access;
+      GICC_DIR   : ICC_DIR_Type with
+        Volatile_Full_Access;
+   end record with
+     Volatile;
+
+   for GICC_Type use record
+      GICC_CTLR  at 16#0000# range 0 .. 31;
+      GICC_PMR   at 16#0004# range 0 .. 31;
+      GICC_BPR   at 16#0008# range 0 .. 31;
+      GICC_IAR   at 16#000c# range 0 .. 31;
+      GICC_EOIR  at 16#0010# range 0 .. 31;
+      GICC_RPR   at 16#0014# range 0 .. 31;
+      GICC_HPPIR at 16#0018# range 0 .. 31;
+      GICC_DIR   at 16#1000# range 0 .. 31;
+   end record;
+
+   --
+   --  NOTE: All CPU cores use the same (banked) base address for the GICC
+   --
+   GICC_Base_Address : constant System.Address :=
+     System'To_Address (16#8000_0000# + 16#2C00_0000#);
+
+   GICC : aliased GICC_Type with
+     Import, Address => GICC_Base_Address;
 
    ----------------------------------------------------------------------------
    --  Interrupt controller state variables
    ----------------------------------------------------------------------------
 
+   type Per_Cpu_Flags_Array_Type is
+     array (Valid_Cpu_Core_Id_Type) of Boolean with
+     Component_Size => 1, Size => Cpu_Register_Type'Size, Warnings => Off;
+
    type Interrupt_Handler_Type is record
-      Cpu_Id : Cpu_Core_Id_Type := Invalid_Cpu_Core_Id;
-      Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type := null;
-      Interrupt_Handler_Arg : System.Address := System.Null_Address;
-      Times_Interrupt_Fired : Natural := 0;
+      Cpu_Id                        : Cpu_Core_Id_Type := Invalid_Cpu_Core_Id;
+      Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type :=
+        null;
+      Interrupt_Handler_Arg         : System.Address := System.Null_Address;
+      Times_Interrupt_Fired         : Natural                            := 0;
    end record;
 
    type Internal_Interrupt_Handler_Array_Type is
-      array (Valid_Cpu_Core_Id_Type, Internal_Interrupt_Id_Type) of Interrupt_Handler_Type;
+     array
+       (Valid_Cpu_Core_Id_Type,
+        Internal_Interrupt_Id_Type) of Interrupt_Handler_Type;
 
    type External_Interrupt_Handler_Array_Type is
-      array (External_Interrupt_Id_Type) of Interrupt_Handler_Type;
+     array (External_Interrupt_Id_Type) of Interrupt_Handler_Type;
 
    type Interrupt_Controller_Type is record
-      Initialized : Boolean := False with Volatile;
+      Per_Cpu_Initialized_Flags    : Cpu_Register_Type;
+      GIC_Distributor_Initialized  : Boolean := False with
+        Volatile;
       Max_Number_Interrupt_Sources : Interfaces.Unsigned_16;
-      GICD_Pointer : access GICD_Type := null;
       Spinlock : HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Type;
-      Internal_Interrupt_Handlers : Internal_Interrupt_Handler_Array_Type;
-      External_Interrupt_Handlers : External_Interrupt_Handler_Array_Type;
-   end record
-      with Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment,
-           Warnings => Off;
+      Internal_Interrupt_Handlers  : Internal_Interrupt_Handler_Array_Type;
+      External_Interrupt_Handlers  : External_Interrupt_Handler_Array_Type;
+   end record with
+     Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment,
+     Warnings  => Off;
 
    Interrupt_Controller_Obj : Interrupt_Controller_Type;
 
-   function Initialized return Boolean is
-      (Interrupt_Controller_Obj.Initialized);
+   function Per_Cpu_Initialized return Boolean is
+     ((Interrupt_Controller_Obj.Per_Cpu_Initialized_Flags and
+       Bit_Mask (Bit_Index_Type (Get_Cpu_Id))) /=
+      0);
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;

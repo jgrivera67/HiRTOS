@@ -9,7 +9,6 @@
 --  @summary Startup code
 --
 
-with Interfaces;
 with System;
 
 package HiRTOS_Cpu_Startup_Interface with No_Elaboration_Code_All

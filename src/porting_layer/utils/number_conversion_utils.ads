@@ -43,11 +43,15 @@ is
                                              Value : out Unsigned_8;
                                              Conversion_Ok : out Boolean);
 
+   subtype Signed_32_Decimal_String_Type is String (1 .. 11);
+
    procedure Signed_To_Decimal_String (Value : Integer_32;
                                        Buffer : out String;
                                        Actual_Length : out Positive)
       with Pre => Buffer'Length >= 1,
            Post => Actual_Length in Buffer'Range;
+
+   subtype Unsigned_32_Decimal_String_Type is String (1 .. 10);
 
    procedure Unsigned_To_Decimal_String (Value : Unsigned_32;
                                          Buffer : out String;
@@ -55,6 +59,10 @@ is
                                          Add_Leading_Zeros : Boolean := False)
      with Pre => Buffer'Length >= 1,
           Post => Actual_Length in Buffer'Range;
+
+   subtype Unsigned_32_Hexadecimal_String_Type is String (1 .. 8);
+   subtype Unsigned_16_Hexadecimal_String_Type is String (1 .. 4);
+   subtype Unsigned_8_Hexadecimal_String_Type is String (1 .. 2);
 
    procedure Unsigned_To_Hexadecimal_String (Value : Unsigned_32;
                                              Buffer : out String);

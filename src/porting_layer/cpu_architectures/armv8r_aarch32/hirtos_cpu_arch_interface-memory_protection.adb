@@ -12,6 +12,8 @@
 
 with HiRTOS;
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
+with HiRTOS_Low_Level_Debug_Interface;
+with Number_Conversion_Utils;
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
@@ -46,6 +48,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       HiRTOS.Enter_Cpu_Privileged_Mode;
       SCTLR_Value := Get_SCTLR;
       SCTLR_Value.M := EL1_Mpu_Disabled;
+      SCTLR_Value.BR := Background_Region_Enabled;
       Set_SCTLR (SCTLR_Value);
       HiRTOS.Exit_Cpu_Privileged_Mode;
       Memory_Barrier;
@@ -132,6 +135,42 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Region_Descriptor.PRLAR_Value := Get_PRLAR (Region_Id);
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Save_Memory_Region_Descriptor;
+
+   procedure Handle_Prefetch_Abort_Exception is
+      IFSR_Value : constant IFSR_Type := Get_IFSR;
+      IFAR_Value : constant IFAR_Type := Get_IFAR;
+      Unsigned_32_Hexadecimal_Str : Number_Conversion_Utils.Unsigned_32_Hexadecimal_String_Type;
+   begin
+
+      HiRTOS_Low_Level_Debug_Interface.Print_String (
+         "*** Prefetch abort: " & Fault_Name_Pointer_Array (IFSR_Value.Status).all & "  (faulting PC: ");
+      Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (Interfaces.Unsigned_32 (IFAR_Value),
+                                                              Unsigned_32_Hexadecimal_Str);
+      HiRTOS_Low_Level_Debug_Interface.Print_String (Unsigned_32_Hexadecimal_Str & ")" & ASCII.LF);
+
+      raise Program_Error;
+   end Handle_Prefetch_Abort_Exception;
+
+   procedure Handle_Data_Abort_Exception is
+      DFSR_Value : constant DFSR_Type := Get_DFSR;
+      DFAR_Value : constant DFAR_Type := Get_DFAR;
+      Unsigned_32_Hexadecimal_Str : Number_Conversion_Utils.Unsigned_32_Hexadecimal_String_Type;
+   begin
+
+      --
+      --  TODO: Get faulting_PC from the last CPU context saved on the stack
+      --
+      HiRTOS_Low_Level_Debug_Interface.Print_String (
+         "*** Data abort: " & Fault_Name_Pointer_Array (DFSR_Value.Status).all & "  (faulting PC: ");
+      --Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (Interfaces.Unsigned_32 (Faulting_Pc),
+      --                                                        Unsigned_32_Hexadecimal_Str);
+      HiRTOS_Low_Level_Debug_Interface.Print_String (Unsigned_32_Hexadecimal_Str & ", fault data address: ");
+      Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (Interfaces.Unsigned_32 (DFAR_Value),
+                                                              Unsigned_32_Hexadecimal_Str);
+      HiRTOS_Low_Level_Debug_Interface.Print_String (Unsigned_32_Hexadecimal_Str & ")" & ASCII.LF);
+
+      raise Program_Error;
+   end Handle_Data_Abort_Exception;
 
    ----------------------------------------------------------------------------
    --  Private Subprograms

@@ -12,8 +12,10 @@
 with Generic_Execution_Stack;
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
+with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 with System.Machine_Code;
 with Interfaces;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use ASCII;
@@ -200,6 +202,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
    procedure Undefined_Instruction_Exception_Handler is
    begin
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR: Undefined_Instruction_Exception_Handler" & ASCII.LF); --???
       raise Program_Error;
    end Undefined_Instruction_Exception_Handler;
 
@@ -273,37 +276,23 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
    procedure Prefetch_Abort_Exception_Handler is
    begin
-      --
-      --  NOTE: We cannot call Interrupt_Handler_Prolog to save the
-      --  current thread's CPU state on its own stack, because if the
-      --  data abort is caused by a stack overflow, that will cause another
-      --  data abort (recursively)
-      --
-      --  TODO: Set up abort mode stack in the reset handler
-      --
-
-      raise Program_Error;
+      Interrupt_Handler_Prolog;
+      Memory_Protection.Handle_Prefetch_Abort_Exception;
+      Interrupt_Handler_Epilog;
    end Prefetch_Abort_Exception_Handler;
 
    procedure Data_Abort_Exception_Handler is
    begin
-      --
-      --  NOTE: We cannot call Interrupt_Handler_Prolog to save the
-      --  current thread's CPU state on its own stack, because if the
-      --  data abort is caused by a stack overflow, that will cause another
-      --  data abort (recursively).
-      --
-      --  TODO: Set up abort mode stack in the reset handler
-      --
-
-      raise Program_Error;
+      Interrupt_Handler_Prolog;
+      Memory_Protection.Handle_Data_Abort_Exception;
+      Interrupt_Handler_Epilog;
    end Data_Abort_Exception_Handler;
 
    procedure Irq_Interrupt_Handler is
    begin
       --
       --  Adjust lr to point to the instruction we need to return to after
-      --  handling the interrupt (see table B1-7, section B1.8.3 in ARMv7-AR ARM)
+      --  handling the interrupt
       --
       System.Machine_Code.Asm (
          "sub lr, lr, %0",

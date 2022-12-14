@@ -23,7 +23,9 @@ package body Memory_Utils is
       BSS_Section : Words_Array_Type (1 .. Num_BSS_Words) with
         Address => HiRTOS_Platform_Parameters.BSS_Section_Start_Address;
    begin
-      BSS_Section := [others => 0];
+      if Num_BSS_Words /= 0 then
+         BSS_Section := [others => 0];
+      end if;
    end Clear_BSS_Section;
 
    -----------------------
@@ -41,7 +43,9 @@ package body Memory_Utils is
       Data_Section_Initializers : Words_Array_Type (1 .. Num_Data_Words) with
          Address => HiRTOS_Platform_Parameters.Data_Load_Section_Start_Address;
    begin
-      Data_Section := Data_Section_Initializers;
+      if Num_Data_Words /= 0 then
+         Data_Section := Data_Section_Initializers;
+      end if;
    end Copy_Data_Section;
 
    ----------------------

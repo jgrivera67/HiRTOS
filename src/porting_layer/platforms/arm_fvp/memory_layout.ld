@@ -49,15 +49,16 @@ SECTIONS
 {
  .text :
   {
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     __global_text_region_start = .;
 
     KEEP (*(.text.hidden.interrupt_vector_table))
 
     *(.text.hidden.*)
 
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     __hidden_text_region_end = .;
-
-    PROVIDE (_text_start = .);
+    PROVIDE (__visible_text_start = .);
 
    /* Functions that are the only ones allowed to enter privileged mode */
     __syscall_functions_start = .;
@@ -69,10 +70,6 @@ SECTIONS
     *(.text .text.*)
     *(.gnu.linkonce.t.*)
   } >TCM
-
-  PROVIDE (__etext = .);
-  PROVIDE (_etext = .);
-  PROVIDE (etext = .);
 
   /*
    * ARM exception unwind table
@@ -144,26 +141,27 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
-  } >TCM
 
-  PROVIDE (_text_end = .);
-  . = ALIGN(MPU_REGION_ALIGNMENT);
-  __global_text_region_end = .;
+    . = ALIGN(MPU_REGION_ALIGNMENT);
+    PROVIDE (__visible_text_end = .);
+    __global_text_region_end = .;
+  } >TCM
 
   .rodata :
   {
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     PROVIDE_HIDDEN (__rodata_start = .);
     *(.rdata)
     *(.rodata .rodata.*)
     *(.gnu.linkonce.r.*)
     . = ALIGN(MPU_REGION_ALIGNMENT);
     PROVIDE_HIDDEN (__rodata_end = .);
+    PROVIDE( __data_load = . );
   } >TCM
-
-  PROVIDE( __data_load = . );
 
   .data :  AT (__data_load)
   {
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     __global_data_region_start = .;
     PROVIDE( __data_start = . );
     *(.data .data.*)
@@ -186,9 +184,9 @@ SECTIONS
     *(.hidden_data)
     . = ALIGN(MPU_REGION_ALIGNMENT);
     __hidden_data_end = .;
+    PROVIDE( __data_end = . );
   } >TCM
 
-  PROVIDE( __data_end = . );
 
   PROVIDE( __bss_start = . );
   .bss (NOLOAD)  :
@@ -197,10 +195,11 @@ SECTIONS
     * Hidden uninitialized global variables (not accessible by default)
     * are located the beginning of the bss section
     */
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     __hidden_bss_start = .;
     *(.hidden_bss)
-    __hidden_bss_end = .;
     . = ALIGN(MPU_REGION_ALIGNMENT);
+    __hidden_bss_end = .;
     __hidden_data_region_end = .;
 
     *(.sbss*)
@@ -208,15 +207,15 @@ SECTIONS
     *(.bss .bss.*)
     *(.gnu.linkonce.b.*)
     *(COMMON)
+
+    . = ALIGN(MPU_REGION_ALIGNMENT);
+    PROVIDE( __bss_end = . );
+    __global_data_region_end = .;
   } >TCM
-
-  PROVIDE( __bss_end = . );
-
-  . = ALIGN(MPU_REGION_ALIGNMENT);
-  __global_data_region_end = .;
 
   .stack (NOLOAD)  :
   {
+    . = ALIGN(MPU_REGION_ALIGNMENT);
     _stacks_start = .;
     *(.isr_stack)
     . = ALIGN(MPU_REGION_ALIGNMENT);
