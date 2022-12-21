@@ -30,9 +30,13 @@ is
    use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 
-   Idle_Thread_Stack : Small_Thread_Stack_Package.Execution_Stack_Type;
+   Idle_Thread_Stack : Small_Thread_Stack_Package.Execution_Stack_Type with
+      Linker_Section => ".thread_stacks",
+      Convention => C;
 
-   Timer_Thread_Stack : Medium_Thread_Stack_Package.Execution_Stack_Type;
+   Timer_Thread_Stack : Medium_Thread_Stack_Package.Execution_Stack_Type with
+      Linker_Section => ".thread_stacks",
+      Convention => C;
 
    procedure Idle_Thread_Proc (Arg : System.Address) with
      Convention => C;
@@ -49,15 +53,11 @@ is
          Get_ISR_Stack_Info (Cpu_Id);
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
         HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
-      Error          : Error_Type;
       Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
       HiRTOS.Memory_Protection_Private.Initialize;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1 " & ASCII.LF); --???
       HiRTOS.Interrupt_Handling_Private.Initialize;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR2 " & ASCII.LF); --???
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR3 " & ASCII.LF); --???
 
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
@@ -65,6 +65,11 @@ is
         ISR_Stack_Info.Base_Address;
       RTOS_Cpu_Instance.Interrupt_Stack_Size := ISR_Stack_Info.Size_In_Bytes;
       RTOS_Cpu_Instance.Cpu_Id               := Cpu_Id;
+
+      Per_Cpu_Thread_List_Package.List_Init (RTOS_Cpu_Instance.All_Threads, Cpu_Id);
+      Per_Cpu_Mutex_List_Package.List_Init (RTOS_Cpu_Instance.All_Mutexes, Cpu_Id);
+      Per_Cpu_Condvar_List_Package.List_Init (RTOS_Cpu_Instance.All_Condvars, Cpu_Id);
+      Per_Cpu_Timer_List_Package.List_Init (RTOS_Cpu_Instance.All_Timers, Cpu_Id);
 
       HiRTOS.Interrupt_Handling_Private.Initialize_Interrupt_Nesting_Level_Stack
         (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
@@ -74,18 +79,20 @@ is
         (RTOS_Cpu_Instance.Timer_Wheel);
 
       HiRTOS.Thread.Create_Thread
-        (Idle_Thread_Proc'Access, Lowest_Thread_Priority,
+        (Idle_Thread_Proc'Access,
+         System.Null_Address,
+         Lowest_Thread_Priority,
          Idle_Thread_Stack'Address,
          Idle_Thread_Stack'Size / System.Storage_Unit,
-         RTOS_Cpu_Instance.Idle_Thread_Id, Error);
-      pragma Assert (Error = No_Error);
+         RTOS_Cpu_Instance.Idle_Thread_Id);
 
       HiRTOS.Thread.Create_Thread
-        (Timer_Thread_Proc'Access, Lowest_Thread_Priority,
+        (Timer_Thread_Proc'Access,
+         System.Null_Address,
+         Lowest_Thread_Priority,
          Timer_Thread_Stack'Address,
          Timer_Thread_Stack'Size / System.Storage_Unit,
-         RTOS_Cpu_Instance.Tick_Timer_Thread_Id, Error);
-      pragma Assert (Error = No_Error);
+         RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
 
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize;
@@ -93,7 +100,9 @@ is
    procedure Start_Thread_Scheduler is
    begin
       -- TODO: Set state varialbes ????
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODO: Set thread scheduler state vars" & ASCII.LF); --???
       -- TODO: Start tick timer interrupt generation
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODOL Start tick timer interrupt generation" & ASCII.LF); --???
       HiRTOS_Cpu_Arch_Interface.Thread_Context.First_Thread_Context_Switch;
    end Start_Thread_Scheduler;
 

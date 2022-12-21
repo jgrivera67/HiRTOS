@@ -11,7 +11,6 @@
 
 with System.Machine_Code;
 with System.Storage_Elements;
-with Interfaces;
 
 package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
@@ -193,6 +192,37 @@ package body HiRTOS_Cpu_Arch_Interface is
       return Result = 0;
    end Strex_Word;
 
+   function Ldrex_Byte (Byte_Address : System.Address) return Interfaces.Unsigned_8 is
+      Result : Cpu_Register_Type;
+   begin
+      System.Machine_Code.Asm (
+          "ldrexb %0, [%1]",
+           Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
+           Inputs => System.Address'Asm_Input ("r", Byte_Address), --  %1
+           Volatile => True);
+
+      return Interfaces.Unsigned_8 (Result);
+   end Ldrex_Byte;
+
+   function Strex_Byte (Byte_Address : System.Address;
+                        Value : Interfaces.Unsigned_8) return Boolean
+   is
+      Result : Cpu_Register_Type;
+   begin
+      System.Machine_Code.Asm (
+         "strexb %0, %1, [%2]",
+         Outputs =>
+            --  NOTE: Use "=&r" to ensure a different register is used
+            Cpu_Register_Type'Asm_Output ("=&r", Result),   -- %0
+         Inputs =>
+            [Interfaces.Unsigned_8'Asm_Input ("r", Value),  -- %1
+             System.Address'Asm_Input ("r", Byte_Address)], -- %2
+         Clobber => "memory",
+         Volatile => True);
+
+      return Result = 0;
+   end Strex_Byte;
+
    procedure Wait_For_Interrupt is
    begin
       System.Machine_Code.Asm ("wfi", Volatile => True);
@@ -230,14 +260,15 @@ package body HiRTOS_Cpu_Arch_Interface is
    end Atomic_Test_Set;
 
    function Atomic_Fetch_Add
-     (Counter_Address : System.Address;
-      Value : Cpu_Register_Type) return Cpu_Register_Type
+     (Atomic_Var : in out Interfaces.Unsigned_8;
+      Value : Interfaces.Unsigned_8) return Interfaces.Unsigned_8
    is
-      Old_Value : Cpu_Register_Type;
+      use type Interfaces.Unsigned_8;
+      Old_Value : Interfaces.Unsigned_8;
    begin
       loop
-         Old_Value := Ldrex_Word (Counter_Address);
-         exit when Strex_Word (Counter_Address, Old_Value + Value);
+         Old_Value := Ldrex_Byte (Atomic_Var'Address);
+         exit when Strex_Byte (Atomic_Var'Address, Old_Value + Value);
       end loop;
 
       return Old_Value;

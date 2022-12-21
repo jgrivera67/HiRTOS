@@ -15,15 +15,37 @@ with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    use ASCII;
+   use System.Storage_Elements;
+
+   procedure Thread_Unintended_Exit_Catcher is
+   begin
+      raise Program_Error;
+   end Thread_Unintended_Exit_Catcher;
 
    procedure Initialize_Thread_Cpu_Context (Thread_Cpu_Context : out Cpu_Context_Type;
-                                            Initial_Stack_Pointer : Cpu_Register_Type) is
+                                            Entry_Point_Address : Cpu_Register_Type;
+                                            Thread_Arg : Cpu_Register_Type;
+                                            Stack_End_Address : Cpu_Register_Type) is
    begin
-      Thread_Cpu_Context.Sp := Initial_Stack_Pointer;
-      Thread_Cpu_Context.Cpu_Privileged_Nesting_Count := 0;
-      --??? Floating_Point_Registers : Floating_Point_Registers_Type;
-      --??? Integer_Registers
-      pragma Assert (False); --  ???
+      Thread_Cpu_Context.Integer_Registers :=
+         (R0 => Thread_Arg,
+          R1 => 16#01010101#,
+          R2 => 16#02020202#,
+          R3 => 16#03030303#,
+          R4 => 16#04040404#,
+          R5 => 16#05050505#,
+          R6 => 16#06060606#,
+          R7 => 16#07070707#,
+          R8 => 16#08080808#,
+          R9 => 16#09090909#,
+          R10 => 16#10101010#,
+          R11 => Stack_End_Address, --  FP
+          R12 => 16#12121212#,
+          LR => Cpu_Register_Type (To_Integer (Thread_Unintended_Exit_Catcher'Address)),
+          PC => Entry_Point_Address,
+          CPSR => CPSR_User_Mode);
+
+      Thread_Cpu_Context.Floating_Point_Registers := [ others => <> ];
    end Initialize_Thread_Cpu_Context;
 
    procedure First_Thread_Context_Switch is

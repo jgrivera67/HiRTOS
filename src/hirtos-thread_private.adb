@@ -6,6 +6,7 @@
 --
 with HiRTOS.RTOS_Private;
 with HiRTOS_Cpu_Multi_Core_Interface;
+with HiRTOS_Cpu_Arch_Interface;
 
 package body HiRTOS.Thread_Private is
    use HiRTOS.RTOS_Private;
@@ -53,7 +54,7 @@ package body HiRTOS.Thread_Private is
    end Decrement_Privilege_Nesting;
 
    procedure Save_Thread_Stack_Pointer (Thread_Obj : in out Thread_Type;
-                                        Stack_Pointer : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type)
+                                        Stack_Pointer : System.Address)
    is
    begin
       Thread_Obj.Saved_Stack_Pointer := Stack_Pointer;

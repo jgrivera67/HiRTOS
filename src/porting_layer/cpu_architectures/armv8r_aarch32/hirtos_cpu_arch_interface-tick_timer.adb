@@ -12,7 +12,6 @@
 with HiRTOS_Platform_Parameters;
 with HiRTOS.Interrupt_Handling;
 with System.Machine_Code;
-with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
@@ -28,9 +27,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_CTL_Value : CNTP_CTL_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR: Timer0 " & ASCII.LF); --???
-      Set_CNTFRQ (CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR: Timer1 " & ASCII.LF); --???
+      --Set_CNTFRQ (CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
 
       --  Configure generic timer interrupt in the GIC:
       Interrupt_Controller.Configure_Internal_Interrupt (
@@ -41,7 +38,6 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
          Interrupt_Handler_Entry_Point => Tick_Timer_Interrupt_Handler'Access,
          Interrupt_Handler_Arg => System.Null_Address);
 
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR: Timer2 " & ASCII.LF); --???
       --
       --  Make sure that the timer is disabled:
       --
@@ -51,7 +47,6 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_CTL_Value.ENABLE := Timer_Disabled;
       CNTP_CTL_Value.IMASK := Timer_Interrupt_Masked;
       Set_CNTP_CTL (CNTP_CTL_Value);
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR: Timer3 " & ASCII.LF); --???
 
       --
       --  NOTE: the generic timer interrupt is enabled in the GIC and in the

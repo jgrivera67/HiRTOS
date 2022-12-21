@@ -1178,7 +1178,8 @@ private
         null;
       Interrupt_Handler_Arg         : System.Address := System.Null_Address;
       Times_Interrupt_Fired         : Natural                            := 0;
-   end record;
+   end record with
+     Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment;
 
    type Internal_Interrupt_Handler_Array_Type is
      array

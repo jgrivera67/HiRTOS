@@ -26,6 +26,30 @@ is
    use HiRTOS.Interrupt_Handling_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
 
+   function Thread_Objects_Free_Count return Natural
+      with Ghost;
+
+   function Mutex_Objects_Free_Count return Natural
+      with Ghost;
+
+   function Condvar_Objects_Free_Count return Natural
+      with Ghost;
+
+   function Timer_Objects_Free_Count return Natural
+      with Ghost;
+
+   procedure Allocate_Thread_Object (Thread_Id : out Valid_Thread_Id_Type)
+      with Pre => Thread_Objects_Free_Count /= 0;
+
+   procedure Allocate_Mutex_Object (Mutex_Id : out Valid_Mutex_Id_Type)
+      with Pre => Mutex_Objects_Free_Count /= 0;
+
+   procedure Allocate_Condvar_Object (Condvar_Id : out Valid_Condvar_Id_Type)
+      with Pre => Condvar_Objects_Free_Count /= 0;
+
+   procedure Allocate_Timer_Object (Timer_Id : out Valid_Timer_Id_Type)
+      with Pre => Timer_Objects_Free_Count /= 0;
+
    type Thread_Scheduler_State_Type is
      (Thread_Scheduler_Stopped, Thread_Scheduler_Running);
 
@@ -101,7 +125,7 @@ is
       Interrupt_Stack_Size          : System.Storage_Elements.Integer_Address;
       Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type;
       All_Threads : Per_Cpu_Thread_List_Package.List_Anchor_Type;
-      All_Mutexs : Per_Cpu_Mutex_List_Package.List_Anchor_Type;
+      All_Mutexes : Per_Cpu_Mutex_List_Package.List_Anchor_Type;
       All_Condvars : Per_Cpu_Condvar_List_Package.List_Anchor_Type;
       All_Timers : Per_Cpu_Timer_List_Package.List_Anchor_Type;
       Runnable_Thread_Queues        : Priority_Thread_Queues_Type;
@@ -141,5 +165,17 @@ is
    --  Singleton object representing the state of the whole HiRTOS kernel
    --
    HiRTOS_Obj : HiRTOS_Type;
+
+   function Thread_Objects_Free_Count return Natural is
+      (Natural (Thread_Id_Type'Last - HiRTOS_Obj.Next_Free_Thread_Id));
+
+   function Mutex_Objects_Free_Count return Natural is
+      (Natural (Mutex_Id_Type'Last - HiRTOS_Obj.Next_Free_Mutex_Id));
+
+   function Condvar_Objects_Free_Count return Natural is
+      (Natural (Condvar_Id_Type'Last - HiRTOS_Obj.Next_Free_Condvar_Id));
+
+   function Timer_Objects_Free_Count return Natural is
+      (Natural (Timer_Id_Type'Last - HiRTOS_Obj.Next_Free_Timer_Id));
 
 end HiRTOS.RTOS_Private;

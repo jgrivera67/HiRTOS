@@ -5,7 +5,6 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 
-with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 
 private package HiRTOS.Interrupt_Handling_Private with
@@ -26,7 +25,7 @@ is
       Interrupt_Id : HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Id_Type :=
               HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Invalid_Interrupt_Id;
       Interrupt_Nesting_Counter : Active_Interrupt_Nesting_Counter_Type;
-      Saved_Stack_Pointer       : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+      Saved_Stack_Pointer       : System.Address := System.Null_Address;
       Atomic_Level              : Atomic_Level_Type := Atomic_Level_None;
    end record;
 
@@ -45,14 +44,9 @@ is
    procedure Initialize_Interrupt_Nesting_Level_Stack
      (Interrupt_Nesting_Level_Stack : out Interrupt_Nesting_Level_Stack_Type);
 
-   function Get_Current_Interrupt_Nesting
-     (Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type)
-      return Interrupt_Nesting_Counter_Type with
-     Inline_Always, Suppress => All_Checks;
-
    procedure Increment_Interrupt_Nesting
      (Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type;
-      Stack_Pointer :        HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type) with
+      Stack_Pointer : System.Address) with
      Pre =>
       Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) <
       Interrupt_Nesting_Counter_Type'Last;
@@ -64,6 +58,6 @@ is
    function Get_Current_Interrupt_Nesting
      (Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type)
       return Interrupt_Nesting_Counter_Type is
-     (Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter);
+      (Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter);
 
 end HiRTOS.Interrupt_Handling_Private;

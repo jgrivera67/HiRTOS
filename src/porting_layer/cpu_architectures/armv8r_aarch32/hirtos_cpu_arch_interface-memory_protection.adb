@@ -10,7 +10,7 @@
 --  for ARMv8-R MPU
 --
 
-with HiRTOS;
+with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with HiRTOS_Low_Level_Debug_Interface;
 with Number_Conversion_Utils;
@@ -155,15 +155,12 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       DFSR_Value : constant DFSR_Type := Get_DFSR;
       DFAR_Value : constant DFAR_Type := Get_DFAR;
       Unsigned_32_Hexadecimal_Str : Number_Conversion_Utils.Unsigned_32_Hexadecimal_String_Type;
+      Faulting_PC : constant System.Address := HiRTOS.Interrupt_Handling.Get_Interrupted_PC;
    begin
-
-      --
-      --  TODO: Get faulting_PC from the last CPU context saved on the stack
-      --
       HiRTOS_Low_Level_Debug_Interface.Print_String (
          "*** Data abort: " & Fault_Name_Pointer_Array (DFSR_Value.Status).all & "  (faulting PC: ");
-      --Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (Interfaces.Unsigned_32 (Faulting_Pc),
-      --                                                        Unsigned_32_Hexadecimal_Str);
+      Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (
+         Interfaces.Unsigned_32 (To_Integer (Faulting_PC)), Unsigned_32_Hexadecimal_Str);
       HiRTOS_Low_Level_Debug_Interface.Print_String (Unsigned_32_Hexadecimal_Str & ", fault data address: ");
       Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (Interfaces.Unsigned_32 (DFAR_Value),
                                                               Unsigned_32_Hexadecimal_Str);

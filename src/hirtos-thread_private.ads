@@ -6,7 +6,6 @@
 --
 
 with HiRTOS.Memory_Protection_Private;
-with HiRTOS_Cpu_Arch_Interface;
 
 private package HiRTOS.Thread_Private with
   SPARK_Mode => On
@@ -71,7 +70,7 @@ is
       Waiting_On_Mutex_Id : Mutex_Id_Type := Invalid_Mutex_Id;
       Owned_Mutexes_List : Mutex_List_Package.List_Anchor_Type;
       Delay_Timer_Id : Timer_Id_Type := Invalid_Timer_Id;
-      Saved_Stack_Pointer : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+      Saved_Stack_Pointer : System.Address;
       Privilege_Nesting_Counter : Privilege_Nesting_Counter_Type := 0;
       Time_Slice_Left_Us : Time_Us_Type := Thread_Time_Slice_Us;
       Saved_Thread_Memory_Regions :
@@ -114,11 +113,11 @@ is
 
    procedure Save_Thread_Stack_Pointer
      (Thread_Obj    : in out Thread_Type;
-      Stack_Pointer :        HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type);
+      Stack_Pointer :        System.Address);
 
    function Get_Thread_Stack_Pointer
      (Thread_Obj : Thread_Type)
-      return HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with
+      return System.Address with
      Inline_Always;
 
    function Get_Privilege_Nesting
@@ -127,7 +126,7 @@ is
 
    function Get_Thread_Stack_Pointer
      (Thread_Obj : Thread_Type)
-      return HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type is
+      return System.Address is
      (Thread_Obj.Saved_Stack_Pointer);
 
    procedure Run_Thread_Scheduler;

@@ -8,7 +8,7 @@
 with HiRTOS.RTOS_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Thread_Private;
-with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
 
@@ -24,10 +24,11 @@ package body HiRTOS.Interrupt_Handling is
    --  inline subprograms.
    --
    procedure Enter_Interrupt_Context is
+      Stack_Pointer : constant System.Address :=
+         System.Storage_Elements.To_Address (
+            System.Storage_Elements.Integer_Address (HiRTOS_Cpu_Arch_Interface.Get_Stack_Pointer));
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
          HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-      Stack_Pointer : constant HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type :=
-         HiRTOS_Cpu_Arch_Interface.Get_Stack_Pointer;
       Current_Thread_Id : constant Thread_Id_Type :=
                RTOS_Cpu_Instance.Current_Thread_Id;
    begin
@@ -94,14 +95,16 @@ package body HiRTOS.Interrupt_Handling is
                   RTOS_Cpu_Instance.Current_Thread_Id;
             Current_Thread_Obj : Thread_Type renames
                HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
-            Stack_Pointer : constant HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type :=
+            Stack_Pointer : constant System.Address :=
                Thread_Private.Get_Thread_Stack_Pointer (Current_Thread_Obj);
 
          begin
             --
             --  Restore saved stack pointer from the current RTOS task context:
             --
-            HiRTOS_Cpu_Arch_Interface.Set_Stack_Pointer (Stack_Pointer);
+            HiRTOS_Cpu_Arch_Interface.Set_Stack_Pointer (
+               HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type (
+                  System.Storage_Elements.To_Integer (Stack_Pointer)));
          end;
       end if;
    end Exit_Interrupt_Context;
@@ -110,5 +113,19 @@ package body HiRTOS.Interrupt_Handling is
    begin
       pragma Assert (False); --???
    end RTOS_Tick_Timer_Interrupt_Handler;
+
+   function Get_Interrupted_PC return System.Address
+   is
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Current_Interrupt_Nesting_Counter : constant Interrupt_Nesting_Counter_Type :=
+         RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack.Current_Interrupt_Nesting_Counter;
+      Saved_Stack_Pointer : constant System.Address := RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack.
+         Interrupt_Nesting_Level_Array (Current_Interrupt_Nesting_Counter - 1).Saved_Stack_Pointer;
+      Cpu_Context : constant HiRTOS_Cpu_Arch_Interface.Thread_Context.Cpu_Context_Type with
+         Import, Address => Saved_Stack_Pointer;
+   begin
+      return HiRTOS_Cpu_Arch_Interface.Thread_Context.Get_Saved_PC (Cpu_Context);
+   end Get_Interrupted_PC;
 
 end HiRTOS.Interrupt_Handling;

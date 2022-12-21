@@ -510,11 +510,14 @@ private
    Permission_Fault_Level0_Str : aliased constant String := "Permission_Fault_Level0";
    Synchronous_External_Abort_Str : aliased constant String := "Synchronous_External_Abort";
    Asynchronous_External_Abort_Str : aliased constant String := "Asynchronous_External_Abort";
-   Synchronous_Parity_Error_On_Memory_Access_Str : aliased constant String := "Synchronous_Parity_Error_On_Memory_Access";
-   Asynchronous_Parity_Error_On_Memory_Access_Str : aliased constant String := "Asynchronous_Parity_Error_On_Memory_Access";
+   Synchronous_Parity_Error_On_Memory_Access_Str : aliased constant String :=
+      "Synchronous_Parity_Error_On_Memory_Access";
+   Asynchronous_Parity_Error_On_Memory_Access_Str : aliased constant String :=
+      "Asynchronous_Parity_Error_On_Memory_Access";
    Alignment_Fault_Str : aliased constant String := "Alignment_Fault";
    Debug_Event_Str : aliased constant String := "Debug_Event";
-   Unsupported_Exclusive_Access_Fault_Str : aliased constant String := "Unsupported_Exclusive_Access_Fault";
+   Unsupported_Exclusive_Access_Fault_Str : aliased constant String :=
+      "Unsupported_Exclusive_Access_Fault";
 
    Fault_Name_Pointer_Array : constant array (DFSR_Status_Type) of not null access constant String :=
       [No_Fault => No_Fault_Str'Access,

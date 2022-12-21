@@ -60,7 +60,7 @@ is
    Rodata_Section_End_Address : constant System.Address :=
       Rodata_Section_End_Linker_Symbol'Address;
 
-   Global_Data_Region_Start_Linker_Symbol : constant Interfaces.Unsigned_32
+   Global_Data_Region_Start_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,
            External_Name => "__global_data_region_start";
@@ -68,7 +68,7 @@ is
    Global_Data_Region_Start_Address : constant System.Address :=
       Global_Data_Region_Start_Linker_Symbol'Address;
 
-   Global_Data_Region_End_Linker_Symbol : constant Interfaces.Unsigned_32
+   Global_Data_Region_End_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,
            External_Name => "__global_data_region_end";
@@ -76,7 +76,7 @@ is
    Global_Data_Region_End_Address : constant System.Address :=
       Global_Data_Region_End_Linker_Symbol'Address;
 
-   Data_Section_Start_Linker_Symbol : constant Interfaces.Unsigned_32
+   Data_Section_Start_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,
            External_Name => "__data_start";
@@ -84,7 +84,7 @@ is
    Data_Section_Start_Address : constant System.Address :=
       Data_Section_Start_Linker_Symbol'Address;
 
-   Data_Section_End_Linker_Symbol : constant Interfaces.Unsigned_32
+   Data_Section_End_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,
            External_Name => "__data_end";
@@ -92,7 +92,7 @@ is
    Data_Section_End_Address : constant System.Address :=
       Data_Section_End_Linker_Symbol'Address;
 
-   Data_Load_Section_Start_Linker_Symbol : constant Interfaces.Unsigned_32
+   Data_Load_Section_Start_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,
            External_Name => "__data_load";
@@ -100,7 +100,7 @@ is
    Data_Load_Section_Start_Address : constant System.Address :=
       Data_Load_Section_Start_Linker_Symbol'Address;
 
-   BSS_Section_Start_Linker_Symbol : constant Interfaces.Unsigned_32
+   BSS_Section_Start_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,
            External_Name => "__bss_start";
@@ -108,13 +108,29 @@ is
    BSS_Section_Start_Address : constant System.Address :=
       BSS_Section_Start_Linker_Symbol'Address;
 
-   BSS_Section_End_Linker_Symbol : constant Interfaces.Unsigned_32
+   BSS_Section_End_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,
            External_Name => "__bss_end";
 
    BSS_Section_End_Address : constant System.Address :=
       BSS_Section_End_Linker_Symbol'Address;
+
+   Stacks_Section_Start_Linker_Symbol : Interfaces.Unsigned_32
+      with Import,
+           Convention => Asm,
+           External_Name => "_stacks_start";
+
+   Stacks_Section_Start_Address : constant System.Address :=
+      Stacks_Section_Start_Linker_Symbol'Address;
+
+   Stacks_Section_End_Linker_Symbol : Interfaces.Unsigned_32
+      with Import,
+           Convention => Asm,
+           External_Name => "_stacks_end";
+
+   Stacks_Section_End_Address : constant System.Address :=
+      Stacks_Section_End_Linker_Symbol'Address;
 
    --
    --  MMIO range for the target platform

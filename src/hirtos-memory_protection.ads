@@ -11,6 +11,7 @@
 
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 with HiRTOS_Cpu_Arch_Parameters;
+private with HiRTOS_Platform_Parameters;
 private with HiRTOS.Memory_Protection_Private;
 with System.Storage_Elements;
 
@@ -47,6 +48,10 @@ is
    procedure End_Mmio_Range_Access (
       Old_Mmio_Range : Memory_Range_Type);
 
+   function Valid_Code_Address (Address : System.Address) return Boolean;
+
+   function Valid_Stack_Address (Address : System.Address) return Boolean;
+
 private
 
    type Memory_Range_Type is limited record
@@ -56,4 +61,11 @@ private
    end record
      with Convention => C;
 
+   function Valid_Code_Address (Address : System.Address) return Boolean is
+      (To_Integer (Address) in To_Integer (HiRTOS_Platform_Parameters.Global_Text_Region_Start_Address) ..
+                               To_Integer (HiRTOS_Platform_Parameters.Global_Text_Region_End_Address));
+
+   function Valid_Stack_Address (Address : System.Address) return Boolean is
+      (To_Integer (Address) in To_Integer (HiRTOS_Platform_Parameters.Stacks_Section_Start_Address) ..
+                               To_Integer (HiRTOS_Platform_Parameters.Stacks_Section_End_Address));
 end HiRTOS.Memory_Protection;

@@ -10,6 +10,7 @@
 --
 
 with Interfaces;
+with System.Storage_Elements;
 
 package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
 
@@ -19,7 +20,9 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    --  Initialize a thread's CPU context
    --
    procedure Initialize_Thread_Cpu_Context (Thread_Cpu_Context : out Cpu_Context_Type;
-                                            Initial_Stack_Pointer : Cpu_Register_Type);
+                                            Entry_Point_Address : Cpu_Register_Type;
+                                            Thread_Arg : Cpu_Register_Type;
+                                            Stack_End_Address : Cpu_Register_Type);
 
    --
    --  Perform the first thread thread context switch
@@ -31,6 +34,8 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    --
    procedure Synchronous_Thread_Context_Switch;
 
+   function  Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address;
+
 private
 
    Num_Double_Precision_Floating_Point_Registers : constant := 16;
@@ -39,10 +44,10 @@ private
       array (1 .. Num_Double_Precision_Floating_Point_Registers) of Interfaces.Unsigned_64
       with Convention => C;
 
-   type Floating_Point_Registers_Type is limited record
-      Double_Precision_Registers : Double_Precision_Registers_Type;
-      Fpscr : Interfaces.Unsigned_32;
-      Reserved : Interfaces.Unsigned_32; --  alignment hole
+   type Floating_Point_Registers_Type is record
+      Double_Precision_Registers : Double_Precision_Registers_Type := [ others => 0 ];
+      Fpscr : Interfaces.Unsigned_32 := 0;
+      Reserved : Interfaces.Unsigned_32 := 0; --  alignment hole
    end record
       with Convention => C;
 
@@ -60,7 +65,7 @@ private
       Interfaces.Unsigned_32'Object_Size /= Float'Object_Size,
       "Unexpected single-precision floating point size");
 
-   type Integer_Registers_Type is limited record
+   type Integer_Registers_Type is record
       R0 : Cpu_Register_Type;  --  also known as register a1
       R1 : Cpu_Register_Type;  --  also known as register a2
       R2 : Cpu_Register_Type;  --  also known as register a3
@@ -85,14 +90,6 @@ private
    --  task context switches. Fields are in the exact order as the will be stored on the
    --  stack.
    --
-   --  @field Sp Redundant copy of sp. Although sp (r13) does not need to be saved as
-   --  sp is saved in the task control block (TCB), we still save it here, to include it
-   --  in the RTOS task context's saved registers checksum.
-   --
-   --  @field Cpu_Privileged_Nesting_Count Saved value of `g_cpu_privileged_nesting_count`.
-   --  `g_cpu_privileged_nesting_count` is saved here (on the stack) because it needs to be
-   --  restored on both thread context switches and wen returning from a nested ISR.
-   --
    --  @field Floating_Point_Registers Saved FPU floating point registers for the thread.
    --  We save the floating point registers even if the thread doe snot have floating point code,
    --  in case the compiler since the compiler generates code using floating point registers in any
@@ -102,18 +99,18 @@ private
    --  @field Integer_Registers Saved CPU integer registers
    --
    type Cpu_Context_Type is limited record
-      Sp : Cpu_Register_Type; --  register r13
-      Cpu_Privileged_Nesting_Count : Cpu_Register_Type;
       Floating_Point_Registers : Floating_Point_Registers_Type;
       Integer_Registers : Integer_Registers_Type;
    end record
       with Convention => C;
 
    for Cpu_Context_Type use record
-      Sp at 0 range 0 .. 31;
-      Cpu_Privileged_Nesting_Count at 4 range 0 .. 31;
-      Floating_Point_Registers at 8 range 0 .. 136 * 8 - 1;
-      Integer_Registers at 144 range 0 .. 64 * 8 - 1;
+      Floating_Point_Registers at 0 range 0 .. 136 * 8 - 1;
+      Integer_Registers at 136 range 0 .. 64 * 8 - 1;
    end record;
+
+   function Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address is
+      (System.Storage_Elements.To_Address (
+         System.Storage_Elements.Integer_Address (Cpu_Context.Integer_Registers.PC)));
 
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

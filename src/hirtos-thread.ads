@@ -5,11 +5,14 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 
+with HiRTOS.Memory_Protection;
 with System.Storage_Elements;
 
 package HiRTOS.Thread
    with SPARK_Mode => On
 is
+   use type System.Storage_Elements.Integer_Address;
+
    --
    --  NOTE: Lower value means higher priority
    --
@@ -26,14 +29,17 @@ is
    --  Create new thread
    --
    procedure Create_Thread (Entry_Point : Thread_Entry_Point_Type;
-                            Priority : Thread_Priority_Type;
-                            Stack_Addr : System.Address;
+                            Thread_Arg : System.Address;
+                            Priority : Valid_Thread_Priority_Type;
+                            Stack_Base_Address : System.Address;
                             Stack_Size :  System.Storage_Elements.Integer_Address;
-                            Thread_Id : out Thread_Id_Type;
-                            Error : out Error_Type)
-      with Export,
-         Convention => C,
-         External_Name => "hirtos_create_thread";
+                            Thread_Id : out Valid_Thread_Id_Type)
+      with Pre => HiRTOS.Memory_Protection.Valid_Code_Address (Entry_Point.all'Address) and then
+                  HiRTOS.Memory_Protection.Valid_Stack_Address (Stack_Base_Address) and then
+                  Stack_Size /= 0,
+           Export,
+           Convention => C,
+           External_Name => "hirtos_create_thread";
 
    --
    --  Return the Id of the current thread executing on the current CPU core,
