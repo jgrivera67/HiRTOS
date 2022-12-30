@@ -116,6 +116,22 @@ is
    BSS_Section_End_Address : constant System.Address :=
       BSS_Section_End_Linker_Symbol'Address;
 
+   Privileged_BSS_Section_Start_Linker_Symbol : Interfaces.Unsigned_32
+      with Import,
+           Convention => Asm,
+           External_Name => "__privileged_bss_start";
+
+   Privileged_BSS_Section_Start_Address : constant System.Address :=
+      Privileged_BSS_Section_Start_Linker_Symbol'Address;
+
+   Privileged_BSS_Section_End_Linker_Symbol : Interfaces.Unsigned_32
+      with Import,
+           Convention => Asm,
+           External_Name => "__privileged_bss_end";
+
+   Privileged_BSS_Section_End_Address : constant System.Address :=
+      Privileged_BSS_Section_End_Linker_Symbol'Address;
+
    Stacks_Section_Start_Linker_Symbol : Interfaces.Unsigned_32
       with Import,
            Convention => Asm,

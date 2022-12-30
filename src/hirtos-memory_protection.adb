@@ -30,15 +30,12 @@ is
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       Old_Data_Range.Range_Region_Role := Region_Role_None;
-      if Address_Range_In_Global_Data_Region (Start_Address, End_Address)
-         and then
-         (HiRTOS_Config_Parameters.Global_Data_Default_Access =
-            HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Read_Write_Access
-          or else
-          (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
-           and then
-           HiRTOS_Config_Parameters.Global_Data_Default_Access =
-             HiRTOS_Config_Parameters.Global_Data_Privileged_Read_Write_Unprivileged_No_Access))
+      if HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
+         or else
+         (Address_Range_In_Global_Data_Region (Start_Address, End_Address)
+          and then
+          HiRTOS_Config_Parameters.Global_Data_Default_Access =
+            HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Read_Write_Access)
       then
          return;
       end if;

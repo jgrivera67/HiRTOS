@@ -73,6 +73,21 @@ is
                   not Is_Memory_Region_Enabled (Region_Id),
             Post => Is_Memory_Region_Enabled (Region_Id);
 
+   procedure Configure_Memory_Region (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+      with Pre => To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (End_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (Start_Address) < To_Integer (End_Address) and then
+                  not Is_Memory_Region_Enabled (Region_Id),
+           Post => Is_Memory_Region_Enabled (Region_Id);
+
    procedure Change_Memory_Region_Address_Range (
       Region_Id : Memory_Region_Id_Type;
       Start_Address : System.Address;

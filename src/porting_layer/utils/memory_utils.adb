@@ -9,24 +9,39 @@ with HiRTOS_Platform_Parameters;
 
 package body Memory_Utils is
 
+   procedure Clear_Address_Range (Start_Address : System.Address; End_Address : System.Address) is
+      --  Size in 32-bit words of the address range
+      Num_Words : constant Integer_Address :=
+         (To_Integer (End_Address) - To_Integer (Start_Address)) /
+         (Unsigned_32'Size / System.Storage_Unit);
+
+      Word_Array : Words_Array_Type (1 .. Num_Words) with
+        Address => Start_Address;
+   begin
+      if Num_Words /= 0 then
+         Word_Array := [others => 0];
+      end if;
+   end Clear_Address_Range;
+
    -----------------------
    -- Clear_BSS_Section --
    -----------------------
 
    procedure Clear_BSS_Section is
-      --  Size in 32-bit words of the .bss section
-      Num_BSS_Words : constant Integer_Address :=
-         (To_Integer (HiRTOS_Platform_Parameters.BSS_Section_End_Address) -
-          To_Integer (HiRTOS_Platform_Parameters.BSS_Section_Start_Address)) /
-         (Interfaces.Unsigned_32'Size / System.Storage_Unit);
-
-      BSS_Section : Words_Array_Type (1 .. Num_BSS_Words) with
-        Address => HiRTOS_Platform_Parameters.BSS_Section_Start_Address;
    begin
-      if Num_BSS_Words /= 0 then
-         BSS_Section := [others => 0];
-      end if;
+      Clear_Address_Range (HiRTOS_Platform_Parameters.BSS_Section_Start_Address,
+                           HiRTOS_Platform_Parameters.BSS_Section_End_Address);
    end Clear_BSS_Section;
+
+   ----------------------------------
+   -- Clear_Privileged_BSS_Section --
+   ----------------------------------
+
+   procedure Clear_Privileged_BSS_Section is
+   begin
+      Clear_Address_Range (HiRTOS_Platform_Parameters.Privileged_BSS_Section_Start_Address,
+                           HiRTOS_Platform_Parameters.Privileged_BSS_Section_End_Address);
+   end Clear_Privileged_BSS_Section;
 
    -----------------------
    -- Copy_Data_Section --

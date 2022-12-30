@@ -83,6 +83,16 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                Region_Attributes => Normal_Memory_Write_Back_Cacheable);
 
       --
+      --  Configure global privileged data region:
+      --
+      Configure_Memory_Region (Memory_Region_Id_Type (Global_Privileged_Data_Region'Enum_Rep),
+                               HiRTOS_Platform_Parameters.Privileged_BSS_Section_Start_Address,
+                               HiRTOS_Platform_Parameters.Privileged_BSS_Section_End_Address,
+                               Unprivileged_Permissions => None,
+                               Privileged_Permissions => Read_Write,
+                               Region_Attributes => Normal_Memory_Write_Back_Cacheable);
+
+      --
       --  Configure global MMIO region:
       --
 

@@ -72,7 +72,7 @@
 /**
  * Cortex-R52 interrupt vector table
  */
-        .section .text.hidden.interrupt_vector_table, "ax"
+        .section .text.privileged.interrupt_vector_table, "ax"
         .global interrupt_vector_table
 interrupt_vector_table:
 	b reset_handler                           /* Reset */
@@ -200,7 +200,7 @@ interrupt_vector_table:
 /**
  * System Reset handler entry point
  */
-	.section .text.hidden.reset_handler
+	.section .text.privileged.reset_handler
 	.align 2
 	.global reset_handler
         .func reset_handler

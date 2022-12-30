@@ -28,6 +28,7 @@ is
    type Memory_Region_Role_Type is
      (Global_Data_Region,
       Global_Data_After_Hole_Region,
+      Global_Privileged_Data_Region,
       Global_Interrupt_Stack_Region,
       Global_Mmio_Region,
       Global_Mmio_After_Hole_Region,
@@ -35,6 +36,7 @@ is
       Thread_Private_Data_Region,
       Thread_Private_Mmio_Region,
       Global_Code_Region,
+      Global_Privileged_Code_Region,
       Thread_Private_Code_Region,
       Global_Rodata_Region,
 
@@ -44,16 +46,18 @@ is
    for Memory_Region_Role_Type use
      (Global_Data_Region => 0,
       Global_Data_After_Hole_Region => 1,
-      Global_Interrupt_Stack_Region => 2,
-      Global_Mmio_Region => 3,
-      Global_Mmio_After_Hole_Region => 4,
-      Thread_Stack_Data_Region   => 5,
-      Thread_Private_Data_Region => 6,
-      Thread_Private_Mmio_Region => 7,
-      Global_Code_Region => 8,
-      Thread_Private_Code_Region => 9,
-      Global_Rodata_Region => 10,
-      Region_Role_None => 11);
+      Global_Privileged_Data_Region => 2,
+      Global_Interrupt_Stack_Region => 3,
+      Global_Mmio_Region => 4,
+      Global_Mmio_After_Hole_Region => 5,
+      Thread_Stack_Data_Region   => 6,
+      Thread_Private_Data_Region => 7,
+      Thread_Private_Mmio_Region => 8,
+      Global_Code_Region => 9,
+      Global_Privileged_Code_Region => 10,
+      Thread_Private_Code_Region => 11,
+      Global_Rodata_Region => 12,
+      Region_Role_None => 13);
 
    pragma Compile_Time_Error (
       Memory_Region_Role_Type'Last'Enum_Rep >= HiRTOS_Cpu_Arch_Interface.Memory_Protection.Max_Num_Memory_Regions,

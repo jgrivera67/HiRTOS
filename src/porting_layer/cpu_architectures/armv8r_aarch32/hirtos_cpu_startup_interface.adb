@@ -83,6 +83,7 @@ package body HiRTOS_Cpu_Startup_Interface is
       --
       Memory_Utils.Copy_Data_Section;
       Memory_Utils.Clear_BSS_Section;
+      Memory_Utils.Clear_Privileged_BSS_Section;
 
       HiRTOS_Low_Level_Debug_Interface.Initialize_Led;
       HiRTOS_Low_Level_Debug_Interface.Initialize_Uart;

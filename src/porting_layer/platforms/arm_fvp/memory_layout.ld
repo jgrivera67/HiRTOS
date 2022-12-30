@@ -52,13 +52,13 @@ SECTIONS
     . = ALIGN(MPU_REGION_ALIGNMENT);
     __global_text_region_start = .;
 
-    KEEP (*(.text.hidden.interrupt_vector_table))
+    KEEP (*(.text.privileged.interrupt_vector_table))
 
-    *(.text.hidden.*)
+    *(.text.privileged.*)
 
     . = ALIGN(MPU_REGION_ALIGNMENT);
-    __hidden_text_region_end = .;
-    PROVIDE (__visible_text_start = .);
+    __privileged_text_region_end = .;
+    PROVIDE (__unprivileged_text_start = .);
 
    /* Functions that are the only ones allowed to enter privileged mode */
     __syscall_functions_start = .;
@@ -174,43 +174,33 @@ SECTIONS
     *(.srodata.cst4)
     *(.srodata.cst2)
     *(.srodata .srodata.*)
-
-    /*
-     * Hidden initialized global variables (not accessible by default)
-     * are located at the end of the data section
-     */
-    __hidden_data_region_start = .;
-    __hidden_data_start = .;
-    *(.hidden_data)
-    . = ALIGN(MPU_REGION_ALIGNMENT);
-    __hidden_data_end = .;
     PROVIDE( __data_end = . );
   } >TCM
 
-
-  PROVIDE( __bss_start = . );
   .bss (NOLOAD)  :
   {
+   PROVIDE( __bss_start = . );
+    *(.sbss*)
+    *(.gnu.linkonce.sb.*)
+    *(EXCLUDE_FILE(*hirtos*.o).bss.*)
+    *(.gnu.linkonce.b.*)
+    *(COMMON)
+    PROVIDE( __bss_end = . );
+    . = ALIGN(MPU_REGION_ALIGNMENT);
+    __global_data_region_end = .;
+  } >TCM
+
+  .privileged_bss (NOLOAD)  :
+  {
    /*
-    * Hidden uninitialized global variables (not accessible by default)
+    * Privileged uninitialized global variables (only accessible in privileged mode)
     * are located the beginning of the bss section
     */
     . = ALIGN(MPU_REGION_ALIGNMENT);
-    __hidden_bss_start = .;
-    *(.hidden_bss)
+    __privileged_bss_start = .;
+    *hirtos*.o (.bss.*)
     . = ALIGN(MPU_REGION_ALIGNMENT);
-    __hidden_bss_end = .;
-    __hidden_data_region_end = .;
-
-    *(.sbss*)
-    *(.gnu.linkonce.sb.*)
-    *(.bss .bss.*)
-    *(.gnu.linkonce.b.*)
-    *(COMMON)
-
-    . = ALIGN(MPU_REGION_ALIGNMENT);
-    PROVIDE( __bss_end = . );
-    __global_data_region_end = .;
+    __privileged_bss_end = .;
   } >TCM
 
   .stack (NOLOAD)  :

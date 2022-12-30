@@ -23,8 +23,6 @@ is
 
    type Bytes_Array_Type is array (Positive range <>) of aliased Unsigned_8;
 
-   function Compute_Checksum (Bytes_Array : Bytes_Array_Type)
-      return Unsigned_32;
    --
    --  Computes the CRC-32 checksum for a given block of memory
    --
@@ -33,6 +31,8 @@ is
    --
    --  @return calculated CRC value
    --
+   function Compute_Checksum (Bytes_Array : Bytes_Array_Type)
+      return Unsigned_32;
 
    function Address_Overlap (Block1_Start_Addr : System.Address;
                              Block1_Size : Integer_Address;
@@ -63,11 +63,19 @@ is
           Convention => C,
           External_Name => "memset";
 
-   procedure Clear_BSS_Section;
+   procedure Clear_Address_Range (Start_Address : System.Address; End_Address : System.Address);
+
    --
-   --  Clear BSS section in SRAM
+   --  Clear unprivileged BSS section in SRAM
    --  (C global and static non-initialized variables)
    --
+   procedure Clear_BSS_Section;
+
+   --
+   --  Clear privileged BSS section in SRAM
+   --  (C global and static non-initialized variables)
+   --
+   procedure Clear_Privileged_BSS_Section;
 
    procedure Copy_Data_Section;
    --

@@ -72,6 +72,25 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Restore_Memory_Region_Descriptor (Region_Id, Region_Descriptor);
    end Configure_Memory_Region;
 
+   procedure Configure_Memory_Region (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+   is
+      Region_Descriptor : Memory_Region_Descriptor_Type;
+   begin
+      Initialize_Memory_Region_Descriptor (Region_Descriptor,
+                                           Start_Address,
+                                           End_Address,
+                                           Unprivileged_Permissions,
+                                           Privileged_Permissions,
+                                           Region_Attributes);
+      Restore_Memory_Region_Descriptor (Region_Id, Region_Descriptor);
+   end Configure_Memory_Region;
+
    procedure Change_Memory_Region_Address_Range (
       Region_Id : Memory_Region_Id_Type;
       Start_Address : System.Address;
