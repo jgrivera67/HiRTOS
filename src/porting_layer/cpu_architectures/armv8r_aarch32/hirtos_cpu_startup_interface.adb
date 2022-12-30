@@ -6,14 +6,12 @@
 --
 
 with HiRTOS_Low_Level_Debug_Interface;
-with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with Memory_Utils;
 with System.Machine_Code;
 with Interfaces;
 
 package body HiRTOS_Cpu_Startup_Interface is
-   use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
    use ASCII;
 
@@ -105,71 +103,5 @@ package body HiRTOS_Cpu_Startup_Interface is
          HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
       end loop;
    end Ada_Reset_Handler;
-
-   ----------------------------------
-   -- Unexpected_Interrupt_Handler --
-   ----------------------------------
-
-   procedure Unexpected_Interrupt_Handler is
-   begin
-      loop
-         HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
-      end loop;
-   end Unexpected_Interrupt_Handler;
-
-   -------------------------
-   -- Last_Chance_Handler --
-   -------------------------
-
-   Last_Chance_Handler_Running :
-      array (Valid_Cpu_Core_Id_Type) of Boolean := [ others => False ];
-
-   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
-      Msg_Text : String (1 .. 128) with Address => Msg;
-      Msg_Length : Natural := 0;
-      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
-   begin
-      HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
-      --
-      --  Calculate length of the null-terminated 'Msg' string:
-      --
-      for Msg_Char of Msg_Text loop
-         Msg_Length := Msg_Length + 1;
-         exit when Msg_Char = ASCII.NUL;
-      end loop;
-
-      if Last_Chance_Handler_Running (Cpu_Id) then
-         HiRTOS_Low_Level_Debug_Interface.Print_String (
-            "*** Recursive call to Last_Chance_Handler: " &
-            Msg_Text (1 .. Msg_Length) & "' at line ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
-                                                                End_Line => True);
-         loop
-            System.Machine_Code.Asm ("wfi", Volatile => True);
-         end loop;
-      end if;
-
-      Last_Chance_Handler_Running (Cpu_Id) := True;
-
-      --
-      --  Print exception message to UART:
-      --
-      if Line /= 0 then
-         HiRTOS_Low_Level_Debug_Interface.Print_String (
-            ASCII.LF & "*** Exception: '" & Msg_Text (1 .. Msg_Length) &
-            "' at line ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
-                                                                End_Line => True);
-      else
-         HiRTOS_Low_Level_Debug_Interface.Print_String (
-            ASCII.LF &
-            "*** Exception: '" & Msg_Text (1 .. Msg_Length) & "'" & ASCII.LF);
-      end if;
-
-      loop
-         HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
-      end loop;
-
-   end Last_Chance_Handler;
 
 end HiRTOS_Cpu_Startup_Interface;

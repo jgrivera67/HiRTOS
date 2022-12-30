@@ -1190,9 +1190,8 @@ private
      array (External_Interrupt_Id_Type) of Interrupt_Handler_Type;
 
    type Interrupt_Controller_Type is record
-      Per_Cpu_Initialized_Flags    : Cpu_Register_Type;
-      GIC_Distributor_Initialized  : Boolean := False with
-        Volatile;
+      Per_Cpu_Initialized_Flags    : Cpu_Register_Type := 0 with Volatile;
+      GIC_Distributor_Initialized  : Boolean := False with Volatile;
       Max_Number_Interrupt_Sources : Interfaces.Unsigned_16;
       Spinlock : HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Type;
       Internal_Interrupt_Handlers  : Internal_Interrupt_Handler_Array_Type;
@@ -1205,7 +1204,6 @@ private
 
    function Per_Cpu_Initialized return Boolean is
      ((Interrupt_Controller_Obj.Per_Cpu_Initialized_Flags and
-       Bit_Mask (Bit_Index_Type (Get_Cpu_Id))) /=
-      0);
+       Bit_Mask (Bit_Index_Type (Get_Cpu_Id))) /= 0);
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;

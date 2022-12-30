@@ -76,10 +76,6 @@ The following naming conventions are used in the Z model of \emph{HiRTOS}:
 \section{Major Design Decisions}
 
 \begin{itemize}
-\item All application code under HiRTOS supervision runs in unprivileged mode,
-both threads and interrupt handlers. HiRTOS code itself also runs in unprivileged
-mode as much as possible, except when privileged instructions need to be executed.
-
 \item ISRs are seen as hardware-scheduled threads that have higher priority than all
 software-scheduled threads. They can only be preempted by higher-priority ISRs.
 They cannot block waiting on mutexes or condition variables.
@@ -118,10 +114,10 @@ objects in memory owned by application code is supported either.
 
 \item
 All application threads run in unprivileged mode. For each thread, the only writable memory,
-by default is its own stack. Global variables in application code are read-only by default.
-To be able to write global variables, application code must request write permission to
-\emph{HiRTOS} via a system call. MMIO space is not accessible by default. Application (or driver)
-code must request access (read-only or read-write permission) to \emph{HiRTOS} via a system call.
+by default, is its own stack and global variables. Stacks of other threads are not accessible.
+MMIO space is only accessible to privileged code, by default. Application driver code, other
+than ISRs, must request access (read-only or read-write permission) to \emph{HiRTOS} via a
+system call.
 \end{itemize}
 
 \chapter{\emph{HiRTOS} Z Specification}
@@ -284,7 +280,6 @@ are described below:
     cpuId: CpuIdType \\
     threadSchedulerState: ThreadSchedulerStateType \\
     currentAtomicLevel: AtomicLevelType \\
-    currentPrivilegeNestingCounter: PrivilegeNestingCounterType \\
     currentCpuExecutionMode: CpuExecutionModeType \\
     currentThreadId: ThreadIdType \\
     timerTicksSinceBoot: TimerTicksType \\
@@ -315,8 +310,6 @@ are described below:
 \t1    zCpuPrivilege = cpuPrivileged
 \also
     currentAtomicLevel < AtomicLevelNone \implies zCpuPrivilege = cpuPrivileged
-\also
-    currentPrivilegeNestingCounter > 0 \iff zCpuPrivilege = cpuPrivileged
 \also
     \bigcap~\{~ i: allThreads @ \{~ zThreadInstances(i).builtinCondvarId ~\} ~\} = \emptyset
 \also
@@ -356,8 +349,6 @@ and the tick timer thread for that CPU are created. The initial state of the
     currentThreadId' = invalidThreadId
 \also
     currentAtomicLevel' = AtomicLevelNone
-\also
-    currentPrivilegeNestingCounter' = 0
 \also
     currentCpuExecutionMode' = cpuExecutingResetHandler
 \also
@@ -412,7 +403,7 @@ precondition/postcondition contract shown below:
 \also
     currentAtomicLevel = AtomicLevelNone
 \also
-    currentPrivilegeNestingCounter = 1
+   zCpuPrivilege = cpuPrivileged
 \also
     currentCpuExecutionMode = cpuExecutingResetHandler
 \also
@@ -423,7 +414,7 @@ precondition/postcondition contract shown below:
 \also
     currentAtomicLevel' = AtomicLevelNone
 \also
-    currentPrivilegeNestingCounter' = 0
+   zCpuPrivilege = cpuUnprivileged
 \also
     currentCpuExecutionMode' = cpuExecutingThread
 \end{schema}

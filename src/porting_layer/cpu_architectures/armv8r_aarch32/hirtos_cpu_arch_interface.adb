@@ -302,4 +302,28 @@ package body HiRTOS_Cpu_Arch_Interface is
       return Old_Value;
    end Atomic_Fetch_Or;
 
+   function Count_Leading_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type is
+      Result : Cpu_Register_Type;
+   begin
+      System.Machine_Code.Asm (
+          "clz %0, %1",
+           Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
+           Inputs => Cpu_Register_Type'Asm_Input ("r", Value),     --  %1
+           Volatile => True);
+
+      return Result;
+   end Count_Leading_Zeros;
+
+   function Count_Trailing_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type is
+      Result : Cpu_Register_Type;
+   begin
+      System.Machine_Code.Asm (
+          "ctz %0, %1",
+           Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
+           Inputs => Cpu_Register_Type'Asm_Input ("r", Value),     --  %1
+           Volatile => True);
+
+      return Result;
+   end Count_Trailing_Zeros;
+
 end HiRTOS_Cpu_Arch_Interface;

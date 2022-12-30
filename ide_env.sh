@@ -30,6 +30,9 @@ function run_fvp {
            -C cluster0.gicv3.SRE-EL2-enable-RAO=1 \
            -C cluster0.gicv3.cpuintf-mmap-access-level=2 \
 	   --application $elf_file #--log ~/tmp/fvp-run.log
+
+           #-C bp.sram.enable_atomic_ops=1 \
+           #-C cci400.force_on_from_start=1 \
 }
 
 function run_fvp_with_trace {
@@ -48,6 +51,8 @@ function run_fvp_with_trace {
 	   --parameter TRACE.TarmacTrace.trace-file="STDERR" \
            -C bp.pl011_uart0.uart_enable=1 \
            -C bp.pl011_uart0.baud_rate=115200 \
+           -C cluster0.gicv3.SRE-EL2-enable-RAO=1 \
+           -C cluster0.gicv3.cpuintf-mmap-access-level=2 \
 	   --application $elf_file # 2> ~/tmp/fvp-trace.pipe
 }
 

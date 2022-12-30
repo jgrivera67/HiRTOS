@@ -58,19 +58,18 @@ is
    --
    type Global_Data_Default_Access_Type is
       (Global_Data_Privileged_Unprivileged_Read_Only_Access,
-       Global_Data_Privileged_Read_Write_Unprivileged_Read_Only_Access,
+       Global_Data_Privileged_Read_Write_Unprivileged_No_Access,
+       Global_Data_Privileged_Read_Only_Unprivileged_No_Access,
        Global_Data_Privileged_Unprivileged_Read_Write_Access);
 
    Global_Data_Default_Access : constant Global_Data_Default_Access_Type :=
-      --Global_Data_Privileged_Unprivileged_Read_Only_Access;
-      Global_Data_Privileged_Unprivileged_Read_Write_Access; --???
+      Global_Data_Privileged_Unprivileged_Read_Write_Access;
 
    type Global_Mmio_Default_Access_Type is
       (Global_Mmio_Privileged_Only_Access,
        Global_Mmio_Privileged_Unprivileged_Access);
 
    Global_Mmio_Default_Access : constant Global_Mmio_Default_Access_Type :=
-      --Global_Mmio_Privileged_Only_Access;
-      Global_Mmio_Privileged_Unprivileged_Access; --???
+      Global_Mmio_Privileged_Only_Access;
 
 end HiRTOS_Config_Parameters;

@@ -47,13 +47,14 @@ is
    procedure Increment_Interrupt_Nesting
      (Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type;
       Stack_Pointer : System.Address) with
-     Pre =>
-      Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) <
-      Interrupt_Nesting_Counter_Type'Last;
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
+            Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) <
+               Interrupt_Nesting_Counter_Type'Last;
 
    procedure Decrement_Interrupt_Nesting
      (Interrupt_Nesting_Level_Stack : in out Interrupt_Nesting_Level_Stack_Type) with
-     Pre => Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) > 0;
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
+            Get_Current_Interrupt_Nesting (Interrupt_Nesting_Level_Stack) > 0;
 
    function Get_Current_Interrupt_Nesting
      (Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type)

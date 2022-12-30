@@ -10,6 +10,8 @@
 --
 
 with System.Machine_Code;
+with HiRTOS_Low_Level_Debug_Interface; --???
+with GNAT.Source_Info; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with
   SPARK_Mode => Off
@@ -84,6 +86,7 @@ is
            (GICR'Address, GICR'Size, Old_Mmio_Range);
 
          GICR_TYPER_Value := GICR.GICR_Control_Page.GICR_TYPER;
+
          pragma Assert
            (GICR_TYPER_Value.Processor_Number =
             GICR_TYPER_Processor_Number_Type (Cpu_Id));
@@ -496,6 +499,7 @@ is
       ICC_EOIR_Value             : ICC_EOIR_Type;
    begin
       pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
 
       --  Enable interrupts at the CPU ro support nested interrupts
       HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;

@@ -11,7 +11,7 @@ with HiRTOS.Condvar_Private;
 with HiRTOS.Timer_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with System.Storage_Elements;
+with HiRTOS_Cpu_Arch_Interface;
 
 --
 --  @summary Whole RTOS private declarations
@@ -50,6 +50,12 @@ is
    procedure Allocate_Timer_Object (Timer_Id : out Valid_Timer_Id_Type)
       with Pre => Timer_Objects_Free_Count /= 0;
 
+   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer)
+     with No_Return,
+          Export,
+          Convention => C,
+          External_Name => "__gnat_last_chance_handler";
+
    type Thread_Scheduler_State_Type is
      (Thread_Scheduler_Stopped, Thread_Scheduler_Running);
 
@@ -87,16 +93,18 @@ is
        Null_List_Id    => Invalid_Cpu_Core_Id,
        Element_Id_Type => Timer_Id_Type, Null_Element_Id => Invalid_Timer_Id);
 
+   type Boolean_Bit_Map_Type is array (Valid_Thread_Priority_Type) of Boolean
+      with Component_Size => 1, Size => HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size;
+
    --
    --  Per-CPU State variables of the HiRTOS kernel
    --
    --  @field Initialized: flag indicating if HiRTOS has been initialized.
+   --  @field Last_Chance_Handler_Running: flag indicating if Last_Chance_Handler
+   --  is currently running.
    --  @field Cpu_Id Id: of the CPU core associated to this HiRTOS instance
    --  @field Current_Thread_Id: Thread Id of the currently running thread.
    --  @field Current_Atomic_Level: current atomic level.
-   --  @field Current_Privilege_Nesting_Counter: current privilege nesting counter.
-   --         Its initial value is 1, as the RTOS initialized while the CPU is running
-   --         in privileged mode from the reset exception handler.
    --  @field Current_Cpu_Execution_Mode: current execution mode for the CPU.
    --  @field Timer_Ticks_Since_Boot: counter of timer ticks since boot.
    --  @field Interrupt_Nesting_Level_Stack: stack of active interrupt handler objects.
@@ -110,24 +118,24 @@ is
    --
    type HiRTOS_Cpu_Instance_Type is limited record
       Initialized            : Boolean                     := False;
+      Last_Chance_Handler_Running : Boolean                := False;
       Cpu_Id                 : Cpu_Core_Id_Type;
       Thread_Scheduler_State : Thread_Scheduler_State_Type :=
        Thread_Scheduler_Stopped;
-      Current_Atomic_Level              : Atomic_Level_Type := Atomic_Level_None;
-      Current_Privilege_Nesting_Counter : Privilege_Nesting_Counter_Type :=
-        Privilege_Nesting_Counter_Type'First + 1;
+      Current_Atomic_Level       : Atomic_Level_Type := Atomic_Level_None;
       Current_Cpu_Execution_Mode : Cpu_Execution_Mode_Type := Cpu_Executing_Reset_Handler;
       Current_Thread_Id             : Thread_Id_Type := Invalid_Thread_Id;
       Timer_Ticks_Since_Boot        : Timer_Ticks_Count_Type := 0;
       Idle_Thread_Id                : Thread_Id_Type := Invalid_Thread_Id;
       Tick_Timer_Thread_Id          : Thread_Id_Type := Invalid_Thread_Id;
-      Interrupt_Stack_Base_Addr     : System.Address;
-      Interrupt_Stack_Size          : System.Storage_Elements.Integer_Address;
+      Interrupt_Stack_Base_Address  : System.Address;
+      Interrupt_Stack_End_Address   : System.Address;
       Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type;
       All_Threads : Per_Cpu_Thread_List_Package.List_Anchor_Type;
       All_Mutexes : Per_Cpu_Mutex_List_Package.List_Anchor_Type;
       All_Condvars : Per_Cpu_Condvar_List_Package.List_Anchor_Type;
       All_Timers : Per_Cpu_Timer_List_Package.List_Anchor_Type;
+      Non_Empty_Thread_Queues_Map : Boolean_Bit_Map_Type := [ others => False ];
       Runnable_Thread_Queues        : Priority_Thread_Queues_Type;
       Timer_Wheel                   : Timer_Wheel_Type;
    end record with

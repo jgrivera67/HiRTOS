@@ -27,7 +27,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_CTL_Value : CNTP_CTL_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      --Set_CNTFRQ (CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
+      --  Set_CNTFRQ (CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
 
       --  Configure generic timer interrupt in the GIC:
       Interrupt_Controller.Configure_Internal_Interrupt (

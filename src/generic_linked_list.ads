@@ -129,7 +129,7 @@ private
 
    --
    --  NOTE: The same element cannot be in more than one list. So,
-   --  the maximum number of nodes that we need is Valid_Element_Id_Type'Range
+   --  the maximal set of nodes that we need is `Valid_Element_Id_Type`
    --
    List_Nodes : array (Valid_Element_Id_Type) of List_Node_Type;
 

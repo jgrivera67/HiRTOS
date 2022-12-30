@@ -13,7 +13,6 @@
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with HiRTOS_Low_Level_Debug_Interface;
-with Number_Conversion_Utils;
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
@@ -35,9 +34,9 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       HiRTOS.Enter_Cpu_Privileged_Mode;
       SCTLR_Value := Get_SCTLR;
       SCTLR_Value.M := EL1_Mpu_Enabled;
-      SCTLR_Value.A := Alignment_Check_Enabled;
+      SCTLR_Value.A := Alignment_Check_Disabled; -- To allow unaligned accesses
       SCTLR_Value.C := Cacheable;
-      SCTLR_Value.BR := Background_Region_Enabled;
+      SCTLR_Value.BR := Background_Region_Enabled; -- TODO: Change this to Disabled
       Set_SCTLR (SCTLR_Value);
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Enable_Memory_Protection;
@@ -54,6 +53,72 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Memory_Barrier;
    end Disable_Memory_Protection;
 
+   procedure Configure_Memory_Region (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      Size_In_Bytes : System.Storage_Elements.Integer_Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+   is
+      Region_Descriptor : Memory_Region_Descriptor_Type;
+   begin
+      Initialize_Memory_Region_Descriptor (Region_Descriptor,
+                                           Start_Address,
+                                           Size_In_Bytes,
+                                           Unprivileged_Permissions,
+                                           Privileged_Permissions,
+                                           Region_Attributes);
+      Restore_Memory_Region_Descriptor (Region_Id, Region_Descriptor);
+   end Configure_Memory_Region;
+
+   procedure Change_Memory_Region_Address_Range (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address)
+   is
+      PRBAR_Value : PRBAR_Type;
+      PRLAR_Value : PRLAR_Type;
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      PRBAR_Value := Get_PRBAR (Region_Id);
+      PRBAR_Value.BASE := Encode_Region_Border_Address_Field (Start_Address);
+      Set_PRBAR (Region_Id, PRBAR_Value);
+
+      PRLAR_Value := Get_PRLAR (Region_Id);
+      PRLAR_Value.LIMIT := Encode_Region_Border_Address_Field (
+         System.Storage_Elements.To_Address (
+            System.Storage_Elements.To_Integer (End_Address - 1)));
+      Set_PRLAR (Region_Id, PRLAR_Value);
+
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+   end Change_Memory_Region_Address_Range;
+
+   procedure Clone_Memory_Region (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Cloned_Region_Id : Memory_Region_Id_Type)
+   is
+      PRBAR_Value : PRBAR_Type;
+      PRLAR_Value : PRLAR_Type;
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      PRBAR_Value := Get_PRBAR (Cloned_Region_Id);
+      PRBAR_Value.BASE := Encode_Region_Border_Address_Field (Start_Address);
+      Set_PRBAR (Region_Id, PRBAR_Value);
+
+      PRLAR_Value := Get_PRLAR (Cloned_Region_Id);
+      PRLAR_Value.LIMIT := Encode_Region_Border_Address_Field (
+         System.Storage_Elements.To_Address (
+            System.Storage_Elements.To_Integer (End_Address - 1)));
+      Set_PRLAR (Region_Id, PRLAR_Value);
+
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+   end Clone_Memory_Region;
+
    procedure Initialize_Memory_Region_Descriptor (
       Region_Descriptor : out Memory_Region_Descriptor_Type;
       Start_Address : System.Address;
@@ -62,13 +127,39 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
    is
+      End_Address : constant System.Address := System.Storage_Elements.To_Address (
+         System.Storage_Elements.To_Integer (Start_Address) + Size_In_Bytes);
+   begin
+      Initialize_Memory_Region_Descriptor (Region_Descriptor,
+                                           Start_Address,
+                                           End_Address,
+                                           Unprivileged_Permissions,
+                                           Privileged_Permissions,
+                                           Region_Attributes);
+   end Initialize_Memory_Region_Descriptor;
+
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+   is
       PRBAR_Value : PRBAR_Type;
       PRLAR_Value : PRLAR_Type;
    begin
-      PRBAR_Value.BASE := Address_Top_26_Bits_Type (
-         Interfaces.Shift_Right (
-            Interfaces.Unsigned_32 (To_Integer (Start_Address)), 6));
-      PRBAR_Value.SH := Outer_Shareable;
+      PRBAR_Value.BASE := Encode_Region_Border_Address_Field (Start_Address);
+
+      --
+      --  NOTE: The Cortex-R52 processor is not coherent and the inner shareability
+      --  domain consists of an individual Cortex-R52 core. The Cortex-R52 processor
+      --  does not cache data that is marked as shareable, and all cache maintenance
+      --  instructions are performed locally. This means that instruction cache maintenance
+      --  operations are not broadcast to any other core. The outer shareability domain
+      --  is external to the Cortex-R52 processor, and is therefore system-dependent.
+      --
+      PRBAR_Value.SH := Non_Shareable;
       PRBAR_Value.XN := Non_Executable;
       case Privileged_Permissions is
          when Read_Write =>
@@ -97,10 +188,8 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
             pragma Assert (False);
       end case;
 
-      PRLAR_Value.LIMIT := Address_Top_26_Bits_Type (
-         Interfaces.Shift_Right (
-            Interfaces.Unsigned_32 (To_Integer (Start_Address) +
-                                    Size_In_Bytes - 1), 6));
+      PRLAR_Value.LIMIT := Encode_Region_Border_Address_Field (System.Storage_Elements.To_Address (
+         System.Storage_Elements.To_Integer (End_Address) - 1));
 
       PRLAR_Value.AttrIndx := AttrIndx_Type (Region_Attributes'Enum_Rep);
       PRLAR_Value.EN := Region_Enabled;
@@ -108,12 +197,6 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Region_Descriptor.PRBAR_Value := PRBAR_Value;
       Region_Descriptor.PRLAR_Value := PRLAR_Value;
    end Initialize_Memory_Region_Descriptor;
-
-   procedure Initialize_Memory_Region_Descriptor_Disabled (
-      Region_Descriptor : out Memory_Region_Descriptor_Type) is
-   begin
-      Region_Descriptor.PRLAR_Value.EN := Region_Disabled;
-   end Initialize_Memory_Region_Descriptor_Disabled;
 
    procedure Restore_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
@@ -126,6 +209,12 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Restore_Memory_Region_Descriptor;
 
+   procedure Initialize_Memory_Region_Descriptor_Disabled (
+      Region_Descriptor : out Memory_Region_Descriptor_Type) is
+   begin
+      Region_Descriptor.PRLAR_Value.EN := Region_Disabled;
+   end Initialize_Memory_Region_Descriptor_Disabled;
+
    procedure Save_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
       Region_Descriptor : out Memory_Region_Descriptor_Type) is
@@ -136,17 +225,39 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Save_Memory_Region_Descriptor;
 
+   procedure Disable_Memory_Region (Region_Id : Memory_Region_Id_Type)
+   is
+      PRLAR_Value : PRLAR_Type;
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      PRLAR_Value := Get_PRLAR (Region_Id);
+      PRLAR_Value.EN := Region_Disabled;
+      Set_PRLAR (Region_Id, PRLAR_Value);
+      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+   end Disable_Memory_Region;
+
+   procedure Enable_Memory_Region (Region_Id : Memory_Region_Id_Type)
+   is
+      PRLAR_Value : PRLAR_Type;
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      PRLAR_Value := Get_PRLAR (Region_Id);
+      PRLAR_Value.EN := Region_Enabled;
+      Set_PRLAR (Region_Id, PRLAR_Value);
+      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+   end Enable_Memory_Region;
+
    procedure Handle_Prefetch_Abort_Exception is
       IFSR_Value : constant IFSR_Type := Get_IFSR;
       IFAR_Value : constant IFAR_Type := Get_IFAR;
-      Unsigned_32_Hexadecimal_Str : Number_Conversion_Utils.Unsigned_32_Hexadecimal_String_Type;
    begin
 
       HiRTOS_Low_Level_Debug_Interface.Print_String (
          "*** Prefetch abort: " & Fault_Name_Pointer_Array (IFSR_Value.Status).all & "  (faulting PC: ");
-      Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (Interfaces.Unsigned_32 (IFAR_Value),
-                                                              Unsigned_32_Hexadecimal_Str);
-      HiRTOS_Low_Level_Debug_Interface.Print_String (Unsigned_32_Hexadecimal_Str & ")" & ASCII.LF);
+      HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (IFAR_Value));
+      HiRTOS_Low_Level_Debug_Interface.Print_String (")" & ASCII.LF);
 
       raise Program_Error;
    end Handle_Prefetch_Abort_Exception;
@@ -154,17 +265,15 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    procedure Handle_Data_Abort_Exception is
       DFSR_Value : constant DFSR_Type := Get_DFSR;
       DFAR_Value : constant DFAR_Type := Get_DFAR;
-      Unsigned_32_Hexadecimal_Str : Number_Conversion_Utils.Unsigned_32_Hexadecimal_String_Type;
-      Faulting_PC : constant System.Address := HiRTOS.Interrupt_Handling.Get_Interrupted_PC;
+      Faulting_PC : constant Integer_Address :=
+         To_Integer (HiRTOS.Interrupt_Handling.Get_Interrupted_PC) - 8;
    begin
       HiRTOS_Low_Level_Debug_Interface.Print_String (
          "*** Data abort: " & Fault_Name_Pointer_Array (DFSR_Value.Status).all & "  (faulting PC: ");
-      Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (
-         Interfaces.Unsigned_32 (To_Integer (Faulting_PC)), Unsigned_32_Hexadecimal_Str);
-      HiRTOS_Low_Level_Debug_Interface.Print_String (Unsigned_32_Hexadecimal_Str & ", fault data address: ");
-      Number_Conversion_Utils.Unsigned_To_Hexadecimal_String (Interfaces.Unsigned_32 (DFAR_Value),
-                                                              Unsigned_32_Hexadecimal_Str);
-      HiRTOS_Low_Level_Debug_Interface.Print_String (Unsigned_32_Hexadecimal_Str & ")" & ASCII.LF);
+      HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Faulting_PC));
+      HiRTOS_Low_Level_Debug_Interface.Print_String (", fault data address: ");
+      HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (DFAR_Value));
+      HiRTOS_Low_Level_Debug_Interface.Print_String (")" & ASCII.LF);
 
       raise Program_Error;
    end Handle_Data_Abort_Exception;

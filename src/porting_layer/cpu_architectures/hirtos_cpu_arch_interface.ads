@@ -36,7 +36,8 @@ is
    function Get_Cpu_Status_Register return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
 
-   function Cpu_Interrupting_Disabled return Boolean;
+   function Cpu_Interrupting_Disabled return Boolean with
+    Inline_Always, Suppress => All_Checks;
 
    --
    --  Disable interrupts at the CPU
@@ -44,7 +45,8 @@ is
    --  NOTE: Only the IRQ interrupt is disabled, not the FIQ interrupt.
    --
    function Disable_Cpu_Interrupting return Cpu_Register_Type with
-    Pre => Cpu_In_Privileged_Mode;
+    Pre => Cpu_In_Privileged_Mode,
+    Post => Cpu_Interrupting_Disabled;
 
    --
    --  Restore interrupt enablement at the CPU
@@ -54,15 +56,18 @@ is
     Pre => Cpu_In_Privileged_Mode and then Cpu_Interrupting_Disabled;
 
    procedure Enable_Cpu_Interrupting with
-    Pre => Cpu_In_Privileged_Mode;
+    Pre => Cpu_In_Privileged_Mode,
+    Post => not Cpu_Interrupting_Disabled;
 
-   function Cpu_In_Privileged_Mode return Boolean;
+   function Cpu_In_Privileged_Mode return Boolean with
+    Inline_Always, Suppress => All_Checks;
 
    --
    --  Switch to CPU privileged mode
    --
    procedure Switch_Cpu_To_Privileged_Mode with
-    Pre  => not Cpu_In_Privileged_Mode and then not Cpu_Interrupting_Disabled,
+    Pre  => not Cpu_In_Privileged_Mode and then
+            not Cpu_Interrupting_Disabled,
     Post => Cpu_In_Privileged_Mode;
 
    --
@@ -95,7 +100,8 @@ is
    procedure Send_Multicore_Event with
     Inline_Always;
 
-   procedure Memory_Barrier;
+   procedure Memory_Barrier with
+    Inline_Always;
 
    function Atomic_Test_Set (Flag_Address : System.Address) return Boolean with
     Inline_Always, Suppress => All_Checks;
@@ -114,10 +120,10 @@ is
     Inline_Always, Suppress => All_Checks;
 
    function Count_Leading_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type with
-    Import, Convention => C, External_Name => "__builtin_clz";
+    Inline_Always, Suppress => All_Checks;
 
    function Count_Trailing_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type with
-    Import, Convention => C, External_Name => "__builtin_ctz";
+    Inline_Always, Suppress => All_Checks;
 
    type Bit_Index_Type is range 0 .. Cpu_Register_Type'Size - 1;
 

@@ -13,12 +13,14 @@ with Generic_Execution_Stack;
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+with HiRTOS_Low_Level_Debug_Interface;
 with System.Machine_Code;
 with Interfaces;
-with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use ASCII;
+
+   procedure Handle_Undefined_Instruction_Exception;
 
    procedure Do_Synchronous_Context_Switch
       with Export,
@@ -194,6 +196,11 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
             (Interfaces.Unsigned_8'Asm_Input ("g",
                                               HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)), -- %0
          Volatile => True);
+
+      pragma Assert (False);
+      loop
+         Wait_For_Interrupt;
+      end loop;
    end Interrupt_Handler_Epilog;
 
    ----------------------------------------------------------------------------
@@ -202,9 +209,23 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
    procedure Undefined_Instruction_Exception_Handler is
    begin
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR: Undefined_Instruction_Exception_Handler" & ASCII.LF); --???
-      raise Program_Error;
+      Interrupt_Handler_Prolog;
+      Handle_Undefined_Instruction_Exception;
+      Interrupt_Handler_Epilog;
    end Undefined_Instruction_Exception_Handler;
+
+   procedure Handle_Undefined_Instruction_Exception is
+      use type System.Storage_Elements.Integer_Address;
+      Faulting_PC : constant System.Storage_Elements.Integer_Address :=
+         System.Storage_Elements.To_Integer (HiRTOS.Interrupt_Handling.Get_Interrupted_PC) - 4;
+   begin
+      HiRTOS_Low_Level_Debug_Interface.Print_String (
+         "*** Undefined instruction exception (faulting PC: ");
+      HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Faulting_PC));
+      HiRTOS_Low_Level_Debug_Interface.Print_String (")" & ASCII.LF);
+
+      raise Program_Error;
+   end Handle_Undefined_Instruction_Exception;
 
    --
    --  SVC instruction exception handler

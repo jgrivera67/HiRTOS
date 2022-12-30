@@ -31,6 +31,11 @@ is
    Memory_Region_Alignment : constant := 64;
 
    --
+   --  Required alignment in bytes for the stack pointer
+   --
+   Stack_Pointer_Alignment : constant := 8;
+
+   --
    --  Width of CPU integer registers in bytes
    --
    Integer_Register_Size_In_Bytes : constant := Machine_Word_Width_In_Bits / System.Storage_Unit;

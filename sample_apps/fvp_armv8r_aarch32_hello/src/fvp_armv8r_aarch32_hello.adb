@@ -11,6 +11,7 @@ with GNAT.Source_Info;
 with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS;
+with App_Threads;
 
 pragma Unreferenced (HiRTOS_Cpu_Startup_Interface);
 
@@ -37,38 +38,12 @@ procedure Fvp_Armv8r_Aarch32_Hello is
          End_Line => True);
    end Print_Console_Greeting;
 
-   -- ** --
-
-   procedure Naive_Delay (N : Interfaces.Unsigned_32) is
-      use Interfaces;
-      Count : Unsigned_32 := N;
-   begin
-      loop
-         exit when Count = 0;
-         Count := Count - 1;
-      end loop;
-   end Naive_Delay;
-
-   -- ** --
-
-   Turn_LED_On : Boolean := True;
-
 begin -- Main
    HiRTOSinit;
    Print_Console_Greeting;
-
    HiRTOS.Initialize;
+   App_Threads.Initialize;
+   HiRTOS.Start_Thread_Scheduler;
 
-   loop
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR "); --???
-      if Turn_LED_On then
-         Turn_LED_On := False;
-         HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
-      else
-         Turn_LED_On := True;
-         HiRTOS_Low_Level_Debug_Interface.Set_Led (False);
-      end if;
-
-      Naive_Delay (10_000_000);
-   end loop;
+   pragma Assert (False);
 end Fvp_Armv8r_Aarch32_Hello;

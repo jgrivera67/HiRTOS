@@ -13,11 +13,13 @@ is
 
    procedure Enter_Interrupt_Context
       with Inline_Always,
-           Suppress => All_Checks;
+           Suppress => All_Checks,
+           Convention => C;
 
    procedure Exit_Interrupt_Context
       with Inline_Always,
-           Suppress => All_Checks;
+           Suppress => All_Checks,
+           Convention => C;
 
    procedure RTOS_Tick_Timer_Interrupt_Handler;
 

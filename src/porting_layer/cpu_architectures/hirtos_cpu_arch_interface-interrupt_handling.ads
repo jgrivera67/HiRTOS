@@ -29,7 +29,7 @@ is
       with Inline_Always;
 
    procedure Interrupt_Handler_Epilog
-      with Inline_Always;
+      with Inline_Always, No_Return;
 
 private
 

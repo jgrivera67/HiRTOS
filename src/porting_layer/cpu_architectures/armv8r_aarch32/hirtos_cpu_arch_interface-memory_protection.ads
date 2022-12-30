@@ -58,6 +58,48 @@ is
    procedure Disable_Memory_Protection
       with Pre => Cpu_In_Privileged_Mode;
 
+   procedure Configure_Memory_Region (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      Size_In_Bytes : System.Storage_Elements.Integer_Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+      with Pre => To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  Size_In_Bytes > 0 and then
+                  Size_In_Bytes mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  not Is_Memory_Region_Enabled (Region_Id),
+            Post => Is_Memory_Region_Enabled (Region_Id);
+
+   procedure Change_Memory_Region_Address_Range (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address)
+      with Pre => To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (End_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (Start_Address) < To_Integer (End_Address) and then
+                  Is_Memory_Region_Enabled (Region_Id),
+            Post => Is_Memory_Region_Enabled (Region_Id);
+
+   procedure Clone_Memory_Region (
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Cloned_Region_Id : Memory_Region_Id_Type)
+      with Pre => To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (End_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (Start_Address) < To_Integer (End_Address) and then
+                  not Is_Memory_Region_Enabled (Region_Id) and then
+                  Is_Memory_Region_Enabled (Cloned_Region_Id) and then
+                  Region_Id /= Cloned_Region_Id,
+            Post => Is_Memory_Region_Enabled (Region_Id);
+
    --
    --  Initializes state of a memory protection descriptor object
    --
@@ -74,8 +116,27 @@ is
                   Size_In_Bytes mod
                      HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0;
 
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+      with Pre => To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (End_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (Start_Address) < To_Integer (End_Address);
+
    procedure Initialize_Memory_Region_Descriptor_Disabled (
       Region_Descriptor : out Memory_Region_Descriptor_Type);
+
+   function Is_Memory_Region_Descriptor_Enabled (Region_Descriptor : Memory_Region_Descriptor_Type)
+      return Boolean;
+
+   function Is_Memory_Region_Enabled (Region_Id : Memory_Region_Id_Type) return Boolean
+      with Pre => Cpu_In_Privileged_Mode;
 
    --
    --  Copies saved state of a memory protection descriptor to the
@@ -83,16 +144,20 @@ is
    --
    procedure Restore_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
-      Region_Descriptor : Memory_Region_Descriptor_Type)
-      with Pre => Cpu_In_Privileged_Mode;
+      Region_Descriptor : Memory_Region_Descriptor_Type);
 
    --
    --  Saves state of a memory protection descriptor from the MPU
    --
    procedure Save_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
-      Region_Descriptor : out Memory_Region_Descriptor_Type)
-      with Pre => Cpu_In_Privileged_Mode;
+      Region_Descriptor : out Memory_Region_Descriptor_Type);
+
+   procedure Disable_Memory_Region (Region_Id : Memory_Region_Id_Type)
+      with Post => not Is_Memory_Region_Enabled (Region_Id);
+
+   procedure Enable_Memory_Region (Region_Id : Memory_Region_Id_Type)
+      with Post => Is_Memory_Region_Enabled (Region_Id);
 
    procedure Handle_Prefetch_Abort_Exception
       with Pre => Cpu_In_Privileged_Mode;
@@ -101,6 +166,7 @@ is
       with Pre => Cpu_In_Privileged_Mode;
 
 private
+   use type Interfaces.Unsigned_32;
 
    ----------------------------------------------------------------------------
    --  Memory protection unit (MPU) declarations
@@ -386,6 +452,13 @@ private
    function Get_DFAR return DFAR_Type
       with Inline_Always;
 
+   --
+   --  NOTE: A translation fault is taken for the following reasons:
+   --  - If an access hits in more than one region in one of the MPUs.
+   --  - If an access does not hit in any MPU region and the background region
+   --    cannot be used (based on the MPU configuration and current privilege
+   --    level).
+   --
    type DFSR_Status_Type is (
       No_Fault,
       Translation_Fault_Level0,
@@ -489,6 +562,24 @@ private
       PRLAR_Value : PRLAR_Type;
    end record
      with Convention => C;
+
+   function Encode_Region_Border_Address_Field (Start_Address : System.Address) return Address_Top_26_Bits_Type
+   is (Address_Top_26_Bits_Type (
+         Interfaces.Shift_Right (
+            Interfaces.Unsigned_32 (To_Integer (Start_Address)), PRBAR_BASE_Start_Bit_Position)));
+
+   function Decode_Region_Border_Address_Field (Base_Field : Address_Top_26_Bits_Type) return System.Address
+   is (System.Storage_Elements.To_Address (System.Storage_Elements.Integer_Address (
+         Interfaces.Shift_Left (Interfaces.Unsigned_32 (Base_Field), PRBAR_BASE_Start_Bit_Position)
+         or
+         Interfaces.Unsigned_32 (Bit_Mask (Bit_Index_Type (PRBAR_BASE_Start_Bit_Position)) - 1))));
+
+   function Is_Memory_Region_Descriptor_Enabled (Region_Descriptor : Memory_Region_Descriptor_Type)
+      return Boolean is
+      (Region_Descriptor.PRLAR_Value.EN = Region_Enabled);
+
+   function Is_Memory_Region_Enabled (Region_Id : Memory_Region_Id_Type) return Boolean is
+      (Get_PRLAR (Region_Id).EN = Region_Enabled);
 
    Memory_Attributes_Lookup_Table : constant MAIR_Attr_Array_Type :=
       [ Device_Memory_Mapped_Io'Enum_Rep =>

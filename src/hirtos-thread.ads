@@ -32,11 +32,13 @@ is
                             Thread_Arg : System.Address;
                             Priority : Valid_Thread_Priority_Type;
                             Stack_Base_Address : System.Address;
-                            Stack_Size :  System.Storage_Elements.Integer_Address;
+                            Stack_Size_In_Bytes :  System.Storage_Elements.Integer_Address;
                             Thread_Id : out Valid_Thread_Id_Type)
       with Pre => HiRTOS.Memory_Protection.Valid_Code_Address (Entry_Point.all'Address) and then
                   HiRTOS.Memory_Protection.Valid_Stack_Address (Stack_Base_Address) and then
-                  Stack_Size /= 0,
+                  Stack_Size_In_Bytes /= 0 and then
+                  Stack_Size_In_Bytes mod
+                     (HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size / System.Storage_Unit) = 0,
            Export,
            Convention => C,
            External_Name => "hirtos_create_thread";

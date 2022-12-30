@@ -133,13 +133,13 @@ is
       Stacks_Section_End_Linker_Symbol'Address;
 
    --
-   --  MMIO range for the target platform
+   --  Global MMIO range for the target platform
    --
 
-   Global_Mmio_Range_Start_Address : constant System.Address :=
+   Global_Mmio_Region_Start_Address : constant System.Address :=
       System'To_Address (16#8000_0000# + 16#1C01_0000#);
 
-   Global_Mmio_Range_End_Address : constant System.Address :=
+   Global_Mmio_Region_End_Address : constant System.Address :=
       System'To_Address (16#8000_0000# + 16#3000_0000#);
 
 end HiRTOS_Platform_Parameters;

@@ -29,6 +29,7 @@ is
    use HiRTOS.Thread_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
+   use type System.Address;
 
    Idle_Thread_Stack : Small_Thread_Stack_Package.Execution_Stack_Type with
       Linker_Section => ".thread_stacks",
@@ -61,10 +62,11 @@ is
 
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
-      RTOS_Cpu_Instance.Interrupt_Stack_Base_Addr :=
+      RTOS_Cpu_Instance.Interrupt_Stack_Base_Address :=
         ISR_Stack_Info.Base_Address;
-      RTOS_Cpu_Instance.Interrupt_Stack_Size := ISR_Stack_Info.Size_In_Bytes;
-      RTOS_Cpu_Instance.Cpu_Id               := Cpu_Id;
+      RTOS_Cpu_Instance.Interrupt_Stack_End_Address := System.Storage_Elements.To_Address (
+         System.Storage_Elements.To_Integer (ISR_Stack_Info.Base_Address) + ISR_Stack_Info.Size_In_Bytes);
+      RTOS_Cpu_Instance.Cpu_Id := Cpu_Id;
 
       Per_Cpu_Thread_List_Package.List_Init (RTOS_Cpu_Instance.All_Threads, Cpu_Id);
       Per_Cpu_Mutex_List_Package.List_Init (RTOS_Cpu_Instance.All_Mutexes, Cpu_Id);
@@ -89,7 +91,7 @@ is
       HiRTOS.Thread.Create_Thread
         (Timer_Thread_Proc'Access,
          System.Null_Address,
-         Lowest_Thread_Priority,
+         Lowest_Thread_Priority + 1, --??? TODO Change to highest
          Timer_Thread_Stack'Address,
          Timer_Thread_Stack'Size / System.Storage_Unit,
          RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
@@ -98,12 +100,30 @@ is
    end Initialize;
 
    procedure Start_Thread_Scheduler is
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
-      -- TODO: Set state varialbes ????
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODO: Set thread scheduler state vars" & ASCII.LF); --???
+      pragma Assert (RTOS_Cpu_Instance.Thread_Scheduler_State = Thread_Scheduler_Stopped);
+      pragma Assert (RTOS_Cpu_Instance.Current_Thread_Id = Invalid_Thread_Id);
+      pragma Assert (RTOS_Cpu_Instance.Current_Atomic_Level = Atomic_Level_None);
+      pragma Assert (RTOS_Cpu_Instance.Current_Cpu_Execution_Mode = Cpu_Executing_Reset_Handler);
+
+      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
+        (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
+      RTOS_Cpu_Instance.Thread_Scheduler_State := Thread_Scheduler_Running;
+
       -- TODO: Start tick timer interrupt generation
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODOL Start tick timer interrupt generation" & ASCII.LF); --???
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODO: Start tick timer interrupt generation" & ASCII.LF); --???
+      HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
+
       HiRTOS_Cpu_Arch_Interface.Thread_Context.First_Thread_Context_Switch;
+
+      --
+      --  We should not come here
+      --
+      pragma Assert (False);
+
    end Start_Thread_Scheduler;
 
    function Thread_Scheduler_Started return Boolean is
@@ -119,34 +139,30 @@ is
    begin
       return
         Interrupt_Handling_Private.Get_Current_Interrupt_Nesting
-          (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack) /=
-        0;
+          (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack) /= 0;
    end Current_Execution_Context_Is_Interrupt;
 
    procedure Enter_Cpu_Privileged_Mode is
    begin
-      --
-      --  If we are in interrupt context, we don't need to do anything,
-      --  as ISRs and the reset handler always run in provileged mode.
-      --
-      if Current_Execution_Context_Is_Interrupt then
-         return;
+      if not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode then
+         HiRTOS_Cpu_Arch_Interface.Switch_Cpu_To_Privileged_Mode;
+      else
+         if Current_Execution_Context_Is_Interrupt then
+            --
+            --  If we are in interrupt context, we don't need to increment the
+            --  privileged nesting counter.
+            --
+            return;
+         end if;
       end if;
 
-      declare
-         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-           HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-         Current_Thread_Id : constant Thread_Id_Type :=
-           RTOS_Cpu_Instance.Current_Thread_Id;
-         Current_Thread_Obj :
-           Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
-      begin
-         if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then
-            HiRTOS_Cpu_Arch_Interface.Switch_Cpu_To_Privileged_Mode;
-         else
-            pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
-         end if;
+      pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
 
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
+         Current_Thread_Obj : Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+      begin
          Thread_Private.Increment_Privilege_Nesting (Current_Thread_Obj);
       end;
    end Enter_Cpu_Privileged_Mode;
@@ -172,6 +188,9 @@ is
          Thread_Private.Decrement_Privilege_Nesting (Current_Thread_Obj);
          if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then
             HiRTOS_Cpu_Arch_Interface.Switch_Cpu_To_Unprivileged_Mode;
+            pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
+         else
+            pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
          end if;
       end;
    end Exit_Cpu_Privileged_Mode;
@@ -180,14 +199,14 @@ is
      HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    procedure Idle_Thread_Proc (Arg : System.Address) is
-      pragma Unreferenced (Arg);
    begin
+      pragma Assert (Arg = System.Null_Address);
       pragma Assert (False); --???
    end Idle_Thread_Proc;
 
    procedure Timer_Thread_Proc (Arg : System.Address) is
-      pragma Unreferenced (Arg);
    begin
+      pragma Assert (Arg = System.Null_Address);
       pragma Assert (False); --???
    end Timer_Thread_Proc;
 

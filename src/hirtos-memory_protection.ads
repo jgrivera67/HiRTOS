@@ -52,20 +52,89 @@ is
 
    function Valid_Stack_Address (Address : System.Address) return Boolean;
 
-private
+   function Valid_Global_Data_Address (Address : System.Address) return Boolean;
 
+   function Valid_Global_Mmio_Address (Address : System.Address) return Boolean;
+
+   function Address_Range_In_Global_Data_Region (Start_Address : System.Address;
+                                                 Size_In_Bytes : System.Storage_Elements.Integer_Address)
+      return Boolean;
+
+   function Address_Range_In_Global_Data_Region (Start_Address : System.Address;
+                                                 End_Address : System.Address)
+      return Boolean;
+
+   function Address_Range_In_Global_Mmio_Region (Start_Address : System.Address;
+                                                 Size_In_Bytes : System.Storage_Elements.Integer_Address)
+      return Boolean;
+
+   function Address_Range_In_Global_Mmio_Region (Start_Address : System.Address;
+                                                 End_Address : System.Address)
+      return Boolean;
+
+private
+   use HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+   use type System.Storage_Elements.Integer_Address;
+
+   --
+   --  Memory range permissions and atributes saved on calls to Begin_Data_Range_Write_Access
+   --  or Begin_Mmio_Range_Write_Access, and restored with calls to End_Data_Range_Write_Access
+   --  or End_Mmio_Range_Write_Access
+   --
    type Memory_Range_Type is limited record
-      Region_Descriptor :
-         HiRTOS_Cpu_Arch_Interface.Memory_Protection.Memory_Region_Descriptor_Type;
-      Region_Role : HiRTOS.Memory_Protection_Private.Memory_Region_Role_Type;
+      Range_Region_Role : HiRTOS.Memory_Protection_Private.Memory_Region_Role_Type;
+      Range_Region : Memory_Region_Descriptor_Type;
+      Overlapped_Global_Region : Memory_Region_Descriptor_Type;
+      Overlapped_Global_Region_After_Hole : Memory_Region_Descriptor_Type;
    end record
      with Convention => C;
 
    function Valid_Code_Address (Address : System.Address) return Boolean is
-      (To_Integer (Address) in To_Integer (HiRTOS_Platform_Parameters.Global_Text_Region_Start_Address) ..
-                               To_Integer (HiRTOS_Platform_Parameters.Global_Text_Region_End_Address));
+      (System.Storage_Elements.To_Integer (Address) in
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Global_Text_Region_Start_Address) ..
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Global_Text_Region_End_Address));
 
    function Valid_Stack_Address (Address : System.Address) return Boolean is
-      (To_Integer (Address) in To_Integer (HiRTOS_Platform_Parameters.Stacks_Section_Start_Address) ..
-                               To_Integer (HiRTOS_Platform_Parameters.Stacks_Section_End_Address));
+      (System.Storage_Elements.To_Integer (Address) in
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Stacks_Section_Start_Address) ..
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Stacks_Section_End_Address));
+
+   function Valid_Global_Data_Address (Address : System.Address) return Boolean is
+      (System.Storage_Elements.To_Integer (Address) in
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address) ..
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_End_Address));
+
+   function Valid_Global_Mmio_Address (Address : System.Address) return Boolean is
+      (System.Storage_Elements.To_Integer (Address) in
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Global_Mmio_Region_Start_Address) ..
+       System.Storage_Elements.To_Integer (HiRTOS_Platform_Parameters.Global_Mmio_Region_End_Address));
+
+   function Address_Range_In_Global_Data_Region (Start_Address : System.Address;
+                                                 Size_In_Bytes : System.Storage_Elements.Integer_Address)
+      return Boolean is
+      (Valid_Global_Data_Address (Start_Address) and then
+       Valid_Global_Data_Address (System.Storage_Elements.To_Address (
+         System.Storage_Elements.To_Integer (Start_Address) + (Size_In_Bytes - 1))));
+
+   function Address_Range_In_Global_Data_Region (Start_Address : System.Address;
+                                                 End_Address : System.Address)
+      return Boolean is
+      (Valid_Global_Data_Address (Start_Address) and then
+       Valid_Global_Data_Address (System.Storage_Elements.To_Address (
+         System.Storage_Elements.To_Integer (End_Address) - 1)));
+
+   function Address_Range_In_Global_Mmio_Region (Start_Address : System.Address;
+                                                 Size_In_Bytes : System.Storage_Elements.Integer_Address)
+      return Boolean is
+      (Valid_Global_Mmio_Address (Start_Address) and then
+       Valid_Global_Mmio_Address (System.Storage_Elements.To_Address (
+         System.Storage_Elements.To_Integer (Start_Address) + (Size_In_Bytes - 1))));
+
+   function Address_Range_In_Global_Mmio_Region (Start_Address : System.Address;
+                                                 End_Address : System.Address)
+      return Boolean is
+      (Valid_Global_Mmio_Address (Start_Address) and then
+       Valid_Global_Mmio_Address (System.Storage_Elements.To_Address (
+         System.Storage_Elements.To_Integer (End_Address) - 1)));
+
 end HiRTOS.Memory_Protection;

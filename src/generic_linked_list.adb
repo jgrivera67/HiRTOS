@@ -4,6 +4,7 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
+
 package body Generic_Linked_List with SPARK_Mode => On is
 
    procedure List_Init (List_Anchor : in out List_Anchor_Type;

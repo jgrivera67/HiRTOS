@@ -31,11 +31,15 @@ is
 
    type Stats_Counter_Type is new Interfaces.Unsigned_32;
 
-  --
-   --  Tell if current exectuion context on the current CPU core is an
-   --  interrupt context (ISR)
    --
-   function Current_Execution_Context_Is_Interrupt return Boolean;
+   --  Tell if current exectuion context on the current CPU core is an
+   --  interrupt context (ISR).
+   --
+   --  NOTE: This function can only be called from privileged mode as it
+   --  invoked `Get_Cpu_Id()` which can only be invoked in privileged mode.
+   --
+   function Current_Execution_Context_Is_Interrupt return Boolean
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    --
    --  Initialize RTOS internal state variables for the calling CPU
@@ -47,14 +51,16 @@ is
    --
    procedure Initialize with
      Pre => Current_Execution_Context_Is_Interrupt,
-     Export, Convention => C, External_Name => "hirtos_initialize";
+     Export, Convention => C,
+     External_Name => "hirtos_initialize";
 
    --
    --  Start RTOS tick timer and RTOS thread scheduler for the calling CPU
    --
    procedure Start_Thread_Scheduler with
      Pre => Current_Execution_Context_Is_Interrupt,
-     Export, Convention => C, External_Name => "hirtos_start_thread_scheduler";
+     Export, Convention => C, External_Name => "hirtos_start_thread_scheduler",
+     No_Return;
 
    function Thread_Scheduler_Started return Boolean;
 
@@ -65,8 +71,7 @@ is
    --  the interrupt-enable state unchanged.
    --
    procedure Enter_Cpu_Privileged_Mode
-    with Pre => (if Current_Execution_Context_Is_Interrupt then HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode),
-         Post => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
+    with Post => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    --
    --  Lowers the CPU privilege level. If the old privilege level is 1
@@ -75,8 +80,7 @@ is
    --  privileged mode and leaves the interrupt-enable state unchanged.
    --
    procedure Exit_Cpu_Privileged_Mode
-    with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
-         Post => (if Current_Execution_Context_Is_Interrupt then HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
+    with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    --
    --  Tell if we are running in CPU privileged mode
