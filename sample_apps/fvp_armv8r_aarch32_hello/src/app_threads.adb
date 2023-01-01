@@ -51,8 +51,10 @@ package body App_Threads is
 
    begin
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
+      pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
       pragma Assert (Arg = System.Null_Address);
       HiRTOS.Enter_Cpu_Privileged_Mode;
+      HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt; --???
       pragma Assert (not HiRTOS.Current_Execution_Context_Is_Interrupt);
       HiRTOS.Exit_Cpu_Privileged_Mode;
 

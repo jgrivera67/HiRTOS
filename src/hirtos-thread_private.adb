@@ -119,6 +119,7 @@ package body HiRTOS.Thread_Private is
       Old_Thread_Id := RTOS_Cpu_Instance.Current_Thread_Id;
       if Old_Thread_Id /= Invalid_Thread_Id then
          Reschedule_Thread (Old_Thread_Id);
+         RTOS_Cpu_Instance.Current_Thread_Id := Invalid_Thread_Id;
       end if;
 
       Dequeue_Highest_Priority_Runnable_Thread (RTOS_Cpu_Instance.Current_Thread_Id);

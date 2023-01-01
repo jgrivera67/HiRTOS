@@ -17,6 +17,7 @@ package body HiRTOS.Interrupt_Handling_Private is
    procedure Initialize is
    begin
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
+      HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
    end Initialize;
 
    procedure Initialize_Interrupt_Nesting_Level_Stack

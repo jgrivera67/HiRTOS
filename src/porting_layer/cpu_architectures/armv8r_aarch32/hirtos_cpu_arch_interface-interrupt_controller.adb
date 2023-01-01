@@ -10,8 +10,6 @@
 --
 
 with System.Machine_Code;
-with HiRTOS_Low_Level_Debug_Interface; --???
-with GNAT.Source_Info; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with
   SPARK_Mode => Off
@@ -37,7 +35,14 @@ is
          HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
            (GICD'Address, GICD'Size, Old_Mmio_Range);
 
-      --  Disable interrupts from group0 and group1 before configuring the GIC:
+         --  Disable distributor
+         GICD.GICD_CTLR := (others => <>);
+         loop
+            GICD_CTLR_Value := GICD.GICD_CTLR;
+            exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
+         end loop;
+
+         --  Disable interrupts from group0 and group1 before configuring the GIC:
          GICD_CTLR_Value            := GICD.GICD_CTLR;
          GICD_CTLR_Value.EnableGrp0 := Group_Interrupts_Disabled;
          GICD_CTLR_Value.EnableGrp1 := Group_Interrupts_Disabled;
@@ -56,17 +61,30 @@ is
                External_Interrupt_Id_Type'First + 1));
 
          --
-         --  Disable all external interrupts (SPIs):
+         --  Disable and clear all external interrupts (SPIs):
          --
          for I in GICD_ICENABLER_Array_Type'Range loop
             GICD.GICD_ICENABLER_Array (I) := [others => 2#1#];
+            GICD.GICD_ICPENDR_Array (I) := [others => 2#1#];
+         end loop;
+
+         loop
+            GICD_CTLR_Value := GICD.GICD_CTLR;
+            exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
          end loop;
 
          --  Enable reception of interrupts from group0/group1 in the GIC:
          GICD_CTLR_Value            := GICD.GICD_CTLR;
          GICD_CTLR_Value.EnableGrp0 := Group_Interrupts_Enabled; --  FIQ
          GICD_CTLR_Value.EnableGrp1 := Group_Interrupts_Enabled; --  IRQ
+         GICD_CTLR_Value.ARE        := Affinity_Routing_Enabled;
          GICD.GICD_CTLR             := GICD_CTLR_Value;
+
+         loop
+            GICD_CTLR_Value := GICD.GICD_CTLR;
+            exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
+         end loop;
+
          HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
 
          Interrupt_Controller_Obj.Max_Number_Interrupt_Sources :=
@@ -123,7 +141,7 @@ is
          ICC_IGRPEN_Value : ICC_IGRPEN_Type;
          ICC_PMR_Value    : ICC_PMR_Type;
       begin
-         --  Enable CPU interface system registers access, if available:
+         --  Check that CPU interface system registers access is supported:
          ICC_SRE_Value := Get_ICC_SRE;
          pragma Assert
            (ICC_SRE_Value.SRE = GIC_CPU_Interface_System_Registers_Enabled);
@@ -131,6 +149,7 @@ is
          --  Enable CPU interface:
          ICC_CTLR_Value      := Get_ICC_CTLR;
          ICC_CTLR_Value.CBPR := Use_ICC_BPR0_For_Interrupt_Preemption_Enabled;
+         ICC_CTLR_Value.EOImode := ICC_EOIRx_Write_Deactives_Interrupt_Enabled;
          Set_ICC_CTLR (ICC_CTLR_Value);
 
          --
@@ -156,13 +175,13 @@ is
            (Cpu_Interrupt_Irq, ICC_IGRPEN_Value); --  group1 -> IRQ
 
          --
-      --  Set current interrupt priority mask to accept all interrupt priorities
-      --  supported:
-
-      --  NOTE: Interrupt_Priority_Type'Last is the lowest priority supported.
-      --  Interrupt_Priority_Type'First is the highest priority.
-      --  The GIC only signals pending interrupts with a higher priority (lower
-      --  priority value) than the value set in ICC_PMR.
+         --  Set current interrupt priority mask to accept all interrupt priorities
+         --  supported:
+         --
+         --  NOTE: Interrupt_Priority_Type'Last is the lowest priority supported.
+         --  Interrupt_Priority_Type'First is the highest priority.
+         --  The GIC only signals pending interrupts with a higher priority (lower
+         --  priority value) than the value set in ICC_PMR.
          --
          ICC_PMR_Value.Priority := GIC_Interrupt_Priority_Type'Last;
          Set_ICC_PMR (ICC_PMR_Value);
@@ -280,6 +299,10 @@ is
         GIC_Interrupt_Group_Type (Cpu_Interrupt_Line);
       GICR.GICR_SGI_And_PPI_Page.GICR_IGROUPR0            := GIC_IGROUPR_Value;
 
+      --
+      --  NOTE: The interrupt starts to fire on the CPU only after Enable_Internal_Interrupt()
+      --  is called.
+      --
       HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
    end Configure_Internal_Interrupt;
 
@@ -376,12 +399,17 @@ is
       HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Release
         (Interrupt_Controller_Obj.Spinlock);
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
+
+      --
+      --  NOTE: The interrupt starts to fire on the CPU only after Enable_External_Interrupt()
+      --  is called.
+      --
    end Configure_External_Interrupt;
 
    procedure Enable_Internal_Interrupt
      (Internal_Interrupt_Id : Internal_Interrupt_Id_Type)
    is
-      GIC_ISENABLER_Value : GIC_ISENABLER_Type;
+      GIC_ISENABLER_Value : GIC_ISENABLER_Type := [others => 0];
       Cpu_Id              : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
       GICR                : GICR_Type renames GICD.GICR_Array (Cpu_Id);
       Old_Mmio_Range      : HiRTOS.Memory_Protection.Memory_Range_Type;
@@ -389,7 +417,6 @@ is
       HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
         (GICR'Address, GICR'Size, Old_Mmio_Range);
 
-      GIC_ISENABLER_Value                                   := [others => 0];
       GIC_ISENABLER_Value (Integer (Internal_Interrupt_Id)) := 1;
       GICR.GICR_SGI_And_PPI_Page.GICR_ISENABLER0 := GIC_ISENABLER_Value;
 
@@ -499,9 +526,8 @@ is
       ICC_EOIR_Value             : ICC_EOIR_Type;
    begin
       pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
 
-      --  Enable interrupts at the CPU ro support nested interrupts
+      --  Enable interrupts at the CPU to support nested interrupts
       HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
 
       --  Invoke the IRQ-specific interrupt handler:
@@ -521,6 +547,17 @@ is
       Set_ICC_EOIR
         (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line), ICC_EOIR_Value);
    end GIC_Interrupt_Handler;
+
+   procedure Trigger_Software_Generated_Interrupt (Soft_Gen_Interrupt_Id : Soft_Gen_Interrupt_Id_Type;
+                                                   Cpu_Id : HiRTOS_Cpu_Multi_Core_Interface.Cpu_Core_Id_Type) is
+      ICC_SGIR_Value : HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.ICC_SGIR_Type;
+   begin
+      ICC_SGIR_Value.Target_List :=
+         ICC_SGIR_Target_List_Type (HiRTOS_Cpu_Arch_Interface.Bit_Mask (Bit_Index_Type (Cpu_Id)));
+      ICC_SGIR_Value.INTID := SGI_INTID_Type (Soft_Gen_Interrupt_Id);
+      Set_ICC_SGIR (HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Irq,
+                    ICC_SGIR_Value);
+   end Trigger_Software_Generated_Interrupt;
 
    ----------------------------------------------------------------------------
    --  Private Subprograms

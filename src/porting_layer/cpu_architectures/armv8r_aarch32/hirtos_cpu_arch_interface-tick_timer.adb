@@ -12,31 +12,25 @@
 with HiRTOS_Platform_Parameters;
 with HiRTOS.Interrupt_Handling;
 with System.Machine_Code;
+with System.Storage_Elements;
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
    procedure Tick_Timer_Interrupt_Handler (Arg : System.Address);
 
-   Timer_Ticks_Per_Ms : constant :=
-      HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz / 1000;
+   Timer_Ticks_Per_Us : constant :=
+      HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz / 1_000_000;
 
    pragma Compile_Time_Error
-     (Timer_Ticks_Per_Ms = 0, "Invalid Timer_Ticks_Per_Ms");
+     (Timer_Ticks_Per_Us = 0, "Invalid Timer_Ticks_Per_Us");
 
    procedure Initialize is
       CNTP_CTL_Value : CNTP_CTL_Type;
+      CNTFRQ_Value : CNTFRQ_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      --  Set_CNTFRQ (CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
-
-      --  Configure generic timer interrupt in the GIC:
-      Interrupt_Controller.Configure_Internal_Interrupt (
-         Internal_Interrupt_Id => Generic_Timer_Interrupt_Id,
-         Priority => Interrupt_Controller.Highest_Interrupt_Priority,
-         Cpu_Interrupt_Line => Interrupt_Controller.Cpu_Interrupt_Irq,
-         Trigger_Mode => Interrupt_Controller.Interrupt_Level_Sensitive,
-         Interrupt_Handler_Entry_Point => Tick_Timer_Interrupt_Handler'Access,
-         Interrupt_Handler_Arg => System.Null_Address);
+      CNTFRQ_Value := Get_CNTFRQ;
+      pragma Assert (CNTFRQ_Value = CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
 
       --
       --  Make sure that the timer is disabled:
@@ -50,20 +44,20 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
       --
       --  NOTE: the generic timer interrupt is enabled in the GIC and in the
-      --  peipheral when Start_Timer is called and disabled when Stop_Timer
+      --  peripheral when Start_Timer is called and disabled when Stop_Timer
       --  is called.
       --
 
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Initialize;
 
-   procedure Start_Timer (Expiration_Time_Ms : HiRTOS.Time_Ms_Type) is
+   procedure Start_Timer (Expiration_Time_Us : HiRTOS.Time_Us_Type) is
+      use System.Storage_Elements;
       CNTP_CTL_Value : CNTP_CTL_Type;
       CNTP_TVAL_Value : constant CNTP_TVAL_Type :=
-         CNTP_TVAL_Type (Expiration_Time_Ms * Timer_Ticks_Per_Ms);
+         CNTP_TVAL_Type (Expiration_Time_Us * Timer_Ticks_Per_Us);
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      Set_CNTP_TVAL (CNTP_TVAL_Value);
 
       --
       --  Enable tick timer interrupt in the generic timer peipheral:
@@ -83,11 +77,21 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_CTL_Value.IMASK := Timer_Interrupt_Not_Masked;
       Set_CNTP_CTL (CNTP_CTL_Value);
 
+      Set_CNTP_TVAL (CNTP_TVAL_Value);
+
+      --  Configure generic timer interrupt in the GIC:
+      Interrupt_Controller.Configure_Internal_Interrupt (
+         Internal_Interrupt_Id => Generic_Timer_Interrupt_Id,
+         Priority => Interrupt_Controller.Highest_Interrupt_Priority,
+         Cpu_Interrupt_Line => Interrupt_Controller.Cpu_Interrupt_Irq,
+         Trigger_Mode => Interrupt_Controller.Interrupt_Level_Sensitive,
+         Interrupt_Handler_Entry_Point => Tick_Timer_Interrupt_Handler'Access,
+         Interrupt_Handler_Arg => To_Address (Integer_Address (CNTP_TVAL_Value)));
+
       --  Enable generic timer interrupt in the GIC:
       Interrupt_Controller.Enable_Internal_Interrupt (Generic_Timer_Interrupt_Id);
-
       HiRTOS.Exit_Cpu_Privileged_Mode;
-   end  Start_Timer;
+   end Start_Timer;
 
    procedure Stop_Timer is
       CNTP_CTL_Value : CNTP_CTL_Type;
@@ -112,12 +116,15 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
    procedure Tick_Timer_Interrupt_Handler (Arg : System.Address)
    is
-      use type System.Address;
+      use System.Storage_Elements;
+      CNTP_TVAL_Value : constant CNTP_TVAL_Type := CNTP_TVAL_Type (To_Integer (Arg));
    begin
-      pragma Assert (Arg = System.Null_Address);
-
-      --  TODO: Do we need to reload CNTP_TVAL?
-
+      --
+      --  NOTE: Setting CNTP_TVAL here serves two purposes:
+      --  - Clear the timer interrupt at the timer peripheral
+      --  - Set the timer to fire for the next tick
+      --
+      Set_CNTP_TVAL (CNTP_TVAL_Value);
       HiRTOS.Interrupt_Handling.RTOS_Tick_Timer_Interrupt_Handler;
    end Tick_Timer_Interrupt_Handler;
 

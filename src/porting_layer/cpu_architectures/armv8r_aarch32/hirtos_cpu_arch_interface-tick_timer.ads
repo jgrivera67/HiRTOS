@@ -16,12 +16,12 @@ with Interfaces;
 package HiRTOS_Cpu_Arch_Interface.Tick_Timer
    with SPARK_Mode => On
 is
-   use type HiRTOS.Time_Ms_Type;
+   use type HiRTOS.Time_Us_Type;
 
    procedure Initialize;
 
-   procedure Start_Timer (Expiration_Time_Ms : HiRTOS.Time_Ms_Type)
-      with Pre => Expiration_Time_Ms /= 0;
+   procedure Start_Timer (Expiration_Time_Us : HiRTOS.Time_Us_Type)
+      with Pre => Expiration_Time_Us /= 0;
 
    procedure Stop_Timer;
 

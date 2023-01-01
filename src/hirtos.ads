@@ -50,7 +50,10 @@ is
    --  privileged mode. So only threads will run in unprivileged mode.
    --
    procedure Initialize with
-     Pre => Current_Execution_Context_Is_Interrupt,
+     Pre => Current_Execution_Context_Is_Interrupt
+            and then
+            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+     Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
      External_Name => "hirtos_initialize";
 

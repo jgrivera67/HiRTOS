@@ -39,7 +39,9 @@ is
          Interrupt_Nesting_Counter_Type'First + 1;
    end record;
 
-   procedure Initialize;
+   procedure Initialize
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+           Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
    procedure Initialize_Interrupt_Nesting_Level_Stack
      (Interrupt_Nesting_Level_Stack : out Interrupt_Nesting_Level_Stack_Type);

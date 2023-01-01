@@ -119,8 +119,15 @@ package body HiRTOS.Interrupt_Handling is
    end Exit_Interrupt_Context;
 
    procedure RTOS_Tick_Timer_Interrupt_Handler is
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Current_Thread_Id : constant Valid_Thread_Id_Type :=
+               RTOS_Cpu_Instance.Current_Thread_Id;
+      Current_Thread_Obj : Thread_Type renames
+         HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
    begin
-      pragma Assert (False); --???
+      pragma Assert (Current_Thread_Obj.Time_Slice_Left_Us >= HiRTOS_Config_Parameters.Tick_Period_Us);
+      Current_Thread_Obj.Time_Slice_Left_Us := @ - HiRTOS_Config_Parameters.Tick_Period_Us;
    end RTOS_Tick_Timer_Interrupt_Handler;
 
    function Get_Interrupted_PC return System.Address

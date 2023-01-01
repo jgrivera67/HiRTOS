@@ -113,8 +113,7 @@ is
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
       RTOS_Cpu_Instance.Thread_Scheduler_State := Thread_Scheduler_Running;
 
-      -- TODO: Start tick timer interrupt generation
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODO: Start tick timer interrupt generation" & ASCII.LF); --???
+      HiRTOS_Cpu_Arch_Interface.Tick_Timer.Start_Timer (HiRTOS_Config_Parameters.Tick_Period_Us);
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
 
       HiRTOS_Cpu_Arch_Interface.Thread_Context.First_Thread_Context_Switch;

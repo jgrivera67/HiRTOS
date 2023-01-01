@@ -57,6 +57,8 @@
 #define MPIDR_CORE_ID_MASK      MULTI_BIT_MASK(7u, MPIDR_CORE_ID_SHIFT)
 #define MPIDR_CORE_ID_SHIFT     0
 
+#define SYSTEM_CLOCK_FREQUENCY_HZ 100000000
+
 /*
  * Imported symbols
  */
@@ -206,6 +208,13 @@ interrupt_vector_table:
         .func reset_handler
 reset_handler:
         INIT_CPU_REGS_EL2
+
+        /*
+         * Set generic timer's CNTFRQ register to the system clock freuency, while in EL2,
+         * as this cannot be done from EL1.
+         */
+        ldr r0, =#SYSTEM_CLOCK_FREQUENCY_HZ
+        mcr p15, 0, r0, c14, c0, 0
 
         /*
          * Disable HVC instruciton, by setting HCD bit in HCR register:

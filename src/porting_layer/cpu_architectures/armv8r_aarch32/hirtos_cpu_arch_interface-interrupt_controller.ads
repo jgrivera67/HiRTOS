@@ -10,7 +10,7 @@
 --  for ARMv8-R MPU
 --
 
-private with HiRTOS_Cpu_Multi_Core_Interface;
+with HiRTOS_Cpu_Multi_Core_Interface;
 private with HiRTOS.Memory_Protection;
 private with System;
 private with Interfaces;
@@ -121,6 +121,9 @@ is
      Pre =>
       Per_Cpu_Initialized and then Cpu_In_Privileged_Mode
       and then Cpu_Interrupting_Disabled;
+
+   procedure Trigger_Software_Generated_Interrupt (Soft_Gen_Interrupt_Id : Soft_Gen_Interrupt_Id_Type;
+                                                   Cpu_Id : HiRTOS_Cpu_Multi_Core_Interface.Cpu_Core_Id_Type);
 
 private
    pragma SPARK_Mode (Off);

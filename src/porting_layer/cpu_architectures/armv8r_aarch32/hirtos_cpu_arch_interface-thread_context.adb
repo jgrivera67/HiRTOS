@@ -49,12 +49,14 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    end Initialize_Thread_Cpu_Context;
 
    procedure First_Thread_Context_Switch is
+      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
    begin
       --
       --  NOTE: To start executing the first thread, we pretend that we are returning from an
-      --  interrupt, since before RTOS tasking is started, we have executing in the reset exception
-      --  handler.
+      --  interrupt, since before RTOS tasking is started, we have been executing in the reset
+      --  exception handler.
       --
+      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
       HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Interrupt_Handler_Epilog;
    end First_Thread_Context_Switch;
 
