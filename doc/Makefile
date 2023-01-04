@@ -32,7 +32,8 @@ OBJ_DIR = obj-latex
 # Build tools
 #
 PDFLATEX = pdflatex
-FUZZ = FUZZLIB=/opt/fuzz/lib/fuzzlib fuzz
+FUZZLIB_PATH ?=/opt/fuzz/lib/fuzzlib
+FUZZ = FUZZLIB=$(FUZZLIB_PATH) fuzz
 
 PDFLATEX_FLAGS = -interaction=nonstopmode \
 		 -halt-on-error \

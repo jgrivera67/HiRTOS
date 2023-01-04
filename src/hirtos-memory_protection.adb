@@ -9,6 +9,7 @@
 --  @summary HiRTOS Memory protection services
 --
 
+with HiRTOS_Low_Level_Debug_Interface; --???
 package body HiRTOS.Memory_Protection with
   SPARK_Mode => On
 is
@@ -55,6 +56,9 @@ is
 
       --  Begin critical section
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+
+HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR "); --????
+HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Region_Size_In_Bytes), End_Line => True); --????
 
       Configure_Memory_Region (Memory_Region_Id_Type (Thread_Private_Data_Region'Enum_Rep),
                                Start_Address,

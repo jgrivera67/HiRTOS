@@ -19,6 +19,7 @@ with Interfaces;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use ASCII;
+   use System.Storage_Elements;
 
    procedure Handle_Undefined_Instruction_Exception;
 
@@ -63,6 +64,16 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    begin
       return ISR_Stack_Info;
    end Get_ISR_Stack_Info;
+
+   function Valid_ISR_Stack_Pointer (Cpu_Id : Cpu_Core_Id_Type; Stack_Pointer : System.Address)
+      return Boolean is
+      Min_Valid_Address : constant Integer_Address :=
+         To_Integer (ISR_Stacks (Cpu_Id).Stack_Entries'Address);
+      Max_Valid_Address : constant Integer_Address :=
+         Min_Valid_Address + (ISR_Stacks (Cpu_Id).Stack_Entries'Size / System.Storage_Unit) - 1;
+   begin
+      return To_Integer (Stack_Pointer) in Min_Valid_Address .. Max_Valid_Address;
+   end Valid_ISR_Stack_Pointer;
 
    --
    --  Inline subprogram to be invoked at the beginning of top-level interrupt handlers from
@@ -117,29 +128,25 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          "sub  sp, sp, %1" & LF & --  skip alignment hole
          "vmrs r1, fpscr" & LF &
          "push {r1}" & LF &
-         "vpush {d0-d15}",
+         "vpush {d0-d15}" & LF &
+
+         --
+         --  Call sp = HiRTOS.Enter_Interrupt_Context (sp)
+         --
+         "mov r0, sp" & LF &
+         "bl hirtos_enter_interrupt_context" & LF &
+         "mov sp, r0" & LF &
+         --
+         --  NOTE: At this point sp always points to somewhere in the ISR stack
+         --
+         --  Set frame pointer to be the same as stack pointer:
+         --  (needed for stack unwinding across interrupted contexts)
+         --
+         "mov     fp, sp",
          Inputs =>
             [Interfaces.Unsigned_8'Asm_Input ("g", CPSR_System_Mode),  --  %0
              Interfaces.Unsigned_8'Asm_Input ("g",
                                               HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)], -- %1
-         Volatile => True);
-
-      --
-      --  NOTE: Enter_Interrupt_Context call is assumed to be inlined,
-      --  since sp changes to point to the ISR stack, if interrupt nesting was 0.
-      --
-      HiRTOS.Interrupt_Handling.Enter_Interrupt_Context;
-
-      --
-      --  NOTE: At this point sp always points to somewhere in the ISR stack
-      --
-
-      --
-      --  Set frame pointer to be the same as stack pointer:
-      --  (needed for stack unwinding across interrupted contexts)
-      --
-      System.Machine_Code.Asm (
-         "mov     fp, sp",
          Volatile => True);
    end Interrupt_Handler_Prolog;
 
@@ -159,14 +166,13 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --
    procedure Interrupt_Handler_Epilog is
    begin
-      --
-      --  NOTE: Exit_Interrupt_Context call is assumed to be inlined,
-      --  since sp changes to point to the interrupted task's stack if
-      --  if interrupt nesting dropped 0.
-      --
-      HiRTOS.Interrupt_Handling.Exit_Interrupt_Context;
-
       System.Machine_Code.Asm (
+         --
+         --  Call sp = HiRTOS.Exit_Interrupt_Context (sp)
+         --
+         "mov r0, sp" & LF &
+         "bl hirtos_exit_interrupt_context" & LF &
+         "mov sp, r0" & LF &
          --
          --  At this point sp points to a task stack, if interrupt nesting level
          --  dropped to 0. Otherwise, it points to somewhere in the ISR stack.

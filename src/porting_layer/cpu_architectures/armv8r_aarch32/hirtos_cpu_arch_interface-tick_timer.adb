@@ -11,8 +11,12 @@
 
 with HiRTOS_Platform_Parameters;
 with HiRTOS.Interrupt_Handling;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
+with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with System.Machine_Code;
 with System.Storage_Elements;
+with HiRTOS_Low_Level_Debug_Interface; --???
+with GNAT.Source_Info; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
@@ -81,15 +85,17 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
       --  Configure generic timer interrupt in the GIC:
       Interrupt_Controller.Configure_Internal_Interrupt (
-         Internal_Interrupt_Id => Generic_Timer_Interrupt_Id,
-         Priority => Interrupt_Controller.Highest_Interrupt_Priority,
+         Internal_Interrupt_Id => HiRTOS_Cpu_Arch_Interface.Interrupts.Generic_Timer_Interrupt_Id,
+         Priority => HiRTOS_Cpu_Arch_Interface.Interrupts.Interrupt_Priorities (
+            HiRTOS_Cpu_Arch_Interface.Interrupts.Generic_Timer_Interrupt_Id),
          Cpu_Interrupt_Line => Interrupt_Controller.Cpu_Interrupt_Irq,
          Trigger_Mode => Interrupt_Controller.Interrupt_Level_Sensitive,
          Interrupt_Handler_Entry_Point => Tick_Timer_Interrupt_Handler'Access,
          Interrupt_Handler_Arg => To_Address (Integer_Address (CNTP_TVAL_Value)));
 
       --  Enable generic timer interrupt in the GIC:
-      Interrupt_Controller.Enable_Internal_Interrupt (Generic_Timer_Interrupt_Id);
+      Interrupt_Controller.Enable_Internal_Interrupt (
+         HiRTOS_Cpu_Arch_Interface.Interrupts.Generic_Timer_Interrupt_Id);
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Start_Timer;
 
@@ -99,7 +105,8 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       HiRTOS.Enter_Cpu_Privileged_Mode;
 
       --  Disable generic timer interrupt in the GIC:
-      Interrupt_Controller.Disable_Internal_Interrupt (Generic_Timer_Interrupt_Id);
+      Interrupt_Controller.Disable_Internal_Interrupt (
+         HiRTOS_Cpu_Arch_Interface.Interrupts.Generic_Timer_Interrupt_Id);
 
       --  Disable tick timer interrupt in the generic timer peipheral:
       CNTP_CTL_Value := Get_CNTP_CTL;

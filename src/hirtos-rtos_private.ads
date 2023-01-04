@@ -11,7 +11,6 @@ with HiRTOS.Condvar_Private;
 with HiRTOS.Timer_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Cpu_Arch_Interface;
 
 --
 --  @summary Whole RTOS private declarations
@@ -93,9 +92,6 @@ is
        Null_List_Id    => Invalid_Cpu_Core_Id,
        Element_Id_Type => Timer_Id_Type, Null_Element_Id => Invalid_Timer_Id);
 
-   type Boolean_Bit_Map_Type is array (Valid_Thread_Priority_Type) of Boolean
-      with Component_Size => 1, Size => HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size;
-
    --
    --  Per-CPU State variables of the HiRTOS kernel
    --
@@ -135,8 +131,7 @@ is
       All_Mutexes : Per_Cpu_Mutex_List_Package.List_Anchor_Type;
       All_Condvars : Per_Cpu_Condvar_List_Package.List_Anchor_Type;
       All_Timers : Per_Cpu_Timer_List_Package.List_Anchor_Type;
-      Non_Empty_Thread_Queues_Map : Boolean_Bit_Map_Type := [ others => False ];
-      Runnable_Thread_Queues        : Priority_Thread_Queues_Type;
+      Runnable_Thread_Queue         : Thread_Priority_Queue_Type;
       Timer_Wheel                   : Timer_Wheel_Type;
    end record with
       Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;

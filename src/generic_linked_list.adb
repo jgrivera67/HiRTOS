@@ -119,25 +119,27 @@ package body Generic_Linked_List with SPARK_Mode => On is
       Next_Element_Id : Element_Id_Type;
       List_Length : constant Interfaces.Unsigned_32 := List_Anchor.Length;
    begin
-      for I in 0 .. List_Length - 1 loop
-         pragma Loop_Invariant (
-            List_Nodes (Element_Id).Containing_List_Id = List_Anchor.List_Id
-            and then
-            (List_Nodes (Element_Id).Prev_Element_Id = Null_Element_Id or else
-             List_Nodes (List_Nodes (Element_Id).Prev_Element_Id).Next_Element_Id = Element_Id)
-            and then
-            (List_Nodes (Element_Id).Next_Element_Id = Null_Element_Id or else
-             List_Nodes (List_Nodes (Element_Id).Next_Element_Id).Prev_Element_Id = Element_Id)
-         );
+      if List_Length /= 0 then
+         for I in 0 .. List_Length - 1 loop
+            pragma Loop_Invariant (
+               List_Nodes (Element_Id).Containing_List_Id = List_Anchor.List_Id
+               and then
+               (List_Nodes (Element_Id).Prev_Element_Id = Null_Element_Id or else
+               List_Nodes (List_Nodes (Element_Id).Prev_Element_Id).Next_Element_Id = Element_Id)
+               and then
+               (List_Nodes (Element_Id).Next_Element_Id = Null_Element_Id or else
+               List_Nodes (List_Nodes (Element_Id).Next_Element_Id).Prev_Element_Id = Element_Id)
+            );
 
-         --
-         --  NOTE: Save next link in case this node is removed from the list
-         --  by Node_Visitor.
-         --
-         Next_Element_Id := List_Nodes (Element_Id).Next_Element_Id;
-         Element_Visitor (List_Anchor, Element_Id);
-         Element_Id := Next_Element_Id;
-      end loop;
+            --
+            --  NOTE: Save next link in case this node is removed from the list
+            --  by Node_Visitor.
+            --
+            Next_Element_Id := List_Nodes (Element_Id).Next_Element_Id;
+            Element_Visitor (List_Anchor, Element_Id);
+            Element_Id := Next_Element_Id;
+         end loop;
+      end if;
 
       pragma Assert (Element_Id = Null_Element_Id);
    end List_Traverse;

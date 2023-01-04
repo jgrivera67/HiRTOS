@@ -9,10 +9,13 @@
 --  @summary RTOS to target platform interface - ARMv8-R system registers
 --
 
+with System.Storage_Elements;
+
 package HiRTOS_Cpu_Arch_Interface.System_Registers
    with SPARK_Mode => On,
         No_Elaboration_Code_All
 is
+   use type System.Storage_Elements.Integer_Address;
 
    type EL1_Mpu_Enable_Type is (EL1_Mpu_Disabled, EL1_Mpu_Enabled)
       with Size => 1;
@@ -222,5 +225,30 @@ is
    function Get_CPACR return CPACR_Type;
 
    procedure Set_CPACR (CPACR_Value : CPACR_Type);
+
+   --
+   --  Flush data cache line
+   --
+   procedure Set_DCCMVAC(DCCMVAC_Value : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (DCCMVAC_Value) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
+
+   --
+   --  Invalidate data cache line
+   --
+   procedure Set_DCIMVAC(DCIMVAC_Value : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (DCIMVAC_Value) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
+
+  --
+   --  Clean and invalidate data cache line
+   --
+   procedure Set_DCCIMVAC(DCCIMVAC_Value : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (DCCIMVAC_Value) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
+
+   procedure Set_DCIM_ALL;
+
+   procedure Set_ICIALLU;
 
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

@@ -103,6 +103,9 @@ is
    procedure Memory_Barrier with
     Inline_Always;
 
+   procedure Strong_Memory_Barrier  with
+    Inline_Always;
+
    function Atomic_Test_Set (Flag_Address : System.Address) return Boolean with
     Inline_Always, Suppress => All_Checks;
 
@@ -131,6 +134,12 @@ is
     (Cpu_Register_Type
       (Interfaces.Shift_Left
         (Interfaces.Unsigned_32 (1), Natural (Bit_Index))));
+
+   procedure Enable_Caches
+      with Pre => Cpu_In_Privileged_Mode;
+
+   procedure Disable_Caches
+      with Pre => Cpu_In_Privileged_Mode;
 
 private
 

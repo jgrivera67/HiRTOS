@@ -47,8 +47,14 @@ is
    Highest_Interrupt_Priority : constant Interrupt_Priority_Type :=
      Interrupt_Priority_Type'First;
 
+   --
+   --  NOTE: The usable lowest interrupt priority is one less than the
+   --  largest priority value, since setting the ICC_PMR register to the
+   --  largest priority value (lowest priority) implies that that interrupts
+   --  at that priority cannot fire.
+   --
    Lowest_Interrupt_Priority : constant Interrupt_Priority_Type :=
-     Interrupt_Priority_Type'Last;
+     Interrupt_Priority_Type'Last - 1;
 
    type Interrupt_Handler_Entry_Point_Type is
      access procedure (Arg : System.Address);
@@ -119,11 +125,18 @@ is
    procedure GIC_Interrupt_Handler
      (Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type) with
      Pre =>
-      Per_Cpu_Initialized and then Cpu_In_Privileged_Mode
-      and then Cpu_Interrupting_Disabled;
+      Per_Cpu_Initialized and then
+      Cpu_In_Privileged_Mode and then
+      Not Cpu_Interrupting_Disabled;
 
    procedure Trigger_Software_Generated_Interrupt (Soft_Gen_Interrupt_Id : Soft_Gen_Interrupt_Id_Type;
                                                    Cpu_Id : HiRTOS_Cpu_Multi_Core_Interface.Cpu_Core_Id_Type);
+
+   function Get_Highest_Interrupt_Priority_Disabled return Interrupt_Priority_Type
+      with Pre => Cpu_In_Privileged_Mode;
+
+   procedure Set_Highest_Interrupt_Priority_Disabled (Priority : Interrupt_Priority_Type)
+      with Pre => Cpu_In_Privileged_Mode;
 
 private
    pragma SPARK_Mode (Off);
@@ -938,13 +951,19 @@ private
       Use_ICC_BPR0_For_Interrupt_Preemption_Enabled  => 2#1#);
 
    type EOImode_Type is
-     (ICC_EOIRx_Write_Deactives_Interrupt_Disabled,
-      ICC_EOIRx_Write_Deactives_Interrupt_Enabled) with
+     (ICC_EOIRx_Write_Deactives_Interrupt_Enabled,
+      ICC_EOIRx_Write_Deactives_Interrupt_Disabled) with
      Size => 1;
 
+   --
+   --  EOImode = 0: A write to ICC_EOIR0_EL1 for Group 0 interrupts, or ICC_EOIR1_EL1 for Group 1
+   --  interrupts, performs both the priority drop and deactivation.
+   --  EOImode = 1: A write to ICC_EOIR_EL10 for Group 0 interrupts, or ICC_EOIR1_EL1 for Group 1
+   --  interrupts results in a priority drop. A separate write to ICC_DIR_EL1 is required for
+   --  deactivation.
    for EOImode_Type use
-     (ICC_EOIRx_Write_Deactives_Interrupt_Disabled => 2#0#,
-      ICC_EOIRx_Write_Deactives_Interrupt_Enabled  => 2#1#);
+     (ICC_EOIRx_Write_Deactives_Interrupt_Enabled => 2#0#,
+      ICC_EOIRx_Write_Deactives_Interrupt_Disabled => 2#1#);
 
    --  Number of priority bits implemented, minus one
    type PRIbits_Type is mod 2**3 with

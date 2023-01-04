@@ -12,6 +12,7 @@
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => On is
+   use ASCII;
 
    function Get_SCTLR return SCTLR_Type is
       SCTLR_Value : SCTLR_Type;
@@ -50,5 +51,50 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => On is
          Inputs => CPACR_Type'Asm_Input ("r", CPACR_Value), --  %0
          Volatile => True);
    end Set_CPACR;
+
+   procedure Set_DCCMVAC(DCCMVAC_Value : System.Address) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c10, 1" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", DCCMVAC_Value), --  %0
+         Volatile => True);
+   end Set_DCCMVAC;
+
+   procedure Set_DCIMVAC(DCIMVAC_Value : System.Address) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c6, 1" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", DCIMVAC_Value), --  %0
+         Volatile => True);
+   end Set_DCIMVAC;
+
+   procedure Set_DCCIMVAC(DCCIMVAC_Value : System.Address) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c14, 1" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", DCCIMVAC_Value), --  %0
+         Volatile => True);
+   end Set_DCCIMVAC;
+
+   procedure Set_DCIM_ALL is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c15, c5, 0" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", System.Null_Address), --  %0
+         Volatile => True);
+   end Set_DCIM_ALL;
+
+   procedure Set_ICIALLU is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c5, 0" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", System.Null_Address), --  %0
+         Volatile => True);
+   end Set_ICIALLU;
 
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

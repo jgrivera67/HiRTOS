@@ -5,21 +5,25 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with System;
 
 package HiRTOS.Interrupt_Handling
    with SPARK_Mode => On
 is
+   use type HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type;
 
-   procedure Enter_Interrupt_Context
-      with Inline_Always,
-           Suppress => All_Checks,
-           Convention => C;
+   function Enter_Interrupt_Context (Stack_Pointer : System.Address) return System.Address
+      with Suppress => All_Checks,
+           Export,
+           Convention => C,
+           External_Name => "hirtos_enter_interrupt_context";
 
-   procedure Exit_Interrupt_Context
-      with Inline_Always,
-           Suppress => All_Checks,
-           Convention => C;
+   function Exit_Interrupt_Context (Stack_Pointer : System.Address) return System.Address
+      with Suppress => All_Checks,
+           Export,
+           Convention => C,
+           External_Name => "hirtos_exit_interrupt_context";
 
    procedure RTOS_Tick_Timer_Interrupt_Handler;
 

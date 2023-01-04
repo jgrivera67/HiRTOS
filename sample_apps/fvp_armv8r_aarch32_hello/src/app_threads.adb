@@ -36,6 +36,7 @@ package body App_Threads is
 
    procedure Hello_Thread_Proc (Arg : System.Address) is
       use type System.Address;
+      use type HiRTOS.Time_Us_Type;
 
       procedure Naive_Delay (N : Interfaces.Unsigned_32) is
          use Interfaces;
@@ -48,6 +49,8 @@ package body App_Threads is
       end Naive_Delay;
 
       Turn_LED_On : Boolean := True;
+      Period_Us : constant HiRTOS.Time_Us_Type := 500_000;
+      Next_Wakeup_Time_Us : HiRTOS.Time_Us_Type := HiRTOS.Get_Current_Time_Us + Period_Us;
 
    begin
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
@@ -74,7 +77,17 @@ package body App_Threads is
             HiRTOS.Exit_Cpu_Privileged_Mode;
          end if;
 
-         Naive_Delay (10_000_000);
+         --Naive_Delay (10_000_000);
+         HiRTOS.Thread.Thread_Delay_Until (Next_Wakeup_Time_Us);
+         Next_Wakeup_Time_Us := @ + Period_Us;
+
+         --???
+        --   declare
+        --      C : Character;
+        --   begin
+        --      C := HiRTOS_Low_Level_Debug_Interface.UART_Input.Get_Char; --???
+        --      HiRTOS_Low_Level_Debug_Interface.Put_Char (C);  --???
+        --   end;
       end loop;
    end Hello_Thread_Proc;
 

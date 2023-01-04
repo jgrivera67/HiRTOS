@@ -3,126 +3,118 @@
     // for the documentation about the tasks.json format
     "version": "2.0.0",
     "tasks": [
-        {
-            "label": "build with alr",
-            "type": "shell",
-            "command": "alr",
-            "options": {
-                "cwd": "${workspaceFolder}"
+      {
+         "label": "build with alr",
+         "type": "shell",
+         "command": "alr",
+         "options": {
+            "cwd": "${workspaceFolder}"
+         },
+         "args": [
+            "build"
+         ],
+         "problemMatcher": {
+            "base": "$ada",
+            "fileLocation": [
+               "absolute"
+            ]
+         },
+         "group": {
+            "kind": "build",
+            "isDefault": true
+         }
+      },
+      {
+         "label": "prove",
+         "type": "shell",
+         "command": "gnatprove",
+         "options": {
+            "cwd": "${workspaceFolder}"
+         },
+         "args": [
+            "-j0",
+            "--output=oneline",
+            "--ide-progress-bar",
+            "--level=0",
+            "-u",
+            "${relativeFile}",
+            "--ide-progress-bar",
+            "-P",
+            "$GPR_FILE"
+         ],
+         "problemMatcher": [
+            {
+               "owner": "ada",
+               "fileLocation": [
+                  "autoDetect",
+                  "${workspaceFolder}"
+               ],
+               "severity": "error",
+               "pattern": {
+                  "regexp": "(\\S+):(\\d+):(\\d+): error: (.+)",
+                  "file": 1,
+                  "line": 2,
+                  "column": 3,
+                  "message": 4
+               }
             },
-            "args": [
-                "build"
-            ],
-            "problemMatcher": {
-                "base": "$ada",
-                "fileLocation": [
-                    "autoDetect",
-                    "${workspaceFolder}"
-                ],
-                "fileLocation": [ "absolute" ],
+            {
+               "owner": "ada",
+               "fileLocation": [
+                  "autoDetect",
+                  "${workspaceFolder}"
+               ],
+               "severity": "warning",
+               "pattern": {
+                  "regexp": "(\\S+):(\\d+):(\\d+): warning: (.+)",
+                  "file": 1,
+                  "line": 2,
+                  "column": 3,
+                  "message": 4
+               }
             },
-            "group": {
-                "kind": "build",
-                "isDefault": true
+            {
+               "owner": "ada",
+               "fileLocation": [
+                  "autoDetect",
+                  "${workspaceFolder}"
+               ],
+               "severity": "info",
+               "pattern": {
+                  "regexp": "(\\S+):(\\d+):(\\d+): info: (.+)",
+                  "file": 1,
+                  "line": 2,
+                  "column": 3,
+                  "message": 4
+               }
             }
-        },
-        {
-            "label": "prove",
-            "type": "shell",
-            "command": "gnatprove",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "args": [
-                "-j0",
-                "--output=oneline",
-                "--ide-progress-bar",
-                "--level=0",
-                "-u",
-                "${relativeFile}",
-                "--ide-progress-bar",
-                "-P",
-                "$GPR_FILE"
-            ],
-            "problemMatcher": [
-                {
-                    "owner": "ada",
-                    "fileLocation": [
-                        "autoDetect",
-                        "${workspaceFolder}"
-                    ],
-                    "severity": "error",
-                    "pattern": {
-                        "regexp": "(\\S+):(\\d+):(\\d+): error: (.+)",
-                        "file": 1,
-                        "line": 2,
-                        "column": 3,
-                        "message": 4
-                    }
-                },
-                {
-                    "owner": "ada",
-                    "fileLocation": [
-                        "autoDetect",
-                        "${workspaceFolder}"
-                    ],
-                    "severity": "warning",
-                    "pattern": {
-                        "regexp": "(\\S+):(\\d+):(\\d+): warning: (.+)",
-                        "file": 1,
-                        "line": 2,
-                        "column": 3,
-                        "message": 4
-                    }
-                },
-                {
-                    "owner": "ada",
-                    "fileLocation": [
-                        "autoDetect",
-                        "${workspaceFolder}"
-                    ],
-                    "severity": "info",
-                    "pattern": {
-                        "regexp": "(\\S+):(\\d+):(\\d+): info: (.+)",
-                        "file": 1,
-                        "line": 2,
-                        "column": 3,
-                        "message": 4
-                    }
-                }
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "build with gprbuild",
-            "type": "shell",
-            "command": "gprbuild",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "args": [
-                "-p",
-                "-P",
-                "$GPR_FILE",
-                //"-XCPU_Core=arm_cortex_r",
-                "-cargs",
-                "-gnatef"
-            ],
-            "problemMatcher": {
-                "base": "$ada",
-                "fileLocation": [
-                    "autoDetect",
-                    "${workspaceFolder}"
-                ],
-                "fileLocation": [ "absolute" ],
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-    ]
+         ],
+         "group": {
+            "kind": "build",
+            "isDefault": true
+         }
+      },
+      {
+         "label": "build with gprbuild",
+         "type": "shell",
+         "command": "gprbuild",
+         "options": {
+            "cwd": "${workspaceFolder}"
+         },
+         "args": [
+            "-p",
+            "-P",
+            "$GPR_FILE",
+            "-cargs",
+            "-gnatef"
+         ],
+         "problemMatcher": {
+            "base": "$ada",
+            "fileLocation": [
+               "absolute"
+            ]
+         },
+         "group": "build"
+      },
+   ]
 }

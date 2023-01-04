@@ -25,6 +25,9 @@ is
    function Get_ISR_Stack_Info (Cpu_Id : Cpu_Core_Id_Type)
       return ISR_Stack_Info_Type;
 
+   function Valid_ISR_Stack_Pointer (Cpu_Id : Cpu_Core_Id_Type; Stack_Pointer : System.Address)
+      return Boolean;
+
    procedure Interrupt_Handler_Prolog
       with Inline_Always;
 

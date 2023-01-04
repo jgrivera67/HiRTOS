@@ -33,7 +33,7 @@ is
    --
    --  Required alignment in bytes for the stack pointer
    --
-   Stack_Pointer_Alignment : constant := 8;
+   Stack_Pointer_Alignment : constant := 4;
 
    --
    --  Width of CPU integer registers in bytes

@@ -15,7 +15,13 @@ with "config/hirtos_config.gpr";
 with "hirtos_compiler_flags.gpr";
 
 project HiRTOS is
-   for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
+   case HiRTOS_Compiler_Flags.Mode is
+      when "gnatprove" =>
+         null;
+      when others =>
+         for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
+   end case;
+
    for Runtime ("Ada") use "third_party/portable_minimal_ada_rts";
    for Languages use ("Ada", "C", "Asm_Cpp");
 
@@ -68,7 +74,8 @@ project HiRTOS is
                               "HiRTOS_Cpu_Arch_Interface.Tick_Timer",
                               "HiRTOS_Cpu_Multi_Core_Interface",
                               "HiRTOS_Cpu_Startup_Interface",
-                              "HiRTOS_Low_Level_Debug_Interface");
+                              "HiRTOS_Low_Level_Debug_Interface",
+                              "Uart_Driver");
 
    for Library_Auto_Init use "False";
 

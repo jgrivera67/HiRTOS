@@ -9,17 +9,21 @@
 --  @summary HiRTOS to target platform interface for ARMv8-R architecture
 --
 
+with HiRTOS_Cpu_Arch_Interface.System_Registers;
+with Memory_Utils;
 with System.Machine_Code;
 with System.Storage_Elements;
 
 package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
+   use HiRTOS_Cpu_Arch_Interface.System_Registers;
 
    --
    --   Bit masks for CPSR bit fields
    --
-   --  CPSR_F_Bit_Mask : constant := 2#0100_0000#; --  bit 6
+   CPSR_F_Bit_Mask : constant := 2#0100_0000#; --  bit 6
    CPSR_I_Bit_Mask : constant Cpu_Register_Type := 2#1000_0000#; --  bit 7
+   CPSR_IF_Bit_Mask : constant Cpu_Register_Type := (CPSR_I_Bit_Mask or CPSR_F_Bit_Mask);
    CPSR_Mode_Mask : constant Cpu_Register_Type :=  2#0001_1111#; --  bits [4:0]
 
    function Get_Cpu_Status_Register return Cpu_Register_Type is
@@ -68,16 +72,16 @@ package body HiRTOS_Cpu_Arch_Interface is
    function Cpu_Interrupting_Disabled return Boolean is
       CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
-      return (CPSR_Value and CPSR_I_Bit_Mask) /= 0;
+      return (CPSR_Value and CPSR_IF_Bit_Mask) = CPSR_IF_Bit_Mask;
    end Cpu_Interrupting_Disabled;
 
    function Disable_Cpu_Interrupting return Cpu_Register_Type
    is
       CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
-      if (CPSR_Value and CPSR_I_Bit_Mask) = 0 then
+      if (CPSR_Value and CPSR_IF_Bit_Mask) /= CPSR_IF_Bit_Mask then
          System.Machine_Code.Asm (
-            "cpsid i" & LF &
+            "cpsid if" & LF &
             "dsb" & LF &
             "isb",
             Clobber => "memory",
@@ -90,11 +94,25 @@ package body HiRTOS_Cpu_Arch_Interface is
 
    procedure Restore_Cpu_Interrupting (Old_Cpu_Interrupting : Cpu_Register_Type) is
    begin
-      if (Old_Cpu_Interrupting and CPSR_I_Bit_Mask) = 0 then
+      if (Old_Cpu_Interrupting and CPSR_IF_Bit_Mask) = 0 then
          System.Machine_Code.Asm (
             "dsb" & LF &
             "isb" & LF &
             "cpsie if",
+            Clobber => "memory",
+            Volatile => True);
+      elsif (Old_Cpu_Interrupting and CPSR_I_Bit_Mask) = 0 then
+         System.Machine_Code.Asm (
+            "dsb" & LF &
+            "isb" & LF &
+            "cpsie i",
+            Clobber => "memory",
+            Volatile => True);
+      elsif (Old_Cpu_Interrupting and CPSR_F_Bit_Mask) = 0 then
+         System.Machine_Code.Asm (
+            "dsb" & LF &
+            "isb" & LF &
+            "cpsie f",
             Clobber => "memory",
             Volatile => True);
       end if;
@@ -245,6 +263,15 @@ package body HiRTOS_Cpu_Arch_Interface is
          Volatile => True);
    end Memory_Barrier;
 
+   procedure Strong_Memory_Barrier is
+   begin
+      System.Machine_Code.Asm (
+         "dsb 0xF"  & LF &
+         "isb 0xF",
+         Clobber => "memory",
+         Volatile => True);
+   end Strong_Memory_Barrier;
+
    function Atomic_Test_Set
      (Flag_Address : System.Address) return Boolean
    is
@@ -325,5 +352,28 @@ package body HiRTOS_Cpu_Arch_Interface is
 
       return Result;
    end Count_Trailing_Zeros;
+
+   procedure Enable_Caches is
+      SCTLR_Value : SCTLR_Type;
+   begin
+      Memory_Barrier;
+      Memory_Utils.Invalidate_Data_Cache;
+      SCTLR_Value := Get_SCTLR; --TODO:
+      SCTLR_Value.C := Cacheable;
+      SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
+      Set_SCTLR (SCTLR_Value);
+      Strong_Memory_Barrier;
+   end Enable_Caches;
+
+   procedure Disable_Caches is
+      SCTLR_Value : SCTLR_Type;
+   begin
+      Strong_Memory_Barrier;
+      SCTLR_Value := Get_SCTLR;
+      SCTLR_Value.C := Non_Cacheable;
+      SCTLR_Value.I := Instruction_Access_Non_Cacheable;
+      Set_SCTLR (SCTLR_Value);
+      Strong_Memory_Barrier;
+   end Disable_Caches;
 
 end HiRTOS_Cpu_Arch_Interface;

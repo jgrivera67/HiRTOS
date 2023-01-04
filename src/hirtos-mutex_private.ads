@@ -27,7 +27,7 @@ private package HiRTOS.Mutex_Private is
       Owner_Thread_Id : Thread_Id_Type := Invalid_Thread_Id;
       Recursive_Count : Interfaces.Unsigned_8 := 0;
       Priority        : Thread_Priority_Type := Invalid_Thread_Priority;
-      Waiters_Queue   : Priority_Thread_Queues_Type;
+      Waiters_Queue   : Thread_Priority_Queue_Type;
    end record;
 
    type Mutex_Array_Type is array (Valid_Mutex_Id_Type) of Mutex_Type;

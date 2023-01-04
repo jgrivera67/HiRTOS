@@ -31,7 +31,12 @@ is
    --
    --  Maximum number of timers
    --
-   Max_Num_Timers : constant := 32;
+   Max_Num_Timers : constant := 64;
+
+   --
+   --  Number of spokes of the Timer Wheel
+   --
+   Timer_Wheel_Num_Spokes : constant := 32;
 
    --
    --  Number of thread priorities
@@ -46,12 +51,18 @@ is
    --
    --  RTOS tick timer period in microseconds
    --
-   Tick_Period_Us : constant := 1000;
+   Tick_Timer_Period_Us : constant := 500;
 
    --
    --  Thread time slice in RTOS ticks
    --
-   Thread_Time_Slice_Ticks : constant := 1;
+   Thread_Time_Slice_Ticks : constant := 2;
+
+   type Software_Timers_Bookkeeping_Method_Type is (Software_Timers_Bookkeeping_In_Timer_ISR,
+                                                    Software_Timers_Bookkeeping_In_Timer_Thread);
+
+   Software_Timers_Bookkeeping_Method : constant Software_Timers_Bookkeeping_Method_Type :=
+      Software_Timers_Bookkeeping_In_Timer_ISR;
 
    --
    --  Global variables default access

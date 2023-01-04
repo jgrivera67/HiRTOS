@@ -143,13 +143,14 @@ is
       begin
          --  Check that CPU interface system registers access is supported:
          ICC_SRE_Value := Get_ICC_SRE;
-         pragma Assert
-           (ICC_SRE_Value.SRE = GIC_CPU_Interface_System_Registers_Enabled);
+         pragma Assert (ICC_SRE_Value.SRE = GIC_CPU_Interface_System_Registers_Enabled);
+         --ICC_SRE_Value.SRE := GIC_CPU_Interface_System_Registers_Enabled; --???
+         --Set_ICC_SRE (ICC_SRE_Value); --???
 
          --  Enable CPU interface:
          ICC_CTLR_Value      := Get_ICC_CTLR;
          ICC_CTLR_Value.CBPR := Use_ICC_BPR0_For_Interrupt_Preemption_Enabled;
-         ICC_CTLR_Value.EOImode := ICC_EOIRx_Write_Deactives_Interrupt_Enabled;
+         ICC_CTLR_Value.EOImode :=  ICC_EOIRx_Write_Deactives_Interrupt_Enabled;
          Set_ICC_CTLR (ICC_CTLR_Value);
 
          --
@@ -517,22 +518,31 @@ is
       Interrupt_Id               : constant Valid_Interrupt_Id_Type :=
         Valid_Interrupt_Id_Type (ICC_IAR_Value.INTID);
       Cpu_Id : constant Valid_Cpu_Core_Id_Type  := Get_Cpu_Id;
-      Interrupt_Handler          :
-        Interrupt_Handler_Type renames
-        Interrupt_Controller_Obj.Internal_Interrupt_Handlers
-          (Cpu_Id, Interrupt_Id);
       Old_Cpu_Interrupting_State : Cpu_Register_Type with
         Unreferenced;
       ICC_EOIR_Value             : ICC_EOIR_Type;
    begin
-      pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
-
       --  Enable interrupts at the CPU to support nested interrupts
       HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
 
       --  Invoke the IRQ-specific interrupt handler:
-      Interrupt_Handler.Interrupt_Handler_Entry_Point
-        (Interrupt_Handler.Interrupt_Handler_Arg);
+      if Interrupt_Id in Internal_Interrupt_Id_Type then
+         declare
+            Interrupt_Handler : Interrupt_Handler_Type renames
+               Interrupt_Controller_Obj.Internal_Interrupt_Handlers (Cpu_Id, Interrupt_Id);
+         begin
+            pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
+            Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
+         end;
+      else
+         declare
+            Interrupt_Handler : Interrupt_Handler_Type renames
+               Interrupt_Controller_Obj.External_Interrupt_Handlers (Interrupt_Id);
+         begin
+            pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
+            Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
+         end;
+      end if;
 
       --  Disable interrupts at the CPU before returning:
       Old_Cpu_Interrupting_State :=
@@ -543,9 +553,9 @@ is
       --  received by the calling CPU core has been completed, so that another
       --  interrupt of the same priority or lower can be received by this CPU core:
       --
+      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
       ICC_EOIR_Value.INTID := INTID_Type (Interrupt_Id);
-      Set_ICC_EOIR
-        (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line), ICC_EOIR_Value);
+      Set_ICC_EOIR (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line), ICC_EOIR_Value);
    end GIC_Interrupt_Handler;
 
    procedure Trigger_Software_Generated_Interrupt (Soft_Gen_Interrupt_Id : Soft_Gen_Interrupt_Id_Type;
@@ -558,6 +568,19 @@ is
       Set_ICC_SGIR (HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Irq,
                     ICC_SGIR_Value);
    end Trigger_Software_Generated_Interrupt;
+
+   function Get_Highest_Interrupt_Priority_Disabled return Interrupt_Priority_Type is
+      ICC_PMR_Value : constant ICC_PMR_Type := Get_ICC_PMR;
+   begin
+      return Interrupt_Priority_Type (ICC_PMR_Value.Priority);
+   end Get_Highest_Interrupt_Priority_Disabled;
+
+   procedure Set_Highest_Interrupt_Priority_Disabled (Priority : Interrupt_Priority_Type) is
+      ICC_PMR_Value : ICC_PMR_Type;
+   begin
+      ICC_PMR_Value.Priority := GIC_Interrupt_Priority_Type (Priority);
+      Set_ICC_PMR (ICC_PMR_Value);
+   end Set_Highest_Interrupt_Priority_Disabled;
 
    ----------------------------------------------------------------------------
    --  Private Subprograms

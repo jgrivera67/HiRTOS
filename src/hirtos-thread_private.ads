@@ -16,7 +16,7 @@ is
 
    Thread_Time_Slice_Us : constant :=
      HiRTOS_Config_Parameters.Thread_Time_Slice_Ticks *
-     HiRTOS_Config_Parameters.Tick_Period_Us;
+     HiRTOS_Config_Parameters.Tick_Timer_Period_Us;
 
    type Thread_State_Type is
      (Thread_Not_Created, Thread_Runnable, Thread_Running, Thread_Blocked);
@@ -37,10 +37,11 @@ is
    --  @field Initialized: flag indicating if the thread object has been initialized.
    --  @field Id: thread Id
    --  @field State: current state of the thread
-   --  @field Priority: Thread normal priority
+   --  @field Base_Priority: Thread normal priority
+   --  @field Current_Priority: Thread's current priority
    --  @field Atomic_Level: Current atomic level
-   --  @field Timer_Id: Id of timer used for Thread_Delay_Unitl() and
-   --         Thread_Delay calls on this thread
+   --  @field Timer_Id: Id of timer used for Thread_Delay_Unitl,
+   --         Thread_Delay, Condvar.Wait and Mutex.Acquire calls on this thread
    --  @field Stack_Base_Addr: base address of execution stack for this thread
    --  @field Stack_End_Addr: end address of execution stack for this thread (address
    --  of first byte right after the last entry of the stack)
@@ -53,7 +54,6 @@ is
    --  @field Owned_Mutexes_List : List of mutexes currently owned by this thread. This
    --         list is really a stack of mutexes (LIFO list), as the last mutex acquired
    --         is the next one to be released.
-   --  @field Delay_Timer_Id: Id of the delay timer associated with this thread.
    --  @field Saved_Stack_Pointer: saved stack pointer CPU register the last time this
    --         thread was switched out
    --  @field Privilege_Nesting_Counter: Counter of unpaired calls to `Enter_Privileged_Mode`
@@ -65,7 +65,8 @@ is
       Initialized : Boolean := False;
       Id : Thread_Id_Type := Invalid_Thread_Id;
       State : Thread_State_Type := Thread_Not_Created;
-      Priority : Thread_Priority_Type;
+      Current_Priority : Thread_Priority_Type;
+      Base_Priority : Thread_Priority_Type;
       Atomic_Level : Atomic_Level_Type := Atomic_Level_None;
       Timer_Id : Timer_Id_Type := Invalid_Timer_Id;
       Stack_Base_Addr : System.Address := System.Null_Address;
@@ -74,7 +75,6 @@ is
       Waiting_On_Condvar_Id : Condvar_Id_Type := Invalid_Condvar_Id;
       Waiting_On_Mutex_Id : Mutex_Id_Type := Invalid_Mutex_Id;
       Owned_Mutexes_List : Mutex_List_Package.List_Anchor_Type;
-      Delay_Timer_Id : Timer_Id_Type := Invalid_Timer_Id;
       Saved_Stack_Pointer : System.Address := System.Null_Address;
       Privilege_Nesting_Counter : Privilege_Nesting_Counter_Type := 0;
       Time_Slice_Left_Us : Time_Us_Type := Thread_Time_Slice_Us;
@@ -101,13 +101,6 @@ is
       "Max_Num_Timers too small");
 
    type Thread_Array_Type is array (Valid_Thread_Id_Type) of Thread_Type;
-
-   type Priority_Thread_Queues_Type is
-     array
-       (Valid_Thread_Priority_Type) of Thread_Queue_Package.List_Anchor_Type;
-
-   procedure Initialize_Priority_Thread_Queues
-     (Priority_Thread_Queues : out Priority_Thread_Queues_Type);
 
    procedure Increment_Privilege_Nesting (Thread_Obj : in out Thread_Type) with
      Pre =>

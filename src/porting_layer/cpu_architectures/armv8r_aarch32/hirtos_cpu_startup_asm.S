@@ -84,7 +84,7 @@ interrupt_vector_table:
 	b data_abort_exception_handler            /* Abort (data) */
 	nop                                       /* Reserved */
 	b irq_interrupt_handler                   /* IRQ */
-        b fiq_interrupt_handler                   /* FIQ */
+   b fiq_interrupt_handler                   /* FIQ */
 
 /**
  * Get sctlr
@@ -128,8 +128,8 @@ interrupt_vector_table:
     mov     r0,   #0
     mov     sp,   #0
     mov     lr,   #0
-    msr     spsr_hyp, #0
-    msr     elr_hyp,  #0
+    msr     spsr_hyp, r0
+    msr     elr_hyp,  r0
 	.endm
 
 /**
@@ -199,6 +199,12 @@ interrupt_vector_table:
         mov     lr,   #0
 	.endm
 
+
+	.section .globals_initialized_at_load_time.hirtos_global_vars_elaborated_flag
+	.global hirtos_global_vars_elaborated_flag
+hirtos_global_vars_elaborated_flag:
+   .byte 0
+
 /**
  * System Reset handler entry point
  */
@@ -210,14 +216,14 @@ reset_handler:
         INIT_CPU_REGS_EL2
 
         /*
-         * Set generic timer's CNTFRQ register to the system clock freuency, while in EL2,
+         * Set generic timer's CNTFRQ register to the system clock frequency, while in EL2,
          * as this cannot be done from EL1.
          */
         ldr r0, =#SYSTEM_CLOCK_FREQUENCY_HZ
         mcr p15, 0, r0, c14, c0, 0
 
         /*
-         * Disable HVC instruciton, by setting HCD bit in HCR register:
+         * Disable HVC instruction, by setting HCD bit in HCR register:
          */
         mrc p15, 4, r0, c1, c1, 0
         orr r0, #BIT(29u)
@@ -260,11 +266,11 @@ reset_handler_el1:
          */
         mov     fp, sp
                                 // r0 = CPU id
-	bl ada_reset_handler
+	     bl ada_reset_handler
 
         /*
          * We should never come here:
          */
-1:	wfi
-	b 1b
+1:      wfi
+	     b 1b
         .endfunc

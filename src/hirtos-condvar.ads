@@ -6,10 +6,26 @@
 --
 package HiRTOS.Condvar is
 
-   procedure Create_Condvar (Condvar_Id : out Condvar_Id_Type);
+   function Initialized (Condvar_Id : Valid_Condvar_Id_Type) return Boolean
+      with Ghost;
 
-   procedure Wait (Condvar : Condvar_Id_Type; Mutex_Id : Mutex_Id_Type);
+   procedure Create_Condvar (Condvar_Id : out Valid_Condvar_Id_Type)
+      with Post => Initialized (Condvar_Id);
 
-   procedure Wait (Condvar : Condvar_Id_Type; Atomic_Level : Atomic_Level_Type);
+   procedure Wait (Condvar_Id : Valid_Condvar_Id_Type; Mutex_Id : Valid_Mutex_Id_Type;
+                   Timeout_Ms : Time_Ms_Type := Time_Ms_Type'Last)
+      with Pre => Initialized (Condvar_Id) and then
+                  not Current_Execution_Context_Is_Interrupt;
+
+   procedure Wait (Condvar_Id : Valid_Condvar_Id_Type;
+                   Timeout_Ms : Time_Ms_Type := Time_Ms_Type'Last)
+      with Pre => Initialized (Condvar_Id) and then
+                  not Current_Execution_Context_Is_Interrupt;
+
+   procedure Signal (Condvar_Id : Valid_Condvar_Id_Type)
+      with Pre => Initialized (Condvar_Id);
+
+   procedure Broadcast (Condvar_Id : Valid_Condvar_Id_Type)
+      with Pre => Initialized (Condvar_Id);
 
 end HiRTOS.Condvar;

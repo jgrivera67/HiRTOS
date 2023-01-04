@@ -10,6 +10,8 @@ abstract project Hirtos_Compiler_Flags is
 
    CPU_Core : CPU_Core_Type := External ("CPU_Core", "arm_cortex_r52");
 
+   Mode := External ("GPR_TOOL", "");
+
    CPU_Arch := "";
    Platform := "";
    Target_Compiler_Selector := "";
@@ -57,7 +59,7 @@ abstract project Hirtos_Compiler_Flags is
 			                      "-mlittle-endian",
 			                    --"-mfloat-abi=softfp",
 			                      "-mhard-float",
-			                      "-mfpu=fpv4-sp-d16",
+			                      "-mfpu=fpv5-sp-d16",
 			                      "-fno-omit-frame-pointer");
 
       when "riscv32" =>
@@ -117,7 +119,7 @@ abstract project Hirtos_Compiler_Flags is
                   ,"-gnat2022"  --  Use Ada 2022
                   ,"-nostdinc"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) source files.
 		            ,"-nostdlib"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) ALI files.
-                  ,"-gdwarf-4"
+                  ,"-gdwarf-4"  --  To generate correct source-line info
                   );
 
       Development_Only_Flags := ("-Og", -- No optimization

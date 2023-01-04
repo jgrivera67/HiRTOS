@@ -31,6 +31,10 @@ is
 
    type Stats_Counter_Type is new Interfaces.Unsigned_32;
 
+   type Time_Us_Type is new Interfaces.Unsigned_32;
+
+   type Time_Ms_Type is new Interfaces.Unsigned_32;
+
    --
    --  Tell if current exectuion context on the current CPU core is an
    --  interrupt context (ISR).
@@ -42,20 +46,13 @@ is
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    --
-   --  Initialize RTOS internal state variables for the calling CPU
+   --  Initialize HiRTOS library
    --
-   --  NOTE: Initialize_Rtos will initialize the MPU regions but will return still in
-   --  privilege mode to the reset handler. So, that we don't have to consider
-   --  the reset handler as a special interrupt context case when entering/exiting
-   --  privileged mode. So only threads will run in unprivileged mode.
-   --
-   procedure Initialize with
-     Pre => Current_Execution_Context_Is_Interrupt
-            and then
-            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+   procedure Initialize_HiRTOS_Lib with
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
-     External_Name => "hirtos_initialize";
+     External_Name => "initialize_hirtos_lib";
 
    --
    --  Start RTOS tick timer and RTOS thread scheduler for the calling CPU
@@ -89,6 +86,11 @@ is
    --  Tell if we are running in CPU privileged mode
    --
    function Running_In_Privileged_Mode return Boolean;
+
+   --
+   --  Get current time in microseconds since boot
+   --
+   function Get_Current_Time_Us return Time_Us_Type;
 
    -----------------------------------------------------------------------------
    --  Atomic levels public declarations                                      --
@@ -134,7 +136,7 @@ is
    --
    --  No atomic level is in effect. All interrupts are enabled and the thread
    --  scheduler is enabled. Preemption from other threads or ISRs can happen
-   --  at any timer. This is the default once RTOS multi-tasking is started.
+   --  at any time. This is the default once RTOS multi-tasking is started.
    --
    Atomic_Level_None : constant Atomic_Level_Type := Atomic_Level_Type'Last;
 
@@ -142,13 +144,19 @@ is
    --  Enters the given atomic level and returns the previous atomic level
    --
    function Enter_Atomic_Level
-     (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type;
+     (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type
+     with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+                 New_Atomic_Level /= Atomic_Level_None;
 
    --
    --  Restores the previous atomic level that was obtained by
    --  an earlier call to Enter_Atomic_Level
    --
-   procedure Exit_Atomic_Level (Old_Atomic_Level : Atomic_Level_Type);
+   procedure Exit_Atomic_Level (Old_Atomic_Level : Atomic_Level_Type)
+     with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
+
+   function Get_Current_Atomic_Level return Atomic_Level_Type
+     with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    -----------------------------------------------------------------------------
    --  Mutex public declarations                                              --
@@ -179,10 +187,6 @@ is
    -----------------------------------------------------------------------------
    --  Timer public declarations                                              --
    -----------------------------------------------------------------------------
-
-   type Time_Us_Type is new Interfaces.Unsigned_32;
-
-   type Time_Ms_Type is new Interfaces.Unsigned_32;
 
    type Timer_Ticks_Count_Type is new Interfaces.Unsigned_32;
 
@@ -252,6 +256,7 @@ is
       Times_Preempted_By_Thread                : Stats_Counter_Type := 0;
       Times_Preempted_By_Isr                   : Stats_Counter_Type := 0;
       Times_Switched_In                        : Stats_Counter_Type := 0;
+      Delay_Until_In_the_Past_Count            : Stats_Counter_Type := 0;
       Last_Switched_In_Timestamp_Us            : Time_Us_Type := 0;
       Total_Cpu_Utilization_Us                 : Time_Us_Type := 0;
       Average_Cpu_Utlization_Per_Time_Slice_Us : Time_Us_Type := 0;
@@ -307,4 +312,55 @@ private
       Null_List_Id    => Invalid_Thread_Id,
       Element_Id_Type => Mutex_Id_Type,
       Null_Element_Id => Invalid_Mutex_Id);
+
+   type Per_Priority_Thread_Queues_Array_Type is
+     array
+       (Valid_Thread_Priority_Type) of Thread_Queue_Package.List_Anchor_Type;
+
+   type Boolean_Bit_Map_Type is array (Valid_Thread_Priority_Type) of Boolean
+      with Component_Size => 1, Size => HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size;
+
+   type Thread_Priority_Queue_Type is record
+      Non_Empty_Thread_Queues_Map : Boolean_Bit_Map_Type := [ others => False ];
+      Thread_Queues_Array : Per_Priority_Thread_Queues_Array_Type;
+   end record;
+
+   procedure Initialize_Thread_Priority_Queue
+     (Thread_Priority_Queue : out Thread_Priority_Queue_Type);
+
+   procedure Thread_Priority_Queue_Remove_Head (Thread_Priority_Queue : in out Thread_Priority_Queue_Type;
+                                                Thread_Id : out Valid_Thread_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+                  HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+
+   procedure Thread_Priority_Queue_Remove_This (Thread_Priority_Queue : in out Thread_Priority_Queue_Type;
+                                                Thread_Id : Valid_Thread_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+                  HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+
+   procedure Thread_Priority_Queue_Add (Thread_Priority_Queue : in out Thread_Priority_Queue_Type;
+                                        Thread_Id : Valid_Thread_Id_Type;
+                                        Priority : Valid_Thread_Priority_Type;
+                                        First_In_Queue : Boolean := False)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+                  HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+
+   function Thread_Priority_Queue_Is_Empty (Thread_Priority_Queue : Thread_Priority_Queue_Type) return Boolean
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+                  HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+
+   --
+   --  Initialize RTOS internal state variables for the calling CPU
+   --
+   --  NOTE: Initialize_Rtos will initialize the MPU regions but will return still in
+   --  privilege mode to the reset handler. So, that we don't have to consider
+   --  the reset handler as a special interrupt context case when entering/exiting
+   --  privileged mode. So only threads will run in unprivileged mode.
+   --
+   procedure Initialize_RTOS with
+     Pre => Current_Execution_Context_Is_Interrupt
+            and then
+            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+     Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+
 end HiRTOS;

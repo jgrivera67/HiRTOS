@@ -35,7 +35,8 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       SCTLR_Value := Get_SCTLR;
       SCTLR_Value.M := EL1_Mpu_Enabled;
       SCTLR_Value.A := Alignment_Check_Disabled; -- To allow unaligned accesses
-      SCTLR_Value.C := Cacheable;
+      --SCTLR_Value.C := Cacheable; --TODO
+      --SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
       SCTLR_Value.BR := Background_Region_Enabled; -- TODO: Change this to Disabled
       Set_SCTLR (SCTLR_Value);
       HiRTOS.Exit_Cpu_Privileged_Mode;

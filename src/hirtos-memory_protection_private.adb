@@ -122,6 +122,7 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                            Privileged_Permissions => Read_Write,
                                            Region_Attributes => Normal_Memory_Write_Back_Cacheable);
 
+
       Enable_Memory_Protection;
    end Initialize;
 

@@ -10,7 +10,6 @@
 --
 
 with HiRTOS;
-private with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with Interfaces;
 
 package HiRTOS_Cpu_Arch_Interface.Tick_Timer
@@ -30,9 +29,6 @@ private
    ----------------------------------------------------------------------------
    --  ARMv8-R Generic timer declarations
    ----------------------------------------------------------------------------
-
-   Generic_Timer_Interrupt_Id : constant
-      HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Internal_Interrupt_Id_Type := 30;
 
    type CNTFRQ_Type is new Interfaces.Unsigned_32;
 

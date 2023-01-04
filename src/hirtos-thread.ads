@@ -50,4 +50,10 @@ is
    --
    function Get_Current_Thread_Id return Thread_Id_Type;
 
+   --
+   --  Put the calling thread to sleep until the current time matches
+   --  the specified wakeup time.
+   --
+   procedure Thread_Delay_Until (Wakeup_Time_Us : Time_Us_Type);
+
 end HiRTOS.Thread;

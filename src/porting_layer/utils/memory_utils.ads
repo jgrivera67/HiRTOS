@@ -4,6 +4,7 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
+with HiRTOS_Cpu_Arch_Parameters;
 with Interfaces.C;
 with System.Storage_Elements;
 
@@ -77,9 +78,34 @@ is
    --
    procedure Clear_Privileged_BSS_Section;
 
-   procedure Copy_Data_Section;
    --
    --  Copy data section from flash to SRAM
    --  (C global and static initialized variables)
    --
+   procedure Copy_Data_Section;
+
+   procedure Invalidate_Data_Cache;
+
+   procedure Invalidate_Instruction_Cache;
+
+   procedure Invalidate_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address)
+      with Pre => To_Integer (Start_Address) mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0
+                  and then
+                  Size mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0
+                  and then
+                  To_Integer (Start_Address) + Size > To_Integer (Start_Address);
+
+   procedure Flush_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address)
+      with Pre => To_Integer (Start_Address) mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0
+                  and then
+                  Size mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0
+                  and then
+                  To_Integer (Start_Address) + Size > To_Integer (Start_Address);
+
+   procedure Flush_Invalidate_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address)
+      with Pre => To_Integer (Start_Address) mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0
+                  and then
+                  Size mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0
+                  and then
+                  To_Integer (Start_Address) + Size > To_Integer (Start_Address);
 end Memory_Utils;
