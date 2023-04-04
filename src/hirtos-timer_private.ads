@@ -14,6 +14,9 @@ is
    procedure Do_Software_Timers_Bookkeeping
       with Pre => HiRTOS.Current_Execution_Context_Is_Interrupt;
 
+   procedure Timer_Thread_Proc (Arg : System.Address) with
+     Convention => C;
+
    --
    --  Number of spokes of a timer wheel
    --

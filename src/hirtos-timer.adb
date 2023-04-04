@@ -107,9 +107,11 @@ package body HiRTOS.Timer is
          Timer_Wheel_Hash_Chain : Timer_List_Package.List_Anchor_Type renames
             RTOS_Cpu_Instance.Timer_Wheel.Wheel_Spokes_Hash_Table (Wheel_Spoke_Index);
       begin
-         Timer_List_Package.List_Remove_This (Timer_Wheel_Hash_Chain, Timer_Id);
-         Timer_Obj.Wheel_Spoke_Index := Invalid_Timer_Wheel_Spoke_Index;
-         Timer_Obj.Running := False;
+         if Timer_Obj.Running then
+            Timer_List_Package.List_Remove_This (Timer_Wheel_Hash_Chain, Timer_Id);
+            Timer_Obj.Wheel_Spoke_Index := Invalid_Timer_Wheel_Spoke_Index;
+            Timer_Obj.Running := False;
+         end if;
       end;
 
       HiRTOS.Exit_Atomic_Level (Old_Atomic_Level);

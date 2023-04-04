@@ -4,6 +4,9 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
+
+with HiRTOS_Cpu_Arch_Interface;
+
 package HiRTOS.Condvar is
 
    function Initialized (Condvar_Id : Valid_Condvar_Id_Type) return Boolean
@@ -20,7 +23,9 @@ package HiRTOS.Condvar is
    procedure Wait (Condvar_Id : Valid_Condvar_Id_Type;
                    Timeout_Ms : Time_Ms_Type := Time_Ms_Type'Last)
       with Pre => Initialized (Condvar_Id) and then
-                  not Current_Execution_Context_Is_Interrupt;
+                  not Current_Execution_Context_Is_Interrupt and then
+                  (HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled or else
+                   Get_Current_Atomic_Level /= Atomic_Level_None);
 
    procedure Signal (Condvar_Id : Valid_Condvar_Id_Type)
       with Pre => Initialized (Condvar_Id);
@@ -28,4 +33,10 @@ package HiRTOS.Condvar is
    procedure Broadcast (Condvar_Id : Valid_Condvar_Id_Type)
       with Pre => Initialized (Condvar_Id);
 
+   --
+   --  Tells if the calling thread timed out on its last wait on a condvar
+   --
+   function Last_Wait_Timed_Out (Condvar_Id : Valid_Condvar_Id_Type) return Boolean
+      with Pre => Initialized (Condvar_Id) and then
+                  not Current_Execution_Context_Is_Interrupt;
 end HiRTOS.Condvar;

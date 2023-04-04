@@ -12,7 +12,6 @@ with HiRTOS.Timer_Private;
 with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
-with HiRTOS.Condvar;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
@@ -42,9 +41,6 @@ is
       Convention => C;
 
    procedure Idle_Thread_Proc (Arg : System.Address) with
-     Convention => C;
-
-   procedure Timer_Thread_Proc (Arg : System.Address) with
      Convention => C;
 
    procedure Initialize_HiRTOS_Lib with SPARK_Mode => Off
@@ -98,7 +94,7 @@ is
 
       HiRTOS.Interrupt_Handling_Private.Initialize_Interrupt_Nesting_Level_Stack
       (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
-      HiRTOS.Initialize_Thread_Priority_Queue (RTOS_Cpu_Instance.Runnable_Thread_Queue);
+      HiRTOS.Initialize_Thread_Priority_Queue (RTOS_Cpu_Instance.Runnable_Threads_Queue);
       HiRTOS.Timer_Private.Initialize_Timer_Wheel (RTOS_Cpu_Instance.Timer_Wheel);
 
       HiRTOS.Thread.Create_Thread
@@ -110,9 +106,9 @@ is
          RTOS_Cpu_Instance.Idle_Thread_Id);
 
       HiRTOS.Thread.Create_Thread
-      (Timer_Thread_Proc'Access,
+      (HiRTOS.Timer_Private.Timer_Thread_Proc'Access,
          System.Null_Address,
-         Lowest_Thread_Priority + 1, --??? TODO Change to highest
+         Highest_Thread_Priority,
          Timer_Thread_Stack'Address,
          Timer_Thread_Stack'Size / System.Storage_Unit,
          RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
@@ -140,7 +136,7 @@ is
       Highest_Thread_Prioritiy : Valid_Thread_Priority_Type;
    begin
       pragma Assert (Non_Empty_Thread_Queues_Map_Value /= 0);
-      pragma Assert (Leading_Zeros in 1 .. HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size);
+      pragma Assert (Leading_Zeros in 0 .. HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size - 1);
       Highest_Thread_Prioritiy :=
          Valid_Thread_Priority_Type (HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size - Leading_Zeros - 1);
 
@@ -300,26 +296,6 @@ is
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Idle_Thread_Proc;
 
-   procedure Timer_Thread_Proc (Arg : System.Address) is
-   begin
-      pragma Assert (Arg = System.Null_Address);
-      HiRTOS.Enter_Cpu_Privileged_Mode;
-
-      declare
-         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-         Tick_Timer_Thread_Obj : Thread_Type renames
-            HiRTOS_Obj.Thread_Instances (RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
-      begin
-         loop
-            HiRTOS.Condvar.Wait (Tick_Timer_Thread_Obj.Builtin_Condvar_Id);
-            --  TODO: do background timer processing
-         end loop;
-      end;
-
-      HiRTOS.Exit_Cpu_Privileged_Mode;
-   end Timer_Thread_Proc;
-
    function Enter_Atomic_Level
      (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type
    is
@@ -329,6 +305,12 @@ is
          RTOS_Cpu_Instance.Current_Atomic_Level;
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
    begin
+      if HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled or else
+         New_Atomic_Level >= Old_Atomic_Level
+      then
+         return Old_Atomic_Level;
+      end if;
+
       if New_Atomic_Level = Atomic_Level_No_Interrupts then
          Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
@@ -350,6 +332,14 @@ is
 
    procedure Exit_Atomic_Level (Old_Atomic_Level : Atomic_Level_Type) is
    begin
+      if (HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
+          Old_Atomic_Level = Atomic_Level_None)
+         or else
+         Old_Atomic_Level = Get_Current_Atomic_Level
+      then
+         return;
+      end if;
+
       if Old_Atomic_Level = Atomic_Level_None then
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
             HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type'Last);

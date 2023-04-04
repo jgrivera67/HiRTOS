@@ -5,6 +5,7 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 with HiRTOS.RTOS_Private;
+with HiRTOS.Timer;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Low_Level_Debug_Interface; --???
@@ -59,7 +60,7 @@ package body HiRTOS.Thread_Private is
       --  Begin critical section
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      Thread_Priority_Queue_Remove_Head (RTOS_Cpu_Instance.Runnable_Thread_Queue, Thread_Id);
+      Thread_Priority_Queue_Remove_Head (RTOS_Cpu_Instance.Runnable_Threads_Queue, Thread_Id);
 
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
@@ -75,7 +76,7 @@ package body HiRTOS.Thread_Private is
       --  Begin critical section
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      Thread_Priority_Queue_Add (RTOS_Cpu_Instance.Runnable_Thread_Queue, Thread_Id, Priority, First_In_Queue);
+      Thread_Priority_Queue_Add (RTOS_Cpu_Instance.Runnable_Threads_Queue, Thread_Id, Priority, First_In_Queue);
 
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
@@ -151,6 +152,17 @@ package body HiRTOS.Thread_Private is
       --  end;
       --???
    end Run_Thread_Scheduler;
+
+   procedure Schedule_Awaken_Thread (Thread_Id : Thread_Id_Type) is
+      Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
+         HiRTOS_Obj.Thread_Instances (Thread_Id);
+   begin
+      if HiRTOS.Timer.Timer_Running (Thread_Obj.Builtin_Timer_Id) then
+         HiRTOS.Timer.Stop_Timer (Thread_Obj.Builtin_Timer_Id);
+      end if;
+
+      HiRTOS.Thread_Private.Enqueue_Runnable_Thread (Thread_Id, Thread_Obj.Current_Priority);
+   end Schedule_Awaken_Thread;
 
    -----------------------------------------------------------------------------
    --  Private Subprograms                                                    --

@@ -8,6 +8,9 @@
 --
 --  @summary HiRTOS compile-time configuration parameters
 --
+
+with HiRTOS_Platform_Parameters;
+
 package HiRTOS_Config_Parameters
    with SPARK_Mode => On,
         No_Elaboration_Code_All
@@ -17,11 +20,19 @@ is
    --
    Max_Num_Threads : constant := 32;
 
+  pragma Compile_Time_Error
+     (Max_Num_Threads < 2 * HiRTOS_Platform_Parameters.Num_Cpu_Cores,
+      "Max_Num_Threads too small");
+
    --
    --  Maximum number of condition variables (not counting the condvar embedded
    --  in each thread)
    --
    Max_Num_Condvars : constant := 32;
+
+  pragma Compile_Time_Error
+     (Max_Num_Condvars < Max_Num_Threads,
+      "Max_Num_Condvars too small");
 
    --
    --  Maximum number of mutexes
@@ -32,6 +43,10 @@ is
    --  Maximum number of timers
    --
    Max_Num_Timers : constant := 64;
+
+  pragma Compile_Time_Error
+     (Max_Num_Timers < Max_Num_Threads,
+      "Max_Num_Timers too small");
 
    --
    --  Number of spokes of the Timer Wheel

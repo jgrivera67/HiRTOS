@@ -168,7 +168,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    begin
       System.Machine_Code.Asm (
          --
-         --  Call sp = HiRTOS.Exit_Interrupt_Context (sp)
+         --  Call sp = HiRTOS.Interrupt_Handling.Exit_Interrupt_Context (sp)
          --
          "mov r0, sp" & LF &
          "bl hirtos_exit_interrupt_context" & LF &

@@ -20,11 +20,16 @@ package HiRTOS.Timer is
       with Ghost;
 
    function Timer_Running (Timer_Id : Valid_Timer_Id_Type) return Boolean
-      with Ghost;
+      with Pre => Initialized (Timer_Id);
 
    procedure Create_Timer (Timer_Id : out Valid_Timer_Id_Type)
       with Post => Initialized (Timer_Id);
 
+   --
+   --  NOTE: Due to a race condition with the tick timer ISR, the timer may have already expired
+   --  when this subprogram returns to the caller. So we cannot assert in the post-condition that
+   --  the timer is still running upon return.
+   --
    procedure Start_Timer (Timer_Id : Valid_Timer_Id_Type;
                           Expiration_Time_Us : Time_Us_Type;
                           Expiration_Callback : Timer_Expiration_Callback_Type;
@@ -35,6 +40,11 @@ package HiRTOS.Timer is
                   Expiration_Time_Us mod HiRTOS_Config_Parameters.Tick_Timer_Period_Us = 0 and then
                   HiRTOS.Memory_Protection.Valid_Code_Address (Expiration_Callback.all'Address);
 
+   --
+   --  NOTE: Due to a race condition with the tick timer ISR, the timer may have already expired
+   --  may have already expired when this subprogram is invoked. So we cannot assert in the
+   --  pre-condition that the timer is still running upon entry.
+   --
    procedure Stop_Timer (Timer_Id : Valid_Timer_Id_Type)
       with Pre => Initialized (Timer_Id),
            Post => not Timer_Running (Timer_Id);

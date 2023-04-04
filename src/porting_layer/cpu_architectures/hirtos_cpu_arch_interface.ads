@@ -53,7 +53,8 @@ is
    --
    procedure Restore_Cpu_Interrupting
     (Old_Cpu_Interrupting : Cpu_Register_Type) with
-    Pre => Cpu_In_Privileged_Mode and then Cpu_Interrupting_Disabled;
+    Pre => Cpu_In_Privileged_Mode and then
+           Cpu_Interrupting_Disabled;
 
    procedure Enable_Cpu_Interrupting with
     Pre => Cpu_In_Privileged_Mode,

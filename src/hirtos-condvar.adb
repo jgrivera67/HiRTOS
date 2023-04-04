@@ -6,6 +6,7 @@
 --
 
 with HiRTOS.Condvar_Private;
+with HiRTOS.Mutex_Private;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS.Memory_Protection;
@@ -18,6 +19,8 @@ with GNAT.Source_Info; --???
 
 package body HiRTOS.Condvar is
    use HiRTOS.Condvar_Private;
+   use HiRTOS.Mutex_Private;
+   use HiRTOS.Thread_Private;
    use HiRTOS.RTOS_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
    use System.Storage_Elements;
@@ -26,13 +29,12 @@ package body HiRTOS.Condvar is
 
    procedure Wait_Internal (Condvar_Id : Valid_Condvar_Id_Type; Mutex_Id : Mutex_Id_Type;
                             Timeout_Ms : Time_Ms_Type)
-      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+           Post => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
    procedure Wakeup_One_Thread (Condvar_Obj : in out Condvar_Type)
-      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
-
-   procedure Wakeup_This_Thread (Thread_Id : Thread_Id_Type)
-      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+           Post => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
    procedure Wait_Timeout_Callback (Timer_Id : Valid_Timer_Id_Type;
                                     Callback_Arg : Integer_Address)
@@ -94,9 +96,6 @@ package body HiRTOS.Condvar is
             HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
          Current_Atomic_Level : constant Atomic_Level_Type := Get_Current_Atomic_Level;
       begin
-        --   pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled or else
-        --                  Current_Atomic_Level /= Atomic_Level_None);
-
          Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
          Current_Thread_Obj.Atomic_Level := Current_Atomic_Level;
          Wait_Internal (Condvar_Id, Invalid_Mutex_Id, Timeout_Ms);
@@ -116,7 +115,7 @@ package body HiRTOS.Condvar is
       HiRTOS.Enter_Cpu_Privileged_Mode;
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      if not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiters_Queue) then
+      if not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiting_Threads_Queue) then
          Wakeup_One_Thread (Condvar_Obj);
          Thread_Awaken := True;
       end if;
@@ -140,7 +139,7 @@ package body HiRTOS.Condvar is
       HiRTOS.Enter_Cpu_Privileged_Mode;
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      while not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiters_Queue) loop
+      while not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiting_Threads_Queue) loop
          Wakeup_One_Thread (Condvar_Obj);
          Thread_Awaken := True;
       end loop;
@@ -156,6 +155,28 @@ package body HiRTOS.Condvar is
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Broadcast;
 
+   function Last_Wait_Timed_Out (Condvar_Id : Valid_Condvar_Id_Type) return Boolean
+   is
+      Condvar_Obj : Condvar_Type renames HiRTOS_Obj.Condvar_Instances (Condvar_Id);
+      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+      Thread_Wait_Timed_Out : Boolean := False;
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
+         Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
+            HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+      begin
+         Thread_Wait_Timed_Out := Current_Thread_Obj.Last_Condvar_Wait_Timed_Out;
+      end;
+
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+      return Thread_Wait_Timed_Out;
+   end Last_Wait_Timed_Out;
+
    -----------------------------------------------------------------------------
    --  Private Subprograms
    -----------------------------------------------------------------------------
@@ -166,28 +187,32 @@ package body HiRTOS.Condvar is
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access (Condvar_Obj'Address, Condvar_Obj'Size,
                                                               Old_Data_Range);
       Condvar_Obj.Id := Condvar_Id;
-      Initialize_Thread_Priority_Queue (Condvar_Obj.Waiters_Queue);
+      Initialize_Thread_Priority_Queue (Condvar_Obj.Waiting_Threads_Queue);
       Condvar_Obj.Initialized := True;
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_Condvar;
 
    procedure Wait_Internal (Condvar_Id : Valid_Condvar_Id_Type; Mutex_Id : Mutex_Id_Type;
                             Timeout_Ms : Time_Ms_Type) is
+      use type Interfaces.Unsigned_8;
       Condvar_Obj : Condvar_Type renames HiRTOS_Obj.Condvar_Instances (Condvar_Id);
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
       Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
    begin
+      Current_Thread_Obj.Last_Condvar_Wait_Timed_Out := False;
       if Mutex_Id /= Invalid_Mutex_Id then
-         --  TODO: implement this:
-         --  - Release mutex
-         --  - Remove Mutex_Id from list of owned mutexes
-         --  - set mutex_released_for_condvar_wait to Mutex_Id
-         pragma Assert (False);
+         declare
+            Mutex_Obj : HiRTOS.Mutex_Private.Mutex_Type renames
+               HiRTOS_Obj.Mutex_Instances (Mutex_Id);
+         begin
+            pragma Assert (Mutex_Obj.Recursive_Count = 1);
+            Release_Mutex_Internal (Mutex_Obj, Current_Thread_Obj);
+         end;
       end if;
 
       Current_Thread_Obj.Waiting_On_Condvar_Id := Condvar_Id;
-      Thread_Priority_Queue_Add (Condvar_Obj.Waiters_Queue, Current_Thread_Id,
+      Thread_Priority_Queue_Add (Condvar_Obj.Waiting_Threads_Queue, Current_Thread_Id,
                                  Current_Thread_Obj.Current_Priority,
                                  First_In_Queue => False);
 
@@ -195,20 +220,25 @@ package body HiRTOS.Condvar is
          --
          --  Start timer for the current thread:
          --
-         HiRTOS.Timer.Start_Timer (Current_Thread_Obj.Timer_Id,
+         HiRTOS.Timer.Start_Timer (Current_Thread_Obj.Builtin_Timer_Id,
                                    HiRTOS.Get_Current_Time_Us + Time_Us_Type (Timeout_Ms * 1000),
                                    Wait_Timeout_Callback'Access,
                                    Integer_Address (Current_Thread_Id));
       end if;
 
-              --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
       HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
-              --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
 
       --
-      --  NOTE: Blocked thread will resume executing here.
+      --  NOTE: Blocked thread will resume executing here
       --
-
+      if Mutex_Id /= Invalid_Mutex_Id then
+         declare
+            Mutex_Obj : HiRTOS.Mutex_Private.Mutex_Type renames
+               HiRTOS_Obj.Mutex_Instances (Mutex_Id);
+         begin
+            Acquire_Mutex_Internal (Mutex_Obj, Current_Thread_Obj, Time_Ms_Type'Last);
+         end;
+      end if;
    end Wait_Internal;
 
    procedure Wait_Timeout_Callback (Timer_Id : Valid_Timer_Id_Type;
@@ -218,16 +248,18 @@ package body HiRTOS.Condvar is
       Condvar_Obj : Condvar_Type renames HiRTOS_Obj.Condvar_Instances (Thread_Obj.Waiting_On_Condvar_Id);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
-      pragma Assert (Timer_Id = Thread_Obj.Timer_Id);
+      pragma Assert (Timer_Id = Thread_Obj.Builtin_Timer_Id);
 
       --  begin critical section
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
+      Thread_Obj.Last_Condvar_Wait_Timed_Out := True;
+
       --
       --  Remove thread from condvar wait queue and add it to the corresponding run queue:
       --
-      Thread_Priority_Queue_Remove_This (Condvar_Obj.Waiters_Queue, Thread_Id);
-      Wakeup_This_Thread (Thread_Id);
+      Thread_Priority_Queue_Remove_This (Condvar_Obj.Waiting_Threads_Queue, Thread_Id);
+      Schedule_Awaken_Thread (Thread_Id);
 
       --  end critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
@@ -236,21 +268,8 @@ package body HiRTOS.Condvar is
    procedure Wakeup_One_Thread (Condvar_Obj : in out Condvar_Type) is
       Thread_Id : Thread_Id_Type;
    begin
-      Thread_Priority_Queue_Remove_Head (Condvar_Obj.Waiters_Queue, Thread_Id);
-      Wakeup_This_Thread (Thread_Id);
+      Thread_Priority_Queue_Remove_Head (Condvar_Obj.Waiting_Threads_Queue, Thread_Id);
+      Schedule_Awaken_Thread (Thread_Id);
    end Wakeup_One_Thread;
-
-   procedure Wakeup_This_Thread (Thread_Id : Thread_Id_Type) is
-      Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
-         HiRTOS_Obj.Thread_Instances (Thread_Id);
-   begin
-      --  TODO: implement this:
-      --  - If mutex_released_for_condvar_wait /= Invalid_Mutex_Id
-      --       If mutex available:
-      --          re-acquire mutex
-      --          Enqueue runnable thread
-      --
-      HiRTOS.Thread_Private.Enqueue_Runnable_Thread (Thread_Id, Thread_Obj.Current_Priority);
-   end Wakeup_This_Thread;
 
 end HiRTOS.Condvar;

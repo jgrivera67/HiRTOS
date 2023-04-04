@@ -130,7 +130,7 @@ package body HiRTOS.Thread is
          --
          --  Start timer for the current thread:
          --
-         HiRTOS.Timer.Start_Timer (Current_Thread_Obj.Timer_Id,
+         HiRTOS.Timer.Start_Timer (Current_Thread_Obj.Builtin_Timer_Id,
                                    Wakeup_Time_Us,
                                    Thread_Delay_Timer_Callback'Access,
                                    Integer_Address (Current_Thread_Id));
@@ -168,7 +168,7 @@ package body HiRTOS.Thread is
       Thread_Obj.Base_Priority := Priority;
       Thread_Obj.Current_Priority := Thread_Obj.Base_Priority;
       Thread_Obj.Atomic_Level := Atomic_Level_None;
-      HiRTOS.Timer.Create_Timer (Thread_Obj.Timer_Id);
+      HiRTOS.Timer.Create_Timer (Thread_Obj.Builtin_Timer_Id);
 
       Thread_Obj.Stack_Base_Addr := Stack_Base_Address;
       Thread_Obj.Stack_End_Addr := Stack_End_Address;
@@ -193,7 +193,7 @@ package body HiRTOS.Thread is
       Thread_Id : constant Valid_Thread_Id_Type := Valid_Thread_Id_Type (Callback_Arg);
       Thread_Obj : Thread_Type renames HiRTOS_Obj.Thread_Instances (Thread_Id);
    begin
-      pragma Assert (Timer_Id = Thread_Obj.Timer_Id);
+      pragma Assert (Timer_Id = Thread_Obj.Builtin_Timer_Id);
 
       --
       --  Wake up delayed thread

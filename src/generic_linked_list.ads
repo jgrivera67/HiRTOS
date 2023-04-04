@@ -39,7 +39,8 @@ is
      Pre    =>
       List_Id /= Null_List_Id,
      Post =>
-      List_Initialized (List_Anchor) and then List_Is_Empty (List_Anchor);
+      List_Initialized (List_Anchor)
+      and then List_Is_Empty (List_Anchor);
 
    function List_Is_Empty (List_Anchor : List_Anchor_Type) return Boolean with
      Global => null, Depends => (List_Is_Empty'Result => List_Anchor),
@@ -49,7 +50,8 @@ is
      (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type) with
      Global => null, Depends => (List_Anchor =>+ Element_Id),
      Pre    =>
-      List_Initialized (List_Anchor) and then Element_Id /= Null_Element_Id
+      List_Initialized (List_Anchor)
+      and then Element_Id /= Null_Element_Id
       and then Get_Containing_List (Element_Id) = Null_List_Id,
      Post =>
       List_Length (List_Anchor) = List_Length (List_Anchor'Old) + 1
@@ -59,7 +61,8 @@ is
      (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type) with
      Global => null, Depends => (List_Anchor =>+ Element_Id),
      Pre    =>
-      List_Initialized (List_Anchor) and then Element_Id /= Null_Element_Id
+      List_Initialized (List_Anchor)
+      and then Element_Id /= Null_Element_Id
       and then Get_Containing_List (Element_Id) = Null_List_Id,
      Post =>
       List_Length (List_Anchor) = List_Length (List_Anchor'Old) + 1
@@ -71,7 +74,8 @@ is
      Global  => null,
      Depends => (List_Anchor =>+ null, Element_Id => List_Anchor),
      Pre     =>
-      List_Initialized (List_Anchor) and then List_Length (List_Anchor) /= 0,
+      List_Initialized (List_Anchor)
+      and then List_Length (List_Anchor) /= 0,
      Post =>
       List_Length (List_Anchor) = List_Length (List_Anchor'Old) - 1
       and then Element_Id /= Null_Element_Id
@@ -81,7 +85,8 @@ is
      (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type) with
      Global => null, Depends => (List_Anchor =>+ Element_Id),
      Pre    =>
-      List_Initialized (List_Anchor) and then List_Length (List_Anchor) /= 0
+      List_Initialized (List_Anchor)
+      and then List_Length (List_Anchor) /= 0
       and then Element_Id /= Null_Element_Id
       and then Get_Containing_List (Element_Id) /= Null_List_Id,
      Post =>

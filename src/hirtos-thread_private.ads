@@ -35,6 +35,10 @@ is
    --  Thread control block
    --
    --  @field Initialized: flag indicating if the thread object has been initialized.
+   --  @field Last_Condvar_Wait_Timed_Out: Flag indicating if the last wait on a condvar
+   --  for this thread timed out.
+   --  @field Last_Mutex_Acquire_Timed_Out: Flag indicating if the last mutex acquire
+   --  for this thread timed out.
    --  @field Id: thread Id
    --  @field State: current state of the thread
    --  @field Base_Priority: Thread normal priority
@@ -63,12 +67,14 @@ is
    --
    type Thread_Type is limited record
       Initialized : Boolean := False;
+      Last_Condvar_Wait_Timed_Out : Boolean := False;
+      Last_Mutex_Acquire_Timed_Out : Boolean := False;
       Id : Thread_Id_Type := Invalid_Thread_Id;
       State : Thread_State_Type := Thread_Not_Created;
-      Current_Priority : Thread_Priority_Type;
-      Base_Priority : Thread_Priority_Type;
+      Current_Priority : Thread_Priority_Type := Invalid_Thread_Priority;
+      Base_Priority : Thread_Priority_Type := Invalid_Thread_Priority;
       Atomic_Level : Atomic_Level_Type := Atomic_Level_None;
-      Timer_Id : Timer_Id_Type := Invalid_Timer_Id;
+      Builtin_Timer_Id : Timer_Id_Type := Invalid_Timer_Id;
       Stack_Base_Addr : System.Address := System.Null_Address;
       Stack_End_Addr : System.Address := System.Null_Address;
       Builtin_Condvar_Id : Condvar_Id_Type := Invalid_Condvar_Id;
@@ -148,5 +154,9 @@ is
    procedure Run_Thread_Scheduler
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
            Post => HiRTOS.Thread.Get_Current_Thread_Id /= Invalid_Thread_Id;
+
+   procedure Schedule_Awaken_Thread (Thread_Id : Thread_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+           Post => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
 end HiRTOS.Thread_Private;

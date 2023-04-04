@@ -128,7 +128,7 @@ interrupt_vector_table:
     mov     r0,   #0
     mov     sp,   #0
     mov     lr,   #0
-    msr     spsr_hyp, r0
+    msr     spsr, r0
     msr     elr_hyp,  r0
 	.endm
 
@@ -163,7 +163,7 @@ interrupt_vector_table:
         mov     r12,  #0
         mov     sp,   #0
         mov     lr,   #0
-        msr     spsr, #0
+        msr     spsr, r0
 
         msr     CPSR_c, #(CPSR_FAST_INTERRUPT_MODE | CPSR_NO_INT)
         mov     r8,   #0
@@ -173,22 +173,22 @@ interrupt_vector_table:
         mov     r12,  #0
         mov     sp,   #0
         mov     lr,   #0
-        msr     spsr, #0
+        msr     spsr, r0
 
         msr     CPSR_c, #(CPSR_INTERRUPT_MODE | CPSR_NO_INT)
         mov     sp,   #0
         mov     lr,   #0
-        msr     spsr, #0
+        msr     spsr, r0
 
         msr     CPSR_c, #(CPSR_ABORT_MODE | CPSR_NO_INT)
         mov     sp,   #0
         mov     lr,   #0
-        msr     spsr, #0
+        msr     spsr, r0
 
         msr     CPSR_c, #(CPSR_UNDEFINED_MODE | CPSR_NO_INT)
         mov     sp,   #0
         mov     lr,   #0
-        msr     spsr, #0
+        msr     spsr, r0
 
         /*
          * NOTE: SYS mode and USR mode share the same sp and lr
@@ -240,7 +240,7 @@ reset_handler:
          * (SVC mode), we need to return from an EL2 exception into EL1.
          */
         mov r0, #CPSR_SUPERVISOR_MODE
-        msr spsr_hyp, r0
+        msr spsr, r0
         ldr r0, =reset_handler_el1
         msr elr_hyp, r0
         eret

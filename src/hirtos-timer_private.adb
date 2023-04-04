@@ -6,6 +6,8 @@
 --
 
 with HiRTOS.RTOS_Private;
+with HiRTOS.Thread_Private;
+with HiRTOS.Condvar;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Config_Parameters;
@@ -38,17 +40,17 @@ package body HiRTOS.Timer_Private is
          Timer_Obj : Timer_Type renames HiRTOS_Obj.Timer_Instances (Timer_Id);
       begin
          if Timer_Obj.Timer_Wheel_Revolutions_Left = 0 then
-            --
-            --  Call timer expiration callback:
-            --
-            Timer_Obj.Expiration_Callback.all (Timer_Id, Timer_Obj.Expiration_Callback_Arg);
-
             if Timer_Obj.Periodic then
                Timer_Obj.Timer_Wheel_Revolutions_Left := Timer_Obj.Timer_Wheel_Revolutions;
             else
                Timer_List_Package.List_Remove_This (Timer_Wheel_Hash_Chain, Timer_Id);
                Timer_Obj.Running := False;
             end if;
+
+            --
+            --  Call timer expiration callback:
+            --
+            Timer_Obj.Expiration_Callback.all (Timer_Id, Timer_Obj.Expiration_Callback_Arg);
          else
             Timer_Obj.Timer_Wheel_Revolutions_Left := @ - 1;
          end if;
@@ -93,13 +95,63 @@ package body HiRTOS.Timer_Private is
             Process_Timer_Wheel_Hash_Chain (Timer_Wheel_Hash_Chain);
          end;
       else
-         --
-         --  Wake up timer thread
-         --
-         pragma Assert (False); -- TODO: implement this
+         declare
+            Tick_timer_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
+               HiRTOS_Obj.Thread_Instances (RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
+         begin
+            --
+            --  Wake up timer thread
+            --
+            HiRTOS.Condvar.Signal (Tick_timer_Thread_Obj.Builtin_Condvar_Id);
+         end;
       end if;
 
+      --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
    end Do_Software_Timers_Bookkeeping;
+
+   procedure Timer_Thread_Proc (Arg : System.Address) is
+      use type HiRTOS_Config_Parameters.Software_Timers_Bookkeeping_Method_Type;
+      use type System.Address;
+   begin
+      pragma Assert (Arg = System.Null_Address);
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Tick_Timer_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
+            HiRTOS_Obj.Thread_Instances (RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
+         Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+      begin
+         loop
+            --  Begin critical section
+            Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+            while not RTOS_Cpu_Instance.Tick_Timer_Thread_Work_Requested loop
+               HiRTOS.Condvar.Wait (Tick_Timer_Thread_Obj.Builtin_Condvar_Id);
+            end loop;
+
+            RTOS_Cpu_Instance.Tick_Timer_Thread_Work_Requested := False;
+            --  End critical section
+            HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+
+            if HiRTOS_Config_Parameters.Software_Timers_Bookkeeping_Method =
+               HiRTOS_Config_Parameters.Software_Timers_Bookkeeping_In_Timer_Thread
+            then
+               --
+               --  Do timer wheel processing:
+               --
+               declare
+                  Timer_Wheel : Timer_Wheel_Type renames RTOS_Cpu_Instance.Timer_Wheel;
+                  Timer_Wheel_Hash_Chain : Timer_List_Package.List_Anchor_Type renames
+                     Timer_Wheel.Wheel_Spokes_Hash_Table (Timer_Wheel.Current_Wheel_Spoke_Index);
+               begin
+                  Process_Timer_Wheel_Hash_Chain (Timer_Wheel_Hash_Chain);
+               end;
+            end if;
+         end loop;
+      end;
+
+   end Timer_Thread_Proc;
 
 end HiRTOS.Timer_Private;

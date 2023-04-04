@@ -107,14 +107,14 @@ is
    --         The highest entry in use is indicated by `Current_Interrupt_Nesting_Level`
    --         can be created.
    --  @field All_Threads: List of all threads created in this CPU
-   --  @field Runnable_Thread_Queues: array of runable thread queues, one queue per
-   --         thread priority.
+   --  @field Runnable_Threads_Queue: priority queue of runable threads.
    --  @field Timer_Wheel_Hash_Table: array of timer hash chains, one entry per
    --         timer wheel spoke.
    --
    type HiRTOS_Cpu_Instance_Type is limited record
       Initialized            : Boolean                     := False;
       Last_Chance_Handler_Running : Boolean                := False;
+      Tick_Timer_Thread_Work_Requested : Boolean           := False with Atomic;
       Cpu_Id                 : Cpu_Core_Id_Type;
       Thread_Scheduler_State : Thread_Scheduler_State_Type :=
        Thread_Scheduler_Stopped;
@@ -124,14 +124,14 @@ is
       Timer_Ticks_Since_Boot        : Timer_Ticks_Count_Type := 0;
       Idle_Thread_Id                : Thread_Id_Type := Invalid_Thread_Id;
       Tick_Timer_Thread_Id          : Thread_Id_Type := Invalid_Thread_Id;
-      Interrupt_Stack_Base_Address  : System.Address;
-      Interrupt_Stack_End_Address   : System.Address;
+      Interrupt_Stack_Base_Address  : System.Address := System.Null_Address;
+      Interrupt_Stack_End_Address   : System.Address := System.Null_Address;
       Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type;
       All_Threads : Per_Cpu_Thread_List_Package.List_Anchor_Type;
       All_Mutexes : Per_Cpu_Mutex_List_Package.List_Anchor_Type;
       All_Condvars : Per_Cpu_Condvar_List_Package.List_Anchor_Type;
       All_Timers : Per_Cpu_Timer_List_Package.List_Anchor_Type;
-      Runnable_Thread_Queue         : Thread_Priority_Queue_Type;
+      Runnable_Threads_Queue        : Thread_Priority_Queue_Type;
       Timer_Wheel                   : Timer_Wheel_Type;
    end record with
       Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;

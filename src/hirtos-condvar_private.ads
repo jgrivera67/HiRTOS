@@ -21,14 +21,14 @@ private package HiRTOS.Condvar_Private is
    --         calling Wait on the condvar and to be re-acquired  when
    --         waking up from Wait. It is meaningful only if `Wake_Atomic_Level`
    --         is `Atomic_Level_None`.
-   --  @field Waiters_Queue: Priority queue of threads waiting on the condvar.
+   --  @field Waiting_Threads_Queue: Priority queue of threads waiting on the condvar.
    --
    type Condvar_Type is limited record
       Initialized : Boolean := False;
       Id : Condvar_Id_Type := Invalid_Condvar_Id;
       Wakeup_Atomic_Level : Atomic_Level_Type := Atomic_Level_None;
       Wakeup_Mutex_id : Mutex_Id_Type := Invalid_Mutex_Id;
-      Waiters_Queue : Thread_Priority_Queue_Type;
+      Waiting_Threads_Queue : Thread_Priority_Queue_Type;
    end record;
    --  with Type_Invariant =>
    --    (if Condvar_Type.Wakeup_Atomic_Level /= Atomic_Level_None then
