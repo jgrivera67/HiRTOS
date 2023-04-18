@@ -37,7 +37,6 @@ package HiRTOS.Timer is
                           Periodic : Boolean := False)
       with Pre => Initialized (Timer_Id) and then
                   not Timer_Running (Timer_Id) and then
-                  Expiration_Time_Us mod HiRTOS_Config_Parameters.Tick_Timer_Period_Us = 0 and then
                   HiRTOS.Memory_Protection.Valid_Code_Address (Expiration_Callback.all'Address);
 
    --

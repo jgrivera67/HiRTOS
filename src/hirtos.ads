@@ -127,8 +127,8 @@ is
    --
    --  In this atomic level the thread scheduler is disabled, but
    --  all interrupt priorities are enabled. Only the first thread that calls
-   --  Enter_Atomic_Level can run and other
-   --  threads cannot run until the first thread calls Exit_Atomic_Level
+   --  Raise_Atomic_Level can run and other
+   --  threads cannot run until the first thread calls Restore_Atomic_Level
    --
    Atomic_Level_Single_Thread : constant Atomic_Level_Type :=
      Atomic_Level_Type'Last - 1;
@@ -141,18 +141,20 @@ is
    Atomic_Level_None : constant Atomic_Level_Type := Atomic_Level_Type'Last;
 
    --
-   --  Enters the given atomic level and returns the previous atomic level
+   --  Raises the current atomic level ofr the calling CPU to the given atomic level
+   --  and returns the previous atomic level
    --
-   function Enter_Atomic_Level
-     (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type
+   function Raise_Atomic_Level (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type
      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
-                 New_Atomic_Level /= Atomic_Level_None;
+                 New_Atomic_Level /= Atomic_Level_None and then
+                 New_Atomic_Level <= Get_Current_Atomic_Level,
+          Post => Raise_Atomic_Level'Result >= New_Atomic_Level;
 
    --
    --  Restores the previous atomic level that was obtained by
-   --  an earlier call to Enter_Atomic_Level
+   --  an earlier call to Raise_Atomic_Level
    --
-   procedure Exit_Atomic_Level (Old_Atomic_Level : Atomic_Level_Type)
+   procedure Restore_Atomic_Level (Old_Atomic_Level : Atomic_Level_Type)
      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    function Get_Current_Atomic_Level return Atomic_Level_Type

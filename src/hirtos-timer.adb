@@ -56,6 +56,11 @@ package body HiRTOS.Timer is
          use type Interfaces.Unsigned_32;
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         --
+         --  NOTE: If `Expiration_Time_Ticks` is not a whole multiple of
+         -- `Tick_Timer_Period_Us`, the timer will expire a little sooner
+         --  than expected.
+         --
          Expiration_Time_Ticks : constant Timer_Ticks_Count_Type :=
             Timer_Ticks_Count_Type (
                Expiration_Time_Us / HiRTOS_Config_Parameters.Tick_Timer_Period_Us);
@@ -96,7 +101,7 @@ package body HiRTOS.Timer is
       Old_Atomic_Level : Atomic_Level_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      Old_Atomic_Level := HiRTOS.Enter_Atomic_Level (
+      Old_Atomic_Level := HiRTOS.Raise_Atomic_Level (
          HiRTOS.Atomic_Level_Type (Interrupts.Interrupt_Priorities (Interrupts.Generic_Timer_Interrupt_Id)));
 
       declare
@@ -114,7 +119,7 @@ package body HiRTOS.Timer is
          end if;
       end;
 
-      HiRTOS.Exit_Atomic_Level (Old_Atomic_Level);
+      HiRTOS.Restore_Atomic_Level (Old_Atomic_Level);
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Stop_Timer;
 

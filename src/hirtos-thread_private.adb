@@ -96,19 +96,26 @@ package body HiRTOS.Thread_Private is
             Old_Thread_Obj : Thread_Type renames HiRTOS_Obj.Thread_Instances (Old_Thread_Id);
          begin
             --
-            --  Add current thread to corresponding run queue if not blocked on a condvar or mutex:
+            --  Add current thread to corresponding run queue if not blocked on a condvar or
+            --  mutex, and if ther current atomic level is Atomic_Level_None:
             --
             if Old_Thread_Obj.Waiting_On_Condvar_Id = Invalid_Condvar_Id and then
                Old_Thread_Obj.Waiting_On_Mutex_Id = Invalid_Mutex_Id
             then
-               Reschedule_Thread (Old_Thread_Id);
+               if Get_Current_Atomic_Level = Atomic_Level_None then
+                  Reschedule_Thread (Old_Thread_Id);
+                  RTOS_Cpu_Instance.Current_Thread_Id := Invalid_Thread_Id;
+               end if;
+            else
+               RTOS_Cpu_Instance.Current_Thread_Id := Invalid_Thread_Id;
             end if;
          end;
-
-         RTOS_Cpu_Instance.Current_Thread_Id := Invalid_Thread_Id;
       end if;
 
-      Dequeue_Highest_Priority_Runnable_Thread (RTOS_Cpu_Instance.Current_Thread_Id);
+      if RTOS_Cpu_Instance.Current_Thread_Id = Invalid_Thread_Id then
+         Dequeue_Highest_Priority_Runnable_Thread (RTOS_Cpu_Instance.Current_Thread_Id);
+      end if;
+
       if RTOS_Cpu_Instance.Current_Thread_Id /= Old_Thread_Id then
          if Old_Thread_Id /= Invalid_Thread_Id then
             declare
@@ -183,6 +190,7 @@ package body HiRTOS.Thread_Private is
 
    procedure Save_Thread_Extended_Context (Thread_Obj : in out Thread_Type) is
    begin
+      Thread_Obj.Atomic_Level := Get_Current_Atomic_Level;
       HiRTOS.Memory_Protection_Private.Save_Thread_Memory_Regions (
          Thread_Obj.Saved_Thread_Memory_Regions);
    end Save_Thread_Extended_Context;
@@ -191,6 +199,7 @@ package body HiRTOS.Thread_Private is
    begin
       HiRTOS.Memory_Protection_Private.Restore_Thread_Memory_Regions (
          Thread_Obj.Saved_Thread_Memory_Regions);
+      Restore_Atomic_Level (Thread_Obj.Atomic_Level);
    end Restore_Thread_Extended_Context;
 
 end HiRTOS.Thread_Private;

@@ -296,62 +296,77 @@ is
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Idle_Thread_Proc;
 
-   function Enter_Atomic_Level
-     (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type
+   function Raise_Atomic_Level (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type
    is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
          HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       Old_Atomic_Level : constant Atomic_Level_Type :=
          RTOS_Cpu_Instance.Current_Atomic_Level;
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
+      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
-      if HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled or else
-         New_Atomic_Level >= Old_Atomic_Level
-      then
+      if New_Atomic_Level = Old_Atomic_Level then
          return Old_Atomic_Level;
       end if;
 
-      if New_Atomic_Level = Atomic_Level_No_Interrupts then
-         Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
-         HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
-            HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type'First);
-      elsif New_Atomic_Level = Atomic_Level_Single_Thread then
-         pragma Assert (False); --  not implemented yet.
-      elsif New_Atomic_Level = Atomic_Level_None then
+      --  Begin critical section
+      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+
+      if New_Atomic_Level = Atomic_Level_Single_Thread then
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
             HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type'Last);
-         HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
+      elsif New_Atomic_Level = Atomic_Level_No_Interrupts then
+         HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
+            HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type'First);
       else
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
             HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type (New_Atomic_Level));
       end if;
 
       RTOS_Cpu_Instance.Current_Atomic_Level := New_Atomic_Level;
-      return Old_Atomic_Level;
-   end Enter_Atomic_Level;
 
-   procedure Exit_Atomic_Level (Old_Atomic_Level : Atomic_Level_Type) is
+      --  End critical section
+      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+      return Old_Atomic_Level;
+   end Raise_Atomic_Level;
+
+   procedure Restore_Atomic_Level (Old_Atomic_Level : Atomic_Level_Type) is
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
-      if (HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
-          Old_Atomic_Level = Atomic_Level_None)
-         or else
-         Old_Atomic_Level = Get_Current_Atomic_Level
-      then
+      if Old_Atomic_Level = Get_Current_Atomic_Level then
          return;
       end if;
 
-      if Old_Atomic_Level = Atomic_Level_None then
+      --  Begin critical section
+      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+
+      RTOS_Cpu_Instance.Current_Atomic_Level := Old_Atomic_Level;
+      if Old_Atomic_Level = Atomic_Level_None or else
+         Old_Atomic_Level = Atomic_Level_Single_Thread
+      then
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
             HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type'Last);
-         HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
       elsif Old_Atomic_Level = Atomic_Level_No_Interrupts then
-         pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
+         HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
+            HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type'First);
       else
-         pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Set_Highest_Interrupt_Priority_Disabled (
             HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type (Old_Atomic_Level));
       end if;
-   end Exit_Atomic_Level;
+
+      if not Current_Execution_Context_Is_Interrupt and then
+         Old_Atomic_Level = Atomic_Level_None
+      then
+         --
+         --  Trigger synchronous context switch to run the thread scheduler
+         --
+         HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
+      end if;
+
+      --  End critical section
+      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+   end Restore_Atomic_Level;
 
    function Get_Current_Atomic_Level return Atomic_Level_Type is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames

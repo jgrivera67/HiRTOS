@@ -72,15 +72,6 @@ package body HiRTOS.Interrupt_Handling is
             --  end if;
             --???
 
-            --???
-            if Get_Cpu_Id = 3 then
-              HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: Stack pointer: "); --???
-              HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (Stack_Pointer)));
-              HiRTOS_Low_Level_Debug_Interface.Print_String (", Nesting: "); --???
-              HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (
-                Get_Current_Interrupt_Nesting_Counter (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack)), End_line => True); --???
-            end if;
-            --???
             HiRTOS.Thread_Private.Save_Thread_Stack_Pointer (Current_Thread_Obj, Stack_Pointer);
          end;
 
