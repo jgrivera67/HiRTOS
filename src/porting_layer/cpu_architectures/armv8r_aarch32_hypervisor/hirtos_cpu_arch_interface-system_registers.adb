@@ -1,0 +1,138 @@
+--
+--  Copyright (c) 2022, German Rivera
+--  All rights reserved.
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
+
+--
+--  @summary RTOS to target platform interface - ARMv8-R system registers
+--
+
+with System.Machine_Code;
+
+package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => On is
+   use ASCII;
+
+   function Get_HCR return HCR_Type is
+      HCR_Value : HCR_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 4, %0, c1, c1, 0",
+         Outputs => HCR_Type'Asm_Output ("=r", HCR_Value), --  %0
+         Volatile => True);
+
+      return HCR_Value;
+   end Get_HCR;
+
+   procedure Set_HCR (HCR_Value : HCR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 4, %0, c1, c1, 0",
+         Inputs => HCR_Type'Asm_Input ("r", HCR_Value), --  %0
+         Volatile => True);
+   end Set_HCR;
+
+   function Get_HSR return HSR_Type is
+      HSR_Value : HSR_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 4, %0, c5, c2, 0",
+         Outputs => HSR_Type'Asm_Output ("=r", HSR_Value), --  %0
+         Volatile => True);
+
+      return HSR_Value;
+   end Get_HSR;
+
+   procedure Set_HSR (HSR_Value : HSR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 4, %0, c5, c2, 0",
+         Inputs => HSR_Type'Asm_Input ("r", HSR_Value), --  %0
+         Volatile => True);
+   end Set_HSR;
+
+   function Get_HSCTLR return SCTLR_Type is
+      HSCTLR_Value : SCTLR_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 4, %0, c1, c0, 0",
+         Outputs => SCTLR_Type'Asm_Output ("=r", HSCTLR_Value), --  %0
+         Volatile => True);
+
+      return HSCTLR_Value;
+   end Get_HSCTLR;
+
+   procedure Set_HSCTLR (HSCTLR_Value : SCTLR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 4, %0, c1, c0, 0",
+         Inputs => SCTLR_Type'Asm_Input ("r", HSCTLR_Value), --  %0
+         Volatile => True);
+   end Set_HSCTLR;
+
+   function Get_CPACR return CPACR_Type is
+      CPACR_Value : CPACR_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 0, %0, c1, c0, 2",
+         Outputs => CPACR_Type'Asm_Output ("=r", CPACR_Value), --  %0
+         Volatile => True);
+
+      return CPACR_Value;
+   end Get_CPACR;
+
+   procedure Set_CPACR (CPACR_Value : CPACR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c1, c0, 2",
+         Inputs => CPACR_Type'Asm_Input ("r", CPACR_Value), --  %0
+         Volatile => True);
+   end Set_CPACR;
+
+   procedure Set_DCCMVAC(DCCMVAC_Value : System.Address) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c10, 1" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", DCCMVAC_Value), --  %0
+         Volatile => True);
+   end Set_DCCMVAC;
+
+   procedure Set_DCIMVAC(DCIMVAC_Value : System.Address) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c6, 1" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", DCIMVAC_Value), --  %0
+         Volatile => True);
+   end Set_DCIMVAC;
+
+   procedure Set_DCCIMVAC(DCCIMVAC_Value : System.Address) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c14, 1" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", DCCIMVAC_Value), --  %0
+         Volatile => True);
+   end Set_DCCIMVAC;
+
+   procedure Set_DCIM_ALL is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c15, c5, 0" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", System.Null_Address), --  %0
+         Volatile => True);
+   end Set_DCIM_ALL;
+
+   procedure Set_ICIALLU is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c7, c5, 0" & LF &
+         "isb",
+         Inputs => System.Address'Asm_Input ("r", System.Null_Address), --  %0
+         Volatile => True);
+   end Set_ICIALLU;
+
+end HiRTOS_Cpu_Arch_Interface.System_Registers;

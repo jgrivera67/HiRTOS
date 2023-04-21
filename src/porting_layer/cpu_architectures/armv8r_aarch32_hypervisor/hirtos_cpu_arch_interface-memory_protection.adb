@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2022, German Rivera
+--  Copyright (c) 2023, German Rivera
 --  All rights reserved.
 --
 --  SPDX-License-Identifier: BSD-3-Clause
@@ -7,7 +7,7 @@
 
 --
 --  @summary RTOS to target platform interface - Memory protection services
---  for ARMv8-R EL1 MPU
+--  for ARMv8-R EL2 MPU
 --
 
 with HiRTOS.Interrupt_Handling;
@@ -302,30 +302,30 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    --  Private Subprograms
    ----------------------------------------------------------------------------
 
-   function Get_MPUIR return MPUIR_Type is
-      MPUIR_Value : MPUIR_Type;
+   function Get_HMPUIR return MPUIR_Type is
+      HMPUIR_Value : MPUIR_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c0, c0, 4",
-         Outputs => MPUIR_Type'Asm_Output ("=r", MPUIR_Value), --  %0
+         "mrc p15, 4, %0, c0, c0, 4",
+         Outputs => MPUIR_Type'Asm_Output ("=r", HMPUIR_Value), --  %0
          Volatile => True);
 
-      return MPUIR_Value;
-   end Get_MPUIR;
+      return HMPUIR_Value;
+   end Get_HMPUIR;
 
-   function Get_Selected_PRBAR return PRBAR_Type is
-      PRBAR_Value : PRBAR_Type;
+   function Get_Selected_HPRBAR return PRBAR_Type is
+      HPRBAR_Value : PRBAR_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c6, c3, 0",
-         Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value), --  %0
+         "mrc p15, 4, %0, c6, c3, 0",
+         Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value), --  %0
          Volatile => True);
 
-      return PRBAR_Value;
-   end Get_Selected_PRBAR;
+      return HPRBAR_Value;
+   end Get_Selected_HPRBAR;
 
-   function Get_PRBAR (Region_Id : Memory_Region_Id_Type) return PRBAR_Type is
-      PRBAR_Value : PRBAR_Type;
+   function Get_HPRBAR (Region_Id : Memory_Region_Id_Type) return PRBAR_Type is
+      HPRBAR_Value : PRBAR_Type;
    begin
       --  To access PRBAR0 to PRBAR15:
       --  MRC p15, 0, <Rt>, c6, c8+n[3:1], 4*n[0]
@@ -334,138 +334,138 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       case Region_Id is
          when 0 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c8, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c8, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 1 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c8, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c8, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 2 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c9, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c9, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 3 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c9, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c9, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 4 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c10, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c10, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 5 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c10, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c10, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 6 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c11, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c11, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 7 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c11, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c11, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 8 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c12, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c12, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 9 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c12, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c12, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 10 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c13, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c13, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 11 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c13, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c13, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 12 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c14, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c14, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 13 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c14, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c14, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 14 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c15, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c15, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 15 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c15, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c15, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 16 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c8, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c8, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 17 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c8, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c8, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 18 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c9, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c9, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 19 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c9, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c9, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 20 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c10, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c10, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 21 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c10, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c10, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 22 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c11, 0",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c11, 0",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
          when 23 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c11, 4",
-               Outputs => PRBAR_Type'Asm_Output ("=r", PRBAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c11, 4",
+               Outputs => PRBAR_Type'Asm_Output ("=r", HPRBAR_Value),   -- %0
                Volatile => True);
       end case;
 
-      return PRBAR_Value;
-   end Get_PRBAR;
+      return HPRBAR_Value;
+   end Get_HPRBAR;
 
-   procedure Set_Selected_PRBAR (PRBAR_Value : PRBAR_Type) is
+   procedure Set_Selected_HPRBAR (HPRBAR_Value : PRBAR_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 0, %0, c6, c3, 0",
-         Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+         "mcr p15, 4, %0, c6, c3, 0",
+         Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
          Volatile => True);
-   end Set_Selected_PRBAR;
+   end Set_Selected_HPRBAR;
 
-   procedure Set_PRBAR (Region_Id : Memory_Region_Id_Type; PRBAR_Value : PRBAR_Type) is
+   procedure Set_HPRBAR (Region_Id : Memory_Region_Id_Type; HPRBAR_Value : PRBAR_Type) is
    begin
       --  To access PRBAR0 to PRBAR15:
       --  MCR p15, 0, <Rt>, c6, c8+n[3:1], 4*n[0]
@@ -474,140 +474,140 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       case Region_Id is
          when 0 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c8, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c8, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 1 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c8, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c8, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 2 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c9, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c9, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 3 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c9, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c9, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 4 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c10, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c10, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 5 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c10, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c10, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 6 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c11, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c11, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 7 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c11, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c11, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 8 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c12, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c12, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 9 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c12, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c12, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 10 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c13, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c13, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 11 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c13, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c13, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 12 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c14, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c14, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 13 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c14, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c14, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 14 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c15, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c15, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 15 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c15, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c15, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 16 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c8, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c8, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 17 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c8, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c8, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 18 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c9, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c9, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 19 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c9, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c9, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 20 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c10, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c10, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 21 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c10, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c10, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 22 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c11, 0",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c11, 0",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
          when 23 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c11, 4",
-               Inputs => PRBAR_Type'Asm_Input ("r", PRBAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c11, 4",
+               Inputs => PRBAR_Type'Asm_Input ("r", HPRBAR_Value), --  %0
                Volatile => True);
       end case;
-   end Set_PRBAR;
+   end Set_HPRBAR;
 
-   function Get_Selected_PRLAR return PRLAR_Type is
-      PRLAR_Value : PRLAR_Type;
+   function Get_Selected_HPRLAR return PRLAR_Type is
+      HPRLAR_Value : PRLAR_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c6, c3, 1",
-         Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value), --  %0
+         "mrc p15, 4, %0, c6, c3, 1",
+         Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value), --  %0
          Volatile => True);
 
-      return PRLAR_Value;
-   end Get_Selected_PRLAR;
+      return HPRLAR_Value;
+   end Get_Selected_HPRLAR;
 
-   function Get_PRLAR (Region_Id : Memory_Region_Id_Type) return PRLAR_Type is
-      PRLAR_Value : PRLAR_Type;
+   function Get_HPRLAR (Region_Id : Memory_Region_Id_Type) return PRLAR_Type is
+      HPRLAR_Value : PRLAR_Type;
    begin
       --  To access PRLAR0 to PRLAR15:
       --  MRC p15, 0, <Rt>, c6, c8+n[3:1], 4*n[0]+1
@@ -616,138 +616,138 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       case Region_Id is
          when 0 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c8, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c8, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 1 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c8, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c8, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 2 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c9, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c9, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 3 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c9, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c9, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 4 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c10, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c10, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 5 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c10, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c10, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 6 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c11, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c11, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 7 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c11, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c11, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 8 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c12, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c12, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 9 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c12, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c12, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 10 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c13, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c13, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 11 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c13, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c13, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 12 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c14, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c14, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 13 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c14, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c14, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 14 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c15, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c15, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 15 =>
             System.Machine_Code.Asm (
-               "mrc p15, 0, %0, c6, c15, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 4, %0, c6, c15, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 16 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c8, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c8, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 17 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c8, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c8, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 18 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c9, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c9, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 19 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c9, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c9, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 20 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c10, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c10, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 21 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c10, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c10, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 22 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c11, 1",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c11, 1",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
          when 23 =>
             System.Machine_Code.Asm (
-               "mrc p15, 1, %0, c6, c11, 5",
-               Outputs => PRLAR_Type'Asm_Output ("=r", PRLAR_Value),   -- %0
+               "mrc p15, 5, %0, c6, c11, 5",
+               Outputs => PRLAR_Type'Asm_Output ("=r", HPRLAR_Value),   -- %0
                Volatile => True);
       end case;
 
-      return PRLAR_Value;
-   end Get_PRLAR;
+      return HPRLAR_Value;
+   end Get_HPRLAR;
 
-   procedure Set_PRLAR (PRLAR_Value : PRLAR_Type) is
+   procedure Set_HPRLAR (HPRLAR_Value : PRLAR_Type) is
    begin
       System.Machine_Code.Asm (
          "mcr p15, 0, %0, c6, c3, 1",
-         Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+         Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
          Volatile => True);
-   end Set_PRLAR;
+   end Set_HPRLAR;
 
-   procedure Set_PRLAR (Region_Id : Memory_Region_Id_Type; PRLAR_Value : PRLAR_Type) is
+   procedure Set_HPRLAR (Region_Id : Memory_Region_Id_Type; HPRLAR_Value : PRLAR_Type) is
    begin
       --  To access PRLAR0 to PRLAR15:
       --  MCR p15, 0, <Rt>, c6, c8+n[3:1], 4*n[0]+1
@@ -756,145 +756,145 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       case Region_Id is
          when 0 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c8, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c8, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 1 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c8, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c8, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 2 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c9, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c9, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 3 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c9, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c9, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 4 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c10, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c10, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 5 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c10, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c10, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 6 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c11, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c11, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 7 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c11, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c11, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 8 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c12, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c12, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 9 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c12, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c12, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 10 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c13, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c13, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 11 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c13, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c13, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 12 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c14, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c14, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 13 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c14, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c14, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 14 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c15, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c15, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 15 =>
             System.Machine_Code.Asm (
-               "mcr p15, 0, %0, c6, c15, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 4, %0, c6, c15, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 16 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c8, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c8, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 17 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c8, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c8, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 18 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c9, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c9, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 19 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c9, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c9, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 20 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c10, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c10, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 21 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c10, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c10, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 22 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c11, 1",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c11, 1",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
          when 23 =>
             System.Machine_Code.Asm (
-               "mcr p15, 1, %0, c6, c11, 5",
-               Inputs => PRLAR_Type'Asm_Input ("r", PRLAR_Value), --  %0
+               "mcr p15, 5, %0, c6, c11, 5",
+               Inputs => PRLAR_Type'Asm_Input ("r", HPRLAR_Value), --  %0
                Volatile => True);
       end case;
-   end Set_PRLAR;
+   end Set_HPRLAR;
 
-   function Get_PRSELR return PRSELR_Type is
-      PRSELR_Value : PRSELR_Type;
+   function Get_HPRSELR return PRSELR_Type is
+      HPRSELR_Value : PRSELR_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c6, c2, 1",
-         Outputs => PRSELR_Type'Asm_Output ("=r", PRSELR_Value), --  %0
+         "mrc p15, 4, %0, c6, c2, 1",
+         Outputs => PRSELR_Type'Asm_Output ("=r", HPRSELR_Value), --  %0
          Volatile => True);
 
-      return PRSELR_Value;
-   end Get_PRSELR;
+      return HPRSELR_Value;
+   end Get_HPRSELR;
 
-   procedure Set_PRSELR (PRSELR_Value : PRSELR_Type) is
+   procedure Set_HPRSELR (HPRSELR_Value : PRSELR_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 0, %0, c6, c2, 1",
-         Inputs => PRSELR_Type'Asm_Input ("r", PRSELR_Value), --  %0
+         "mcr p15, 4, %0, c6, c2, 1",
+         Inputs => PRSELR_Type'Asm_Input ("r", HPRSELR_Value), --  %0
          Volatile => True);
-   end Set_PRSELR;
+   end Set_HPRSELR;
 
    function Get_MAIR_Pair return MAIR_Pair_Type is
       MAIR_Pair : MAIR_Pair_Type;

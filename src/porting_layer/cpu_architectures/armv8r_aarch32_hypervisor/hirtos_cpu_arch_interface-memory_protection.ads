@@ -350,37 +350,37 @@ private
       REGION at 0 range 0 .. 4;
    end record;
 
-   function Get_MPUIR return MPUIR_Type
+   function Get_HMPUIR return MPUIR_Type
       with Inline_Always;
 
-   function Get_Selected_PRBAR return PRBAR_Type
+   function Get_Selected_HPRBAR return PRBAR_Type
       with Inline_Always;
 
-   function Get_PRBAR (Region_Id : Memory_Region_Id_Type) return PRBAR_Type
+   function Get_HPRBAR (Region_Id : Memory_Region_Id_Type) return PRBAR_Type
       with Inline_Always;
 
-   procedure Set_Selected_PRBAR (PRBAR_Value : PRBAR_Type)
+   procedure Set_Selected_HPRBAR (HPRBAR_Value : PRBAR_Type)
       with Inline_Always;
 
-   procedure Set_PRBAR (Region_Id : Memory_Region_Id_Type; PRBAR_Value : PRBAR_Type)
+   procedure Set_HPRBAR (Region_Id : Memory_Region_Id_Type; HPRBAR_Value : PRBAR_Type)
       with Inline_Always;
 
-   function Get_Selected_PRLAR return PRLAR_Type
+   function Get_Selected_HPRLAR return PRLAR_Type
       with Inline_Always;
 
-   function Get_PRLAR (Region_Id : Memory_Region_Id_Type) return PRLAR_Type
+   function Get_HPRLAR (Region_Id : Memory_Region_Id_Type) return PRLAR_Type
       with Inline_Always;
 
-   procedure Set_PRLAR (PRLAR_Value : PRLAR_Type)
+   procedure Set_HPRLAR (HPRLAR_Value : PRLAR_Type)
       with Inline_Always;
 
-   procedure Set_PRLAR (Region_Id : Memory_Region_Id_Type; PRLAR_Value : PRLAR_Type)
+   procedure Set_HPRLAR (Region_Id : Memory_Region_Id_Type; HPRLAR_Value : PRLAR_Type)
       with Inline_Always;
 
-   function Get_PRSELR return PRSELR_Type
+   function Get_HPRSELR return PRSELR_Type
       with Inline_Always;
 
-   procedure Set_PRSELR (PRSELR_Value : PRSELR_Type)
+   procedure Set_HPRSELR (HPRSELR_Value : PRSELR_Type)
       with Inline_Always;
 
    type MAIR_Memory_Kind_Type is

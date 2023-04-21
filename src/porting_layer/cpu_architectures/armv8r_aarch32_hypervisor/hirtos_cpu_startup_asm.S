@@ -216,8 +216,7 @@ reset_handler:
         INIT_CPU_REGS_EL2
 
         /*
-         * Set generic timer's CNTFRQ register to the system clock frequency, while in EL2,
-         * as this cannot be done from EL1.
+         * Set generic timer's CNTFRQ register to the system clock frequency:
          */
         ldr r0, =#SYSTEM_CLOCK_FREQUENCY_HZ
         mcr p15, 0, r0, c14, c0, 0
