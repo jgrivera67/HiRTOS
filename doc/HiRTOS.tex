@@ -342,41 +342,50 @@ Constants defined here represent compile-time target platform parameters for
 \end{axdef}
 
 \subsection{\emph{HiRTOS} Primitive Types}
-%
+
 Below are the primitive types used in HiRTOS:
 
 \begin{zed}
-    CpuIdType == 0 \upto numCpus \\
-    invalidCpuId == numCpus \\
+[CpuIdType] \\
+\# CpuIdType = numCpus + 1 \\
+[ThreadIdType] \\
+\# ThreadIdType = maxNumThreads + 1 \\
+[MutexIdType] \\
+\# MutexIdType = maxNumMutexes + 1 \\
+[CondvarIdType] \\
+\# CondvarIdType = maxNumCondvars + 1 \\
+[TimerIdType] \\
+\# TimerIdType = maxNumTimers + 1 \\
+[InterruptIdType] \\
+\# InterruptIdType = maxNumInterrupts + 1 \\
+\end{zed}
+
+\begin{axdef}
+   invalidCpuId : CpuIdType \\
+   invalidThreadId : ThreadIdType \\
+   invalidMutexId : MutexIdType \\
+   invalidCondvarId : CondvarIdType \\
+   invalidTimerId : TimerIdType \\
+   invalidInterruptId : InterruptIdType \\
+\end{axdef}
+
+\begin{zed}
     ValidCpuIdType == CpuIdType \setminus \{ invalidCpuId \} \\
     MemoryAddressType == \\
     \t1 minMemoryAddress \upto maxMemoryAddress \\
     nullAddress == 0 \\
-    ThreadIdType == 0 \upto maxNumThreads \\
-    invalidThreadId == maxNumThreads \\
     ValidThreadIdType == \\
     \t1 ThreadIdType \setminus \{ invalidThreadId \} \\
+    ValidMutexIdType == MutexIdType \setminus \{ invalidMutexId \} \\
+    ValidCondvarIdType == \\
+    \t1 CondvarIdType \setminus \{ invalidCondvarId \} \\
+    ValidTimerIdType == TimerIdType \setminus \{ invalidTimerId \} \\
+    ValidInterruptIdType == \\
+    \t1 InterruptIdType \setminus \{ invalidInterruptId \} \\
     ThreadPriorityType == 0 \upto numThreadPriorities \\
     invalidThreadPriority == numThreadPriorities \\
     ValidThreadPriorityType == \\
     \t1 ThreadPriorityType \setminus \{ invalidThreadPriority \} \\
-    MutexIdType == 0 \upto maxNumMutexes \\
-    invalidMutexId == maxNumMutexes \\
-    ValidMutexIdType == MutexIdType \setminus \{ invalidMutexId \} \\
-    CondvarIdType == 0 \upto maxNumCondvars \\
-    invalidCondvarId == maxNumCondvars \\
-    ValidCondvarIdType == \\
-    \t1 CondvarIdType \setminus \{ invalidCondvarId \} \\
-    TimerIdType == 0 \upto maxNumTimers \\
-    invalidTimerId == maxNumTimers \\
-\end{zed}
-
-\begin{zed}
-    ValidTimerIdType == TimerIdType \setminus \{ invalidTimerId \} \\
-    InterruptIdType == 0 \upto maxNumInterrupts \\
-    invalidInterruptId == maxNumInterrupts \\
-    ValidInterruptIdType == \\
-    \t1 InterruptIdType \setminus \{ invalidInterruptId \} \\
     InterruptPriorityType == 0 \upto numInterruptPriorities \\
     invalidInterruptPriority == numInterruptPriorities \\
     ValidInterruptPriorityType == \\
@@ -404,6 +413,9 @@ Below are the primitive types used in HiRTOS:
     \t5 threadInterrupted | threadBlocked \\
     ThreadSchedulerStateType ::= \\
     \t1 threadSchedulerStopped | threadSchedulerRunning \\
+\end{zed}
+
+\begin{zed}
     TimerTicksType == \nat \\
     ThreadQueueType == \iseq ValidThreadIdType \\
     MutexListType == \iseq ValidMutexIdType \\
@@ -422,25 +434,26 @@ values represent lower priorities.
 
 \subsection{\emph{HiRTOS} Axiomatic Definitions}
 
-All HiRTOS objects are pre-allocated in a static array of objects of the corresponding type:
-
 \begin{axdef}
     zAddressRangeSet: \\
     \t1 (MemoryAddressType \cross MemoryAddressType) \inj \\
-    \t1 \finset_1 MemoryAddressType \\
-    zCpuToISRstackAddressRange: \\
-    \t1 ValidCpuIdType \inj \\
-    \t1 (MemoryAddressType \cross MemoryAddressType) \\
+    \t1 \finset_1 MemoryAddressType
 \where
     \forall x, y : MemoryAddressType | \\
    \t1  (x, y) \in \dom zAddressRangeSet @ \\
    \t1 x < y \land zAddressRangeSet(x, y) = x \upto y
+\end{axdef}
+
+\begin{axdef}
+   zCpuToISRstackAddressRange: \\
+   \t1 ValidCpuIdType \inj \\
+   \t1 (MemoryAddressType \cross MemoryAddressType) \\
+\where
+   \bigcap~\{~ i: ValidCpuIdType @ \\
+     zAddressRangeSet(zCpuToISRstackAddressRange(i)) ~\} = \emptyset
 \also
-    \bigcap~\{~ i: ValidCpuIdType @ \\
-      zAddressRangeSet(zCpuToISRstackAddressRange(i)) ~\} = \emptyset
-\also
-    \forall i : \dom zCpuToISRstackAddressRange @ \\
-       \# (zAddressRangeSet(zCpuToISRstackAddressRange(i))) \geq 2
+   \forall i : \dom zCpuToISRstackAddressRange @ \\
+      \# (zAddressRangeSet(zCpuToISRstackAddressRange(i))) \geq 2
 \end{axdef}
 
 \begin{axdef}
@@ -452,7 +465,9 @@ All HiRTOS objects are pre-allocated in a static array of objects of the corresp
 \subsection{\emph{HiRTOS} State Variables}
 
 The $HiRtosType$ singleton object type represents the internal data
-structures of HiRTOS:
+structures of HiRTOS. All HiRTOS objects such as threads, mutexes,
+condition variables and software timers are statically allocated
+internally by HiRTOS.
 
 \begin{schema}{HiRtosType}
     createdThreadInstances: \\
@@ -544,7 +559,9 @@ are described below:
 \also
     \bigcap~\{~ t: \ran threads @ \{~ t.builtinTimerId ~\} ~\} = \emptyset
 \also
-    \forall t: \ran threads @ t.id = (threads \inv)(t)
+    \forall t: \ran threads @ (t.id = (threads \inv)(t) \land \\
+    (t.ownedMutexes \neq \emptyset \implies \\
+     t.currentPriority = max~ \{~ m : \ran t.ownedMutexes @ (mutexes(m)).ceilingPriority ~\}))
 \also
     \forall m: \ran mutexes @ m.id = mutexes\inv(m)
 \also
@@ -619,7 +636,7 @@ are described below:
    builtinCondvarId : CondvarIdType \\
    waitingOnCondvarId : CondvarIdType \\
    waitingOnMutexId : MutexIdType \\
-   ownedMutexes : \finset MutexType \\
+   ownedMutexes : \iseq ValidMutexIdType \\
    savedStackPointer : MemoryAddressType \\
    stackBaseAddress : MemoryAddressType \\
    stackEndAddress : MemoryAddressType \\
@@ -647,12 +664,7 @@ are described below:
    waitingOnMutexId \neq invalidMutexId \implies \\
    \t1 waitingOnCondvarId = invalidCondvarId
 \also
-   waitingOnMutexId \notin \{~ m : ownedMutexes @ \\
-   \t1 m.id ~\}
-\also
-   ownedMutexes \neq \emptyset \implies \\
-   currentPriority = max~ \{~ m : ownedMutexes @ \\
-   \t1 m.ceilingPriority ~\}
+   waitingOnMutexId \notin \ran ownedMutexes
 \end{schema}
 
 \begin{schema}{CondvarType}
@@ -910,7 +922,9 @@ specified by the $AcquireMutex$ schema:
 \begin{schema}{AcquireAvailableMutex}
    CreatedMutexMutableOperation
 \where
-   ownerThreadId = invalidThreadId
+   ownerThreadId = invalidThreadId \lor \\
+   (ownerThreadId = currentThreadId \implies \\
+    recursiveCount' = recursiveCount + 1)
 \also
    ownerThreadId' = currentThreadId
 \also
@@ -919,12 +933,19 @@ specified by the $AcquireMutex$ schema:
  \t1    ceilingPriority) \implies \\
  (threads'(currentThreadId)).currentPriority = \\
  \t1    ceilingPriority
+\also
+(threads'(currentThreadId)).ownedMutexes = \\
+\t1 (threads(currentThreadId)).ownedMutexes \cat \langle mutexId? \rangle
 \end{schema}
 
 \begin{schema}{WaitOnUnavailableMutex}
    CreatedMutexMutableOperation
 \where
    ownerThreadId \neq invalidThreadId
+\also
+   currentThreadId \neq ownerThreadId
+\also
+   currentThreadId' \neq currentThreadId
 \also
 (\LET oldCurrentPriority == \\
 \t1 (threads(currentThreadId)).currentPriority @ \\
@@ -941,14 +962,32 @@ specified by the $AcquireMutex$ schema:
 \land \\
  (threads'(currentThreadId)).state = threadBlocked \\
 \land \\
-   currentThreadId \in \\
+currentThreadId \in \\
 \t1 \ran (waitingThreadsQueue'.threadQueues(oldCurrentPriority)))
+\also
+ceilingPriority \neq invalidThreadPriority \implies \\
+((threads(currentThreadId)).currentPriority \leq \\
+ \t1 (threads'(ownerThreadId)).currentPriority \land \\
+ (threads'(ownerThreadId)).state = threadBlocked)
 \end{schema}
 
 \begin{zed}
    AcquireMutex \defs \\
    \t1 AcquireAvailableMutex \lor WaitOnUnavailableMutex
 \end{zed}
+
+\subsubsection{Release a mutex}
+
+A thread releases a mutex by calling \verb`HiRTOS.Mutex.Release`, according to the contract
+specified by the $ReleaseMutex$ schema:
+
+\begin{schema}{ReleaseMutex}
+   CreatedMutexMutableOperation
+\where
+mutexId? = head~ (threads(currentThreadId)).ownedMutexes
+\also
+(threads'(currentThreadId)).ownedMutexes = tail~ (threads(currentThreadId)).ownedMutexes
+\end{schema}
 
 \begin{thebibliography}{9}
 
