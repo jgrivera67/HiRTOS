@@ -9,9 +9,9 @@ with HiRTOS.Mutex_Private;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS.Memory_Protection;
---with HiRTOS.Timer;
+--  ???with HiRTOS.Timer;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Cpu_Arch_Interface.Thread_Context;
+--  ???with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 
 package body HiRTOS.Mutex is
    use HiRTOS.Mutex_Private;
@@ -50,7 +50,6 @@ package body HiRTOS.Mutex is
          Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
             HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
          Current_Atomic_Level : constant Atomic_Level_Type := Get_Current_Atomic_Level;
-         use type Interfaces.Unsigned_8;
       begin
          pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
                         and then
@@ -81,7 +80,6 @@ package body HiRTOS.Mutex is
          Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
             HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
          Current_Atomic_Level : constant Atomic_Level_Type := Get_Current_Atomic_Level;
-         use type Interfaces.Unsigned_8;
       begin
          pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
                         and then

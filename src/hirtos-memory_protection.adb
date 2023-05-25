@@ -9,7 +9,8 @@
 --  @summary HiRTOS Memory protection services
 --
 
-with HiRTOS_Low_Level_Debug_Interface; --???
+--  ???with HiRTOS_Low_Level_Debug_Interface; --???
+
 package body HiRTOS.Memory_Protection with
   SPARK_Mode => On
 is
@@ -20,7 +21,7 @@ is
       Start_Address : System.Address;
       Size_In_Bits : Memory_Range_Size_In_Bits_Type;
       Old_Data_Range : out Memory_Range_Type)
-      with Refined_Post => Old_Data_Range.Range_Region_Role = Region_Role_None or else
+      with Refined_Post => Old_Data_Range.Range_Region_Role = Invalid_Region_Role or else
                            Old_Data_Range.Range_Region_Role = Thread_Private_Data_Region
    is
       use type HiRTOS_Config_Parameters.Global_Data_Default_Access_Type;
@@ -30,13 +31,13 @@ is
          System.Storage_Elements.To_Integer (Start_Address) + Region_Size_In_Bytes);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
-      Old_Data_Range.Range_Region_Role := Region_Role_None;
+      Old_Data_Range.Range_Region_Role := Invalid_Region_Role;
       if HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
          or else
          (Address_Range_In_Global_Data_Region (Start_Address, End_Address)
           and then
           HiRTOS_Config_Parameters.Global_Data_Default_Access =
-            HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Read_Write_Access)
+            HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Access)
       then
          return;
       end if;
@@ -47,18 +48,11 @@ is
       HiRTOS.Enter_Cpu_Privileged_Mode;
       Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Data_Region'Enum_Rep),
                                      Old_Data_Range.Range_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-                                     Old_Data_Range.Overlapped_Global_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_After_Hole_Region'Enum_Rep),
-                                     Old_Data_Range.Overlapped_Global_Region_After_Hole);
 
       Old_Data_Range.Range_Region_Role := Thread_Private_Data_Region;
 
       --  Begin critical section
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
-
-HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR "); --????
-HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Region_Size_In_Bytes), End_Line => True); --????
 
       Configure_Memory_Region (Memory_Region_Id_Type (Thread_Private_Data_Region'Enum_Rep),
                                Start_Address,
@@ -66,38 +60,6 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
                                Unprivileged_Permissions => Read_Write,
                                Privileged_Permissions => Read_Write,
                                Region_Attributes => Normal_Memory_Write_Back_Cacheable);
-
-      --
-      --  If there is overlap with the global data region, open a "hole" in the global data region.
-      --  We need to consider three cases:
-      --  - Overlap at the beginning
-      --  - Overlap in the middle
-      --  - Overlap at the end
-      --
-      if Address_Range_In_Global_Data_Region (Start_Address, End_Address) then
-         if Start_Address = HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address then
-            Change_Memory_Region_Address_Range (
-               Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-               Start_Address => End_Address,
-               End_Address => HiRTOS_Platform_Parameters.Global_Data_Region_End_Address);
-         elsif End_Address = HiRTOS_Platform_Parameters.Global_Data_Region_End_Address then
-            Change_Memory_Region_Address_Range (
-               Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-               Start_Address => HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
-               End_Address => Start_Address);
-         else
-            Change_Memory_Region_Address_Range (
-               Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-               Start_Address => HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
-               End_Address => Start_Address);
-
-            Clone_Memory_Region (
-               Memory_Region_Id_Type (Global_Data_After_Hole_Region'Enum_Rep),
-               Start_Address => End_Address,
-               End_Address =>  HiRTOS_Platform_Parameters.Global_Data_Region_End_Address,
-               Cloned_Region_Id => Memory_Region_Id_Type (Global_Data_Region'Enum_Rep));
-         end if;
-      end if;
 
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
@@ -107,7 +69,7 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
    procedure End_Data_Range_Access (Old_Data_Range : Memory_Range_Type) is
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
-      if Old_Data_Range.Range_Region_Role = Region_Role_None then
+      if Old_Data_Range.Range_Region_Role = Invalid_Region_Role then
          return;
       end if;
 
@@ -119,10 +81,6 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
 
       Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Data_Region'Enum_Rep),
                                         Old_Data_Range.Range_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-                                        Old_Data_Range.Overlapped_Global_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_After_Hole_Region'Enum_Rep),
-                                        Old_Data_Range.Overlapped_Global_Region_After_Hole);
 
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
@@ -133,7 +91,7 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
       Start_Address : System.Address;
       Size_In_Bits : Memory_Range_Size_In_Bits_Type;
       Old_Mmio_Range : out Memory_Range_Type)
-      with Refined_Post => Old_Mmio_Range.Range_Region_Role = Region_Role_None or else
+      with Refined_Post => Old_Mmio_Range.Range_Region_Role = Invalid_Region_Role or else
                            Old_Mmio_Range.Range_Region_Role = Thread_Private_Mmio_Region
    is
       use type HiRTOS_Config_Parameters.Global_Mmio_Default_Access_Type;
@@ -143,7 +101,7 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
          System.Storage_Elements.To_Integer (Start_Address) + Region_Size_In_Bytes);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
-      Old_Mmio_Range.Range_Region_Role := Region_Role_None;
+      Old_Mmio_Range.Range_Region_Role := Invalid_Region_Role;
       if Address_Range_In_Global_Mmio_Region (Start_Address, End_Address)
          and then
          (HiRTOS_Config_Parameters.Global_Mmio_Default_Access =
@@ -160,10 +118,6 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
       HiRTOS.Enter_Cpu_Privileged_Mode;
       Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Mmio_Region'Enum_Rep),
                                      Old_Mmio_Range.Range_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-                                     Old_Mmio_Range.Overlapped_Global_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_After_Hole_Region'Enum_Rep),
-                                     Old_Mmio_Range.Overlapped_Global_Region_After_Hole);
 
       Old_Mmio_Range.Range_Region_Role := Thread_Private_Mmio_Region;
 
@@ -177,38 +131,6 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
                                Privileged_Permissions => Read_Write,
                                Region_Attributes => Device_Memory_Mapped_Io);
 
-      --
-      --  If there is overlap with the global MMIO region, open a "hole" in the global MMIO region.
-      --  We need to consider three cases:
-      --  - Overlap at the beginning
-      --  - Overlap in the middle
-      --  - Overlap at the end
-      --
-      if Address_Range_In_Global_Mmio_Region (Start_Address, End_Address) then
-         if Start_Address = HiRTOS_Platform_Parameters.Global_Mmio_Region_Start_Address then
-            Change_Memory_Region_Address_Range (
-               Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-               Start_Address => End_Address,
-               End_Address => HiRTOS_Platform_Parameters.Global_Mmio_Region_End_Address);
-         elsif End_Address = HiRTOS_Platform_Parameters.Global_Mmio_Region_End_Address then
-            Change_Memory_Region_Address_Range (
-               Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-               Start_Address => HiRTOS_Platform_Parameters.Global_Mmio_Region_Start_Address,
-               End_Address => Start_Address);
-         else
-            Change_Memory_Region_Address_Range (
-               Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-               Start_Address => HiRTOS_Platform_Parameters.Global_Mmio_Region_Start_Address,
-               End_Address => Start_Address);
-
-            Clone_Memory_Region (
-               Memory_Region_Id_Type (Global_Mmio_After_Hole_Region'Enum_Rep),
-               Start_Address => End_Address,
-               End_Address =>  HiRTOS_Platform_Parameters.Global_Mmio_Region_End_Address,
-               Cloned_Region_Id => Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep));
-         end if;
-      end if;
-
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
       HiRTOS.Exit_Cpu_Privileged_Mode;
@@ -217,7 +139,7 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
    procedure End_Mmio_Range_Access (Old_Mmio_Range : Memory_Range_Type) is
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
-      if Old_Mmio_Range.Range_Region_Role = Region_Role_None then
+      if Old_Mmio_Range.Range_Region_Role = Invalid_Region_Role then
          return;
       end if;
 
@@ -229,10 +151,6 @@ HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_3
 
       Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Mmio_Region'Enum_Rep),
                                         Old_Mmio_Range.Range_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-                                        Old_Mmio_Range.Overlapped_Global_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_After_Hole_Region'Enum_Rep),
-                                        Old_Mmio_Range.Overlapped_Global_Region_After_Hole);
 
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);

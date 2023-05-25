@@ -84,8 +84,6 @@ private
    type Memory_Range_Type is limited record
       Range_Region_Role : HiRTOS.Memory_Protection_Private.Memory_Region_Role_Type;
       Range_Region : Memory_Region_Descriptor_Type;
-      Overlapped_Global_Region : Memory_Region_Descriptor_Type;
-      Overlapped_Global_Region_After_Hole : Memory_Region_Descriptor_Type;
    end record
      with Convention => C;
 

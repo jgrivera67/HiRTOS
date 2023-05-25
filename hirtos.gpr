@@ -71,10 +71,14 @@ project HiRTOS is
                               "HiRTOS_Cpu_Arch_Interface.Memory_Protection",
                               "HiRTOS_Cpu_Arch_Interface.System_Registers",
                               "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller",
+                              "HiRTOS_Cpu_Arch_Interface.Interrupts",
                               "HiRTOS_Cpu_Arch_Interface.Tick_Timer",
+                              "HiRTOS_Cpu_Arch_Interface_Private",
                               "HiRTOS_Cpu_Multi_Core_Interface",
                               "HiRTOS_Cpu_Startup_Interface",
                               "HiRTOS_Low_Level_Debug_Interface",
+                              "Bit_Sized_Integer_Types",
+                              "Memory_Utils",
                               "Uart_Driver");
 
    for Library_Auto_Init use "False";

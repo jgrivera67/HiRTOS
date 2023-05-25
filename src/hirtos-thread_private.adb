@@ -8,9 +8,9 @@ with HiRTOS.RTOS_Private;
 with HiRTOS.Timer;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface;
-with HiRTOS_Low_Level_Debug_Interface; --???
-with GNAT.Source_Info; --???
-with HiRTOS_Cpu_Arch_Interface.Thread_Context; --???
+--  ???with HiRTOS_Low_Level_Debug_Interface; --???
+--  ???with GNAT.Source_Info; --???
+--  ???with HiRTOS_Cpu_Arch_Interface.Thread_Context; --???
 
 package body HiRTOS.Thread_Private is
    use HiRTOS.RTOS_Private;
@@ -147,13 +147,13 @@ package body HiRTOS.Thread_Private is
       --     Thread_Cpu_Context : Cpu_Context_Type with
       --        Import, Address => Stack_Pointer;
       --  begin
-      --     HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & " SP "); --???
+      --     HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & " SP ");
       --     HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
       --        Interfaces.Unsigned_32 (To_Integer (Stack_Pointer)));
-      --     HiRTOS_Low_Level_Debug_Interface.Print_String (" PC "); --???
+      --     HiRTOS_Low_Level_Debug_Interface.Print_String (" PC ");
       --     HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
       --        Interfaces.Unsigned_32 (To_Integer (Get_Saved_PC (Thread_Cpu_Context))));
-      --     HiRTOS_Low_Level_Debug_Interface.Print_String (" CPSR "); --???
+      --     HiRTOS_Low_Level_Debug_Interface.Print_String (" CPSR ");
       --     HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
       --        Interfaces.Unsigned_32 (Get_Saved_CPSR (Thread_Cpu_Context)), End_Line => True);
       --  end;

@@ -5,14 +5,13 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 
-with HiRTOS.Interrupt_Handling;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Timer_Private;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
+with HiRTOS_Config_Parameters;
 
 package body HiRTOS.Timer is
-   use HiRTOS.Interrupt_Handling;
    use HiRTOS.RTOS_Private;
    use HiRTOS.Timer_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -58,7 +57,7 @@ package body HiRTOS.Timer is
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          --
          --  NOTE: If `Expiration_Time_Ticks` is not a whole multiple of
-         -- `Tick_Timer_Period_Us`, the timer will expire a little sooner
+         --  `Tick_Timer_Period_Us`, the timer will expire a little sooner
          --  than expected.
          --
          Expiration_Time_Ticks : constant Timer_Ticks_Count_Type :=

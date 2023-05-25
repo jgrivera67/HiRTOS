@@ -35,18 +35,15 @@ is
          HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
            (GICD'Address, GICD'Size, Old_Mmio_Range);
 
-         --  Disable distributor
-         GICD.GICD_CTLR := (others => <>);
-         loop
-            GICD_CTLR_Value := GICD.GICD_CTLR;
-            exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
-         end loop;
-
          --  Disable interrupts from group0 and group1 before configuring the GIC:
          GICD_CTLR_Value            := GICD.GICD_CTLR;
          GICD_CTLR_Value.EnableGrp0 := Group_Interrupts_Disabled;
          GICD_CTLR_Value.EnableGrp1 := Group_Interrupts_Disabled;
          GICD.GICD_CTLR             := GICD_CTLR_Value;
+         loop
+            GICD_CTLR_Value := GICD.GICD_CTLR;
+            exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
+         end loop;
 
          GICD_TYPER_Value := GICD.GICD_TYPER;
          pragma Assert
@@ -61,11 +58,12 @@ is
                External_Interrupt_Id_Type'First + 1));
 
          --
-         --  Disable and clear all external interrupts (SPIs):
+         --  Disable and clear all SPIs:
          --
          for I in GICD_ICENABLER_Array_Type'Range loop
             GICD.GICD_ICENABLER_Array (I) := [others => 2#1#];
             GICD.GICD_ICPENDR_Array (I) := [others => 2#1#];
+            GICD.GICD_ICACTIVER_Array (I) := [others => 2#1#];
          end loop;
 
          loop
@@ -110,9 +108,11 @@ is
             GICR_TYPER_Processor_Number_Type (Cpu_Id));
 
          --
-         --  Disable all internal interrupts (SGIs ands PPIs):
+         --  Disable and clear all SGIs ands PPIs:
          --
          GICR.GICR_SGI_And_PPI_Page.GICR_ICENABLER0 := [others => 2#1#];
+         GICR.GICR_SGI_And_PPI_Page.GICR_ICPENDR0 := [others => 2#1#];
+         GICR.GICR_SGI_And_PPI_Page.GICR_ICACTIVER0 := [others => 2#1#];
 
          --
          --  Wake up GIC redistributor:
@@ -144,8 +144,6 @@ is
          --  Check that CPU interface system registers access is supported:
          ICC_SRE_Value := Get_ICC_SRE;
          pragma Assert (ICC_SRE_Value.SRE = GIC_CPU_Interface_System_Registers_Enabled);
-         --ICC_SRE_Value.SRE := GIC_CPU_Interface_System_Registers_Enabled; --???
-         --Set_ICC_SRE (ICC_SRE_Value); --???
 
          --  Enable CPU interface:
          ICC_CTLR_Value      := Get_ICC_CTLR;

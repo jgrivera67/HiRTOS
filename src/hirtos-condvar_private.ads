@@ -5,10 +5,7 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 
-with HiRTOS.Thread_Private;
-
 private package HiRTOS.Condvar_Private is
-   use HiRTOS.Thread_Private;
 
    --
    --  Condition variable object

@@ -63,6 +63,9 @@ is
    function Cpu_In_Privileged_Mode return Boolean with
     Inline_Always, Suppress => All_Checks;
 
+   function Cpu_In_Hypervisor_Mode return Boolean with
+    Inline_Always, Suppress => All_Checks;
+
    --
    --  Switch to CPU privileged mode
    --
@@ -141,17 +144,5 @@ is
 
    procedure Disable_Caches
       with Pre => Cpu_In_Privileged_Mode;
-
-private
-
-   --
-   --  Values for CPSR mode field
-   --
-   CPSR_User_Mode           : constant := 2#1_0000#;
-   CPSR_Fast_Interrupt_Mode : constant := 2#1_0010#;
-   CPSR_Supervisor_Mode     : constant := 2#1_0011#;
-   CPSR_Abort_Mode          : constant := 2#1_0111#;
-   CPSR_Undefined_Mode      : constant := 2#1_1011#;
-   CPSR_System_Mode         : constant := 2#1_1111#;
 
 end HiRTOS_Cpu_Arch_Interface;

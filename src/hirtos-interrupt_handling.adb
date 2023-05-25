@@ -12,9 +12,8 @@ with HiRTOS.Thread_Private;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface;
-with System.Storage_Elements;
-with HiRTOS_Low_Level_Debug_Interface;--???
-with GNAT.Source_Info; --???
+--  ???with HiRTOS_Low_Level_Debug_Interface;--???
+--  ???with GNAT.Source_Info; --???
 
 package body HiRTOS.Interrupt_Handling is
    use HiRTOS.RTOS_Private;
@@ -103,11 +102,11 @@ package body HiRTOS.Interrupt_Handling is
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
       --???
-      --          HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit < " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
+      --  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit < " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
       --  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit interrupt nesting level: "); --???
       --  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Current_Interrupt_Nesting_Counter)); --???
-      --          HiRTOS_Low_Level_Debug_Interface.Print_String (", old stack pointer: "); --???
-      --          HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (New_Stack_Pointer)), End_line => True); --???
+      --  HiRTOS_Low_Level_Debug_Interface.Print_String (", old stack pointer: "); --???
+      --  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (New_Stack_Pointer)), End_line => True); --???
       --???
       --
       --  If interrupt nesting level is 1, run the thread scheduler
@@ -141,9 +140,9 @@ package body HiRTOS.Interrupt_Handling is
       end if;
 
       --???
-              --  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit > " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
-              --  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit new stack pointer: "); --???
-              --  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (New_Stack_Pointer)), End_line => True); --???
+      --  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit > " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
+      --  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit new stack pointer: "); --???
+      --  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (New_Stack_Pointer)), End_line => True); --???
       --???
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
       return New_Stack_Pointer;
@@ -167,8 +166,6 @@ package body HiRTOS.Interrupt_Handling is
    is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
          HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-      Current_Interrupt_Nesting_Counter : constant Interrupt_Nesting_Counter_Type :=
-         Get_Current_Interrupt_Nesting_Counter (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
       Saved_Stack_Pointer : constant System.Address :=
          Get_Current_Interrupt_Nesting_Saved_Stack_Pointer (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
       Cpu_Context : constant HiRTOS_Cpu_Arch_Interface.Thread_Context.Cpu_Context_Type with

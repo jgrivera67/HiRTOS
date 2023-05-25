@@ -20,7 +20,7 @@ is
    --
    Max_Num_Threads : constant := 32;
 
-  pragma Compile_Time_Error
+   pragma Compile_Time_Error
      (Max_Num_Threads < 2 * HiRTOS_Platform_Parameters.Num_Cpu_Cores,
       "Max_Num_Threads too small");
 
@@ -30,7 +30,7 @@ is
    --
    Max_Num_Condvars : constant := 32;
 
-  pragma Compile_Time_Error
+   pragma Compile_Time_Error
      (Max_Num_Condvars < Max_Num_Threads,
       "Max_Num_Condvars too small");
 
@@ -44,7 +44,7 @@ is
    --
    Max_Num_Timers : constant := 64;
 
-  pragma Compile_Time_Error
+   pragma Compile_Time_Error
      (Max_Num_Timers < Max_Num_Threads,
       "Max_Num_Timers too small");
 
@@ -83,19 +83,19 @@ is
    --  Global variables default access
    --
    type Global_Data_Default_Access_Type is
-      (Global_Data_Privileged_Unprivileged_Read_Only_Access,
-       Global_Data_Privileged_Read_Write_Unprivileged_No_Access,
-       Global_Data_Privileged_Read_Only_Unprivileged_No_Access,
-       Global_Data_Privileged_Unprivileged_Read_Write_Access);
+      (Global_Data_Privileged_Unprivileged_No_Access,
+       Global_Data_Privileged_Access_Unprivileged_No_Access,
+       Global_Data_Privileged_Unprivileged_Access);
 
    Global_Data_Default_Access : constant Global_Data_Default_Access_Type :=
-      Global_Data_Privileged_Unprivileged_Read_Write_Access;
+      Global_Data_Privileged_Unprivileged_Access;
 
    type Global_Mmio_Default_Access_Type is
-      (Global_Mmio_Privileged_Only_Access,
+      (Global_Mmio_Privileged_Unprivileged_No_Access,
+       Global_Mmio_Privileged_Access_Unprivileged_No_Access,
        Global_Mmio_Privileged_Unprivileged_Access);
 
    Global_Mmio_Default_Access : constant Global_Mmio_Default_Access_Type :=
-      Global_Mmio_Privileged_Only_Access;
+      Global_Mmio_Privileged_Access_Unprivileged_No_Access;
 
 end HiRTOS_Config_Parameters;

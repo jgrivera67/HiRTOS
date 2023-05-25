@@ -17,12 +17,12 @@ package HiRTOS_Cpu_Arch_Interface.System_Registers
 is
    use type System.Storage_Elements.Integer_Address;
 
-   type EL1_Mpu_Enable_Type is (EL1_Mpu_Disabled, EL1_Mpu_Enabled)
+   type Mpu_Enable_Type is (Mpu_Disabled, Mpu_Enabled)
       with Size => 1;
 
-   for EL1_Mpu_Enable_Type use
-     (EL1_Mpu_Disabled => 2#0#,
-      EL1_Mpu_Enabled => 2#1#);
+   for Mpu_Enable_Type use
+     (Mpu_Disabled => 2#0#,
+      Mpu_Enabled => 2#1#);
 
    type Alignment_Check_Enable_Type is (Alignment_Check_Disabled,
                                         Alignment_Check_Enabled)
@@ -143,7 +143,7 @@ is
    --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
    --
    type SCTLR_Type is record
-      M : EL1_Mpu_Enable_Type := EL1_Mpu_Disabled;
+      M : Mpu_Enable_Type := Mpu_Disabled;
       A : Alignment_Check_Enable_Type := Alignment_Check_Disabled;
       C : Cacheability_Control_Type := Non_Cacheable;
       CP15BEN : CP15_Memory_Barrier_Instruction_Enable_Type := CP15_Memory_Barrier_Instruction_Disabled;
@@ -229,26 +229,30 @@ is
    --
    --  Flush data cache line
    --
-   procedure Set_DCCMVAC(DCCMVAC_Value : System.Address)
+   procedure Set_DCCMVAC (DCCMVAC_Value : System.Address)
       with Pre => System.Storage_Elements.To_Integer (DCCMVAC_Value) mod
                      HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
 
    --
    --  Invalidate data cache line
    --
-   procedure Set_DCIMVAC(DCIMVAC_Value : System.Address)
+   procedure Set_DCIMVAC (DCIMVAC_Value : System.Address)
       with Pre => System.Storage_Elements.To_Integer (DCIMVAC_Value) mod
                      HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
 
-  --
+   --
    --  Clean and invalidate data cache line
    --
-   procedure Set_DCCIMVAC(DCCIMVAC_Value : System.Address)
+   procedure Set_DCCIMVAC (DCCIMVAC_Value : System.Address)
       with Pre => System.Storage_Elements.To_Integer (DCCIMVAC_Value) mod
                      HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
 
    procedure Set_DCIM_ALL;
 
    procedure Set_ICIALLU;
+
+   function Get_VBAR return System.Address;
+
+   procedure Set_VBAR (VBAR_Value : System.Address);
 
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

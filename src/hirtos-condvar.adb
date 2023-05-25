@@ -14,8 +14,8 @@ with HiRTOS.Timer;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with System.Storage_Elements;
-with HiRTOS_Low_Level_Debug_Interface;--???
-with GNAT.Source_Info; --???
+--  ???with HiRTOS_Low_Level_Debug_Interface;--???
+--  ???with GNAT.Source_Info; --???
 
 package body HiRTOS.Condvar is
    use HiRTOS.Condvar_Private;
@@ -157,8 +157,6 @@ package body HiRTOS.Condvar is
 
    function Last_Wait_Timed_Out (Condvar_Id : Valid_Condvar_Id_Type) return Boolean
    is
-      Condvar_Obj : Condvar_Type renames HiRTOS_Obj.Condvar_Instances (Condvar_Id);
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       Thread_Wait_Timed_Out : Boolean := False;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;

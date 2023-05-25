@@ -41,7 +41,8 @@ is
       Convention => C;
 
    procedure Idle_Thread_Proc (Arg : System.Address) with
-     Convention => C;
+     Convention => C,
+     No_Return;
 
    procedure Initialize_HiRTOS_Lib with SPARK_Mode => Off
    is
@@ -292,8 +293,6 @@ is
       loop
          HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
       end loop;
-
-      HiRTOS.Exit_Cpu_Privileged_Mode;
    end Idle_Thread_Proc;
 
    function Raise_Atomic_Level (New_Atomic_Level : Atomic_Level_Type) return Atomic_Level_Type

@@ -11,8 +11,8 @@ with HiRTOS.Condvar;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Config_Parameters;
-with HiRTOS_Low_Level_Debug_Interface; --???
-with GNAT.Source_Info; --???
+--  ???with HiRTOS_Low_Level_Debug_Interface; --???
+--  ???with GNAT.Source_Info; --???
 package body HiRTOS.Timer_Private is
    use HiRTOS.RTOS_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;

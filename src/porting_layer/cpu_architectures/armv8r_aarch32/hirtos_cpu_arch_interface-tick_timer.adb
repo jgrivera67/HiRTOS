@@ -15,8 +15,8 @@ with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with System.Machine_Code;
 with System.Storage_Elements;
-with HiRTOS_Low_Level_Debug_Interface; --???
-with GNAT.Source_Info; --???
+--  ???with HiRTOS_Low_Level_Debug_Interface; --???
+--  ???with GNAT.Source_Info; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 

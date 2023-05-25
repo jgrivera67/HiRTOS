@@ -7,14 +7,13 @@
 
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS.Interrupt_Handling;
 with HiRTOS.Timer;
 with HiRTOS.Condvar;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS.Memory_Protection_Private;
-with HiRTOS_Low_Level_Debug_Interface;--???
-with GNAT.Source_Info; --???
+--  ???with HiRTOS_Low_Level_Debug_Interface;--???
+--  ???with GNAT.Source_Info; --???
 
 package body HiRTOS.Thread is
    use System.Storage_Elements;
@@ -116,15 +115,15 @@ package body HiRTOS.Thread is
          Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
          Current_Thread_Obj : Thread_Type renames
             HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
-         Old_Atomic_Level : Atomic_Level_Type;
+         --  ???Old_Atomic_Level : Atomic_Level_Type;
          Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       begin
          if Wakeup_Time_Us <= HiRTOS.Get_Current_Time_Us then
-             Current_Thread_Obj.Stats.Delay_Until_In_the_Past_Count := @ + 1;
+            Current_Thread_Obj.Stats.Delay_Until_In_the_Past_Count := @ + 1;
          end if;
 
-         --   Old_Atomic_Level := HiRTOS.Enter_Atomic_Level (
-         --         HiRTOS.Atomic_Level_Type (HiRTOS.Interrupt_Handling.Tick_Timer_Interrupt_Priority));
+         --   ???Old_Atomic_Level := HiRTOS.Enter_Atomic_Level (
+         --   ???      HiRTOS.Atomic_Level_Type (HiRTOS.Interrupt_Handling.Tick_Timer_Interrupt_Priority));
          Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
          --
@@ -138,11 +137,9 @@ package body HiRTOS.Thread is
          --
          --  Wait for the calling thread's delay timer to expire:
          --
-              --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
          HiRTOS.Condvar.Wait (Current_Thread_Obj.Builtin_Condvar_Id);
-              --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: " & GNAT.Source_Info.Source_Location & ASCII.LF); --???
 
-         --???HiRTOS.Exit_Atomic_Level (Old_Atomic_Level);
+         --  ???HiRTOS.Exit_Atomic_Level (Old_Atomic_Level);
          HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
       end;
 

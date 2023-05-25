@@ -13,6 +13,7 @@ with Generic_Execution_Stack;
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+with HiRTOS_Cpu_Arch_Interface_Private;
 with HiRTOS_Low_Level_Debug_Interface;
 with System.Machine_Code;
 with Interfaces;
@@ -20,6 +21,7 @@ with Interfaces;
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use ASCII;
    use System.Storage_Elements;
+   use HiRTOS_Cpu_Arch_Interface_Private;
 
    procedure Handle_Undefined_Instruction_Exception;
 

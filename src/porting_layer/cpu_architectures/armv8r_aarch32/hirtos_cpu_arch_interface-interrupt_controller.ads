@@ -127,7 +127,7 @@ is
      Pre =>
       Per_Cpu_Initialized and then
       Cpu_In_Privileged_Mode and then
-      Not Cpu_Interrupting_Disabled;
+      not Cpu_Interrupting_Disabled;
 
    procedure Trigger_Software_Generated_Interrupt (Soft_Gen_Interrupt_Id : Soft_Gen_Interrupt_Id_Type;
                                                    Cpu_Id : HiRTOS_Cpu_Multi_Core_Interface.Cpu_Core_Id_Type);

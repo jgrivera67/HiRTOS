@@ -13,10 +13,12 @@ with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with Memory_Utils;
 with System.Machine_Code;
 with System.Storage_Elements;
+with HiRTOS_Cpu_Arch_Interface_Private;
 
 package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
+   use HiRTOS_Cpu_Arch_Interface_Private;
 
    --
    --   Bit masks for CPSR bit fields
@@ -135,6 +137,12 @@ package body HiRTOS_Cpu_Arch_Interface is
    begin
       return (CPSR_Value and CPSR_Mode_Mask) /= CPSR_User_Mode;
    end Cpu_In_Privileged_Mode;
+
+   function Cpu_In_Hypervisor_Mode return Boolean is
+      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
+   begin
+      return (CPSR_Value and CPSR_Mode_Mask) = CPSR_Hypervisor_Mode;
+   end Cpu_In_Hypervisor_Mode;
 
    --
    --  Transitions the CPU from user-mode to sys-mode with interrupts
@@ -358,9 +366,9 @@ package body HiRTOS_Cpu_Arch_Interface is
    begin
       Memory_Barrier;
       Memory_Utils.Invalidate_Data_Cache;
-      SCTLR_Value := Get_SCTLR; --TODO:
+      SCTLR_Value := Get_SCTLR;
       SCTLR_Value.C := Cacheable;
-      SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
+      SCTLR_Value.I := Instruction_Access_Cacheable; --  TODO: This too slow in ARM FVP simulator
       Set_SCTLR (SCTLR_Value);
       Strong_Memory_Barrier;
    end Enable_Caches;

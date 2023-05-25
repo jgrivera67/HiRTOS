@@ -9,7 +9,6 @@ with HiRTOS.Thread;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Low_Level_Debug_Interface;
 with System.Storage_Elements;
-with Interfaces;
 
 package body App_Threads is
 
@@ -38,15 +37,15 @@ package body App_Threads is
       use type System.Address;
       use type HiRTOS.Time_Us_Type;
 
-      procedure Naive_Delay (N : Interfaces.Unsigned_32) is
-         use Interfaces;
-         Count : Unsigned_32 := N;
-      begin
-         loop
-            exit when Count = 0;
-            Count := Count - 1;
-         end loop;
-      end Naive_Delay;
+      --  procedure Naive_Delay (N : Interfaces.Unsigned_32) is
+      --     use Interfaces;
+      --     Count : Unsigned_32 := N;
+      --  begin
+      --     loop
+      --        exit when Count = 0;
+      --        Count := Count - 1;
+      --     end loop;
+      --  end Naive_Delay;
 
       Turn_LED_On : Boolean := True;
       Period_Us : constant HiRTOS.Time_Us_Type := 500_000;
@@ -77,7 +76,7 @@ package body App_Threads is
             HiRTOS.Exit_Cpu_Privileged_Mode;
          end if;
 
-         --Naive_Delay (10_000_000);
+         --  ???Naive_Delay (10_000_000);
          HiRTOS.Thread.Thread_Delay_Until (Next_Wakeup_Time_Us);
          Next_Wakeup_Time_Us := @ + Period_Us;
 

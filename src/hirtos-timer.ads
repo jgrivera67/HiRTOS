@@ -5,7 +5,6 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 
-with HiRTOS_Config_Parameters;
 with HiRTOS.Memory_Protection;
 with System.Storage_Elements;
 

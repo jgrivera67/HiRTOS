@@ -6,7 +6,6 @@
 --
 
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS;
 with Uart_Driver;
 with Bit_Sized_Integer_Types;
 with Number_Conversion_Utils;
@@ -14,7 +13,6 @@ with System;
 
 package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    use HiRTOS_Cpu_Multi_Core_Interface;
-   use type Bit_Sized_Integer_Types.Bit_Type;
 
    procedure Initialize_Led;
 

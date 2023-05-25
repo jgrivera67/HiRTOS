@@ -7,220 +7,12 @@
 
 --
 --  @summary RTOS to target platform interface - Memory protection services
---  for ARMv8-R MPU
+--  for ARMv8-R EL2-controlled MPU
 --
 
-with HiRTOS_Cpu_Arch_Parameters;
-with System.Storage_Elements;
-with Interfaces;
-
-package HiRTOS_Cpu_Arch_Interface.Memory_Protection
+private package HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor
    with SPARK_Mode => On
 is
-   use System.Storage_Elements;
-   use type System.Address;
-   use type System.Storage_Elements.Integer_Address;
-
-   type Memory_Region_Descriptor_Type is limited private;
-
-   type Region_Permissions_Type is (None,
-                                    Read_Only,
-                                    Read_Write,
-                                    Read_Execute);
-
-   type Region_Attributes_Type is (
-      --  MMIO space:
-      Device_Memory_Mapped_Io,
-      --  RAM space:
-      Normal_Memory_Non_Cacheable,
-      Normal_Memory_Write_Through_Cacheable,
-      Normal_Memory_Write_Back_Cacheable);
-
-   Max_Num_Memory_Regions : constant := 24;
-
-   type Memory_Region_Id_Type is mod Max_Num_Memory_Regions;
-
-   --
-   --  Load all memory attributes supported into the MPU's MAIR0 and MAIR1 registers:
-   --
-   procedure Load_Memory_Attributes_Lookup_Table
-      with Pre => Cpu_In_Privileged_Mode;
-
-   --
-   --  Enables memory protection hardware
-   --
-   procedure Enable_Memory_Protection
-      with Pre => Cpu_In_Privileged_Mode;
-
-   --
-   --  Disables memory protection hardware
-   --
-   procedure Disable_Memory_Protection
-      with Pre => Cpu_In_Privileged_Mode;
-
-   procedure Configure_Memory_Region (
-      Region_Id : Memory_Region_Id_Type;
-      Start_Address : System.Address;
-      Size_In_Bytes : System.Storage_Elements.Integer_Address;
-      Unprivileged_Permissions : Region_Permissions_Type;
-      Privileged_Permissions : Region_Permissions_Type;
-      Region_Attributes : Region_Attributes_Type)
-      with Pre => To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  Size_In_Bytes > 0 and then
-                  Size_In_Bytes mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  not Is_Memory_Region_Enabled (Region_Id),
-            Post => Is_Memory_Region_Enabled (Region_Id);
-
-   procedure Configure_Memory_Region (
-      Region_Id : Memory_Region_Id_Type;
-      Start_Address : System.Address;
-      End_Address : System.Address;
-      Unprivileged_Permissions : Region_Permissions_Type;
-      Privileged_Permissions : Region_Permissions_Type;
-      Region_Attributes : Region_Attributes_Type)
-      with Pre => To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (End_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (Start_Address) < To_Integer (End_Address) and then
-                  not Is_Memory_Region_Enabled (Region_Id),
-           Post => Is_Memory_Region_Enabled (Region_Id);
-
-   procedure Change_Memory_Region_Address_Range (
-      Region_Id : Memory_Region_Id_Type;
-      Start_Address : System.Address;
-      End_Address : System.Address)
-      with Pre => To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (End_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (Start_Address) < To_Integer (End_Address) and then
-                  Is_Memory_Region_Enabled (Region_Id),
-            Post => Is_Memory_Region_Enabled (Region_Id);
-
-   procedure Clone_Memory_Region (
-      Region_Id : Memory_Region_Id_Type;
-      Start_Address : System.Address;
-      End_Address : System.Address;
-      Cloned_Region_Id : Memory_Region_Id_Type)
-      with Pre => To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (End_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (Start_Address) < To_Integer (End_Address) and then
-                  not Is_Memory_Region_Enabled (Region_Id) and then
-                  Is_Memory_Region_Enabled (Cloned_Region_Id) and then
-                  Region_Id /= Cloned_Region_Id,
-            Post => Is_Memory_Region_Enabled (Region_Id);
-
-   --
-   --  Initializes state of a memory protection descriptor object
-   --
-   procedure Initialize_Memory_Region_Descriptor (
-      Region_Descriptor : out Memory_Region_Descriptor_Type;
-      Start_Address : System.Address;
-      Size_In_Bytes : System.Storage_Elements.Integer_Address;
-      Unprivileged_Permissions : Region_Permissions_Type;
-      Privileged_Permissions : Region_Permissions_Type;
-      Region_Attributes : Region_Attributes_Type)
-      with Pre => To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  Size_In_Bytes > 0 and then
-                  Size_In_Bytes mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0;
-
-   procedure Initialize_Memory_Region_Descriptor (
-      Region_Descriptor : out Memory_Region_Descriptor_Type;
-      Start_Address : System.Address;
-      End_Address : System.Address;
-      Unprivileged_Permissions : Region_Permissions_Type;
-      Privileged_Permissions : Region_Permissions_Type;
-      Region_Attributes : Region_Attributes_Type)
-      with Pre => To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (End_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (Start_Address) < To_Integer (End_Address);
-
-   procedure Initialize_Memory_Region_Descriptor_Disabled (
-      Region_Descriptor : out Memory_Region_Descriptor_Type);
-
-   function Is_Memory_Region_Descriptor_Enabled (Region_Descriptor : Memory_Region_Descriptor_Type)
-      return Boolean;
-
-   function Is_Memory_Region_Enabled (Region_Id : Memory_Region_Id_Type) return Boolean
-      with Pre => Cpu_In_Privileged_Mode;
-
-   --
-   --  Copies saved state of a memory protection descriptor to the
-   --  corresponding memory descriptor in the MPU
-   --
-   procedure Restore_Memory_Region_Descriptor (
-      Region_Id : Memory_Region_Id_Type;
-      Region_Descriptor : Memory_Region_Descriptor_Type);
-
-   --
-   --  Saves state of a memory protection descriptor from the MPU
-   --
-   procedure Save_Memory_Region_Descriptor (
-      Region_Id : Memory_Region_Id_Type;
-      Region_Descriptor : out Memory_Region_Descriptor_Type);
-
-   procedure Disable_Memory_Region (Region_Id : Memory_Region_Id_Type)
-      with Post => not Is_Memory_Region_Enabled (Region_Id);
-
-   procedure Enable_Memory_Region (Region_Id : Memory_Region_Id_Type)
-      with Post => Is_Memory_Region_Enabled (Region_Id);
-
-   procedure Handle_Prefetch_Abort_Exception
-      with Pre => Cpu_In_Privileged_Mode;
-
-   procedure Handle_Data_Abort_Exception
-      with Pre => Cpu_In_Privileged_Mode;
-
-private
-   use type Interfaces.Unsigned_32;
-
-   ----------------------------------------------------------------------------
-   --  Memory protection unit (MPU) declarations
-   ----------------------------------------------------------------------------
-
-   type Not_Unified_Mpu_Type is (Unified_Memory_Map, Not_Unified_Memory_Map)
-      with Size => 1;
-
-   for Not_Unified_Mpu_Type use
-     (Unified_Memory_Map => 2#0#,
-      Not_Unified_Memory_Map => 2#1#);
-
-   type Mpu_Regions_Count_Type is (Mpu_16_Regions,
-                                   Mpu_20_Regions,
-                                   Mpu_24_Regions)
-      with Size => 8;
-
-   for Mpu_Regions_Count_Type use
-     (Mpu_16_Regions => 16,
-      Mpu_20_Regions => 20,
-      Mpu_24_Regions => 24);
-
-   --
-   --  MPU Information register
-   --
-   --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
-   --
-   type MPUIR_Type is record
-      nU : Not_Unified_Mpu_Type := Unified_Memory_Map;
-      DREGION : Mpu_Regions_Count_Type := Mpu_Regions_Count_Type'First;
-   end record
-   with Size => 32,
-        Bit_Order => System.Low_Order_First;
-
-   for MPUIR_Type use record
-      nU at 0 range 0 .. 0;
-      DREGION at 0 range 8 .. 15;
-   end record;
 
    type Execute_Never_Type is (Executable, Non_Executable)
       with Size => 1;
@@ -461,6 +253,20 @@ private
    procedure Set_MAIR_Pair (MAIR_Pair : MAIR_Pair_Type)
       with Inline_Always;
 
+   type HPRENR_Enables_Array_Type is array (0 .. 31) of Boolean with
+     Volatile_Full_Access, Size => 32, Component_Size => 1,
+     Bit_Order => System.Low_Order_First;
+
+   type HPRENR_Type (As_Word : Boolean := True) is record
+      case As_Word is
+         when True =>
+            Value : Interfaces.Unsigned_32 := 0;
+         when False =>
+            Enables_Array : HPRENR_Enables_Array_Type;
+      end case;
+   end record with
+     Size => 32, Unchecked_Union, Volatile_Full_Access;
+
    --  Data fault address register
    type DFAR_Type is new Interfaces.Unsigned_32;
 
@@ -637,4 +443,4 @@ private
          Debug_Event => Debug_Event_Str'Access,
          Unsupported_Exclusive_Access_Fault => Unsupported_Exclusive_Access_Fault_Str'Access];
 
-end HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+end HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;

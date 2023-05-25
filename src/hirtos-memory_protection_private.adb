@@ -17,10 +17,10 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 
    procedure Initialize is
+      use type HiRTOS_Config_Parameters.Global_Data_Default_Access_Type;
+      use type HiRTOS_Config_Parameters.Global_Mmio_Default_Access_Type;
       Cpu_Id : constant Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type := Get_ISR_Stack_Info (Cpu_Id);
-      Unprivileged_Permissions : Region_Permissions_Type;
-      Privileged_Permissions : Region_Permissions_Type;
    begin
       Disable_Memory_Protection;
       Load_Memory_Attributes_Lookup_Table;
@@ -57,60 +57,37 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                  Normal_Memory_Write_Through_Cacheable);
 
       --
-      --  Configure global data region:
+      --  Configure explicit global data region, if both privileged/unprivileged
+      --  default access is wanted:
       --
-
-      case HiRTOS_Config_Parameters.Global_Data_Default_Access is
-         when HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Read_Only_Access =>
-            Privileged_Permissions := Read_Only;
-            Unprivileged_Permissions := Read_Only;
-         when HiRTOS_Config_Parameters.Global_Data_Privileged_Read_Write_Unprivileged_No_Access =>
-            Privileged_Permissions := Read_Write;
-            Unprivileged_Permissions := None;
-         when HiRTOS_Config_Parameters.Global_Data_Privileged_Read_Only_Unprivileged_No_Access =>
-            Privileged_Permissions := Read_Only;
-            Unprivileged_Permissions := None;
-         when HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Read_Write_Access =>
-            Privileged_Permissions := Read_Write;
-            Unprivileged_Permissions := Read_Write;
-      end case;
-
-      Configure_Memory_Region (Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
+      --  NOTE: There is no need to have an explicit MPU region for the privileged
+      --  BSS section, as it is covered by the the background region.
+      --
+      if HiRTOS_Config_Parameters.Global_Data_Default_Access =
+           HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Access
+      then
+         Configure_Memory_Region (Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
                                HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
                                Global_Data_Region_Size_In_Bytes,
-                               Unprivileged_Permissions,
-                               Privileged_Permissions,
-                               Region_Attributes => Normal_Memory_Write_Back_Cacheable);
-
-      --
-      --  Configure global privileged data region:
-      --
-      Configure_Memory_Region (Memory_Region_Id_Type (Global_Privileged_Data_Region'Enum_Rep),
-                               HiRTOS_Platform_Parameters.Privileged_BSS_Section_Start_Address,
-                               HiRTOS_Platform_Parameters.Privileged_BSS_Section_End_Address,
-                               Unprivileged_Permissions => None,
+                               Unprivileged_Permissions => Read_Write,
                                Privileged_Permissions => Read_Write,
                                Region_Attributes => Normal_Memory_Write_Back_Cacheable);
+      end if;
 
       --
-      --  Configure global MMIO region:
+      --  Configure explicit global MMIO region, if both privileged/unprivileged
+      --  default access is wanted:
       --
-
-      case HiRTOS_Config_Parameters.Global_Mmio_Default_Access is
-         when HiRTOS_Config_Parameters.Global_Mmio_Privileged_Only_Access =>
-            Privileged_Permissions := Read_Write;
-            Unprivileged_Permissions := None;
-         when HiRTOS_Config_Parameters.Global_Mmio_Privileged_Unprivileged_Access =>
-            Privileged_Permissions := Read_Write;
-            Unprivileged_Permissions := Read_Write;
-      end case;
-
-      Configure_Memory_Region (Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-                               HiRTOS_Platform_Parameters.Global_Mmio_Region_Start_Address,
-                               Global_Mmio_Region_Size_In_Bytes,
-                               Unprivileged_Permissions,
-                               Privileged_Permissions,
-                               Region_Attributes => Device_Memory_Mapped_Io);
+      if HiRTOS_Config_Parameters.Global_Mmio_Default_Access =
+            HiRTOS_Config_Parameters.Global_Mmio_Privileged_Unprivileged_Access
+      then
+         Configure_Memory_Region (Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
+                                  HiRTOS_Platform_Parameters.Global_Mmio_Region_Start_Address,
+                                  Global_Mmio_Region_Size_In_Bytes,
+                                  Unprivileged_Permissions => Read_Write,
+                                  Privileged_Permissions => Read_Write,
+                                  Region_Attributes => Device_Memory_Mapped_Io);
+      end if;
 
       --
       --  Configure ISR stack region:
@@ -122,8 +99,16 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                            Privileged_Permissions => Read_Write,
                                            Region_Attributes => Normal_Memory_Write_Back_Cacheable);
 
-
-      Enable_Memory_Protection;
+      if HiRTOS_Config_Parameters.Global_Data_Default_Access =
+            HiRTOS_Config_Parameters.Global_Data_Privileged_Access_Unprivileged_No_Access
+         or else
+         HiRTOS_Config_Parameters.Global_Mmio_Default_Access =
+            HiRTOS_Config_Parameters.Global_Mmio_Privileged_Access_Unprivileged_No_Access
+      then
+         Enable_Memory_Protection (Enable_Background_Region => True);
+      else
+         Enable_Memory_Protection (Enable_Background_Region => False);
+      end if;
    end Initialize;
 
    procedure Initialize_Thread_Memory_Regions (Stack_Base_Addr : System.Address;
@@ -131,22 +116,15 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                                Thread_Regions : out Thread_Memory_Regions_Type)
    is
    begin
+      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Private_Code_Region);
+      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Private_Data_Region);
+      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Private_Mmio_Region);
       Initialize_Memory_Region_Descriptor (Thread_Regions.Stack_Region,
                                            Stack_Base_Addr,
                                            Stack_End_Addr,
                                            Unprivileged_Permissions => Read_Write,
                                            Privileged_Permissions => Read_Write,
                                            Region_Attributes => Normal_Memory_Write_Back_Cacheable);
-
-      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Private_Code_Region);
-      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Private_Data_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-                                     Thread_Regions.Overlapped_Global_Data_Region);
-      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Overlapped_Global_Data_Region_After_Hole);
-      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Private_Mmio_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-                                     Thread_Regions.Overlapped_Global_Mmio_Region);
-      Initialize_Memory_Region_Descriptor_Disabled (Thread_Regions.Overlapped_Global_Mmio_Region_After_Hole);
    end Initialize_Thread_Memory_Regions;
 
    procedure Restore_Thread_Memory_Regions (Thread_Regions : Thread_Memory_Regions_Type) is
@@ -156,17 +134,9 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
 
       Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Data_Region'Enum_Rep),
                                         Thread_Regions.Private_Data_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-                                        Thread_Regions.Overlapped_Global_Data_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_After_Hole_Region'Enum_Rep),
-                                        Thread_Regions.Overlapped_Global_Data_Region_After_Hole);
 
       Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Mmio_Region'Enum_Rep),
                                         Thread_Regions.Private_Mmio_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-                                        Thread_Regions.Overlapped_Global_Mmio_Region);
-      Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_After_Hole_Region'Enum_Rep),
-                                        Thread_Regions.Overlapped_Global_Mmio_Region_After_Hole);
 
       Restore_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Stack_Data_Region'Enum_Rep),
                                         Thread_Regions.Stack_Region);
@@ -179,17 +149,9 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
 
       Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Data_Region'Enum_Rep),
                                      Thread_Regions.Private_Data_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_Region'Enum_Rep),
-                                     Thread_Regions.Overlapped_Global_Data_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Data_After_Hole_Region'Enum_Rep),
-                                     Thread_Regions.Overlapped_Global_Data_Region_After_Hole);
 
       Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Mmio_Region'Enum_Rep),
                                      Thread_Regions.Private_Mmio_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_Region'Enum_Rep),
-                                     Thread_Regions.Overlapped_Global_Mmio_Region);
-      Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Global_Mmio_After_Hole_Region'Enum_Rep),
-                                     Thread_Regions.Overlapped_Global_Mmio_Region_After_Hole);
 
       Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Stack_Data_Region'Enum_Rep),
                                      Thread_Regions.Stack_Region);

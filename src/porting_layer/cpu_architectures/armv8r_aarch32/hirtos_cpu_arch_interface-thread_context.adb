@@ -11,11 +11,13 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
+with HiRTOS_Cpu_Arch_Interface_Private;
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    use ASCII;
    use System.Storage_Elements;
+   use HiRTOS_Cpu_Arch_Interface_Private;
 
    procedure Thread_Unintended_Exit_Catcher is
    begin
