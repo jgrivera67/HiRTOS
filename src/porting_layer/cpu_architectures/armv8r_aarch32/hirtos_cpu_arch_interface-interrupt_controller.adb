@@ -241,9 +241,9 @@ is
       Old_Mmio_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
       Old_Data_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
       ICFGR_Register_Index     : constant Integer                :=
-        Integer (Internal_Interrupt_Id) / GIC_ICFGR_Field_Array_Type'Length;
+        Integer (Internal_Interrupt_Id) / GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
       ICFGR_Field_Index        : constant Integer                :=
-        Integer (Internal_Interrupt_Id) mod GIC_ICFGR_Field_Array_Type'Length;
+        Integer (Internal_Interrupt_Id) mod GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
       IPRIORITY_Register_Index : constant Integer                :=
         Integer (Internal_Interrupt_Id) /
         GIC_IPRIORITYR_Slot_Array_Type'Length;
@@ -271,9 +271,8 @@ is
       --
       GIC_ICFGR_Value                                                    :=
         GICR.GICR_SGI_And_PPI_Page.GICR_ICFGR_Array (ICFGR_Register_Index);
-      GIC_ICFGR_Value.Interrupt_Config_Array (ICFGR_Field_Index)
-        .Interrupt_Trigger                                               :=
-        GIC_ICFGR_Interrupt_Trigger_Type (Trigger_Mode);
+      GIC_ICFGR_Value.Interrupt_Trigger_Mode_Array (ICFGR_Field_Index)   :=
+        GIC_ICFGR_Interrupt_Trigger_Mode_Type (Trigger_Mode);
       GICR.GICR_SGI_And_PPI_Page.GICR_ICFGR_Array (ICFGR_Register_Index) :=
         GIC_ICFGR_Value;
 
@@ -321,9 +320,9 @@ is
       Old_Mmio_Range            : HiRTOS.Memory_Protection.Memory_Range_Type;
       Old_Data_Range            : HiRTOS.Memory_Protection.Memory_Range_Type;
       ICFGR_Register_Index      : constant Integer                :=
-        Integer (External_Interrupt_Id) / GIC_ICFGR_Field_Array_Type'Length;
+        Integer (External_Interrupt_Id) / GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
       ICFGR_Field_Index         : constant Integer                :=
-        Integer (External_Interrupt_Id) mod GIC_ICFGR_Field_Array_Type'Length;
+        Integer (External_Interrupt_Id) mod GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
       IPRIORITYR_Register_Index : constant Integer                :=
         Integer (External_Interrupt_Id) /
         GIC_IPRIORITYR_Slot_Array_Type'Length;
@@ -361,9 +360,8 @@ is
       --  Configure interrupt trigger mode:
       --
       GIC_ICFGR_Value := GICD.GICD_ICFGR_Array (ICFGR_Register_Index);
-      GIC_ICFGR_Value.Interrupt_Config_Array (ICFGR_Field_Index)
-        .Interrupt_Trigger                         :=
-        GIC_ICFGR_Interrupt_Trigger_Type (Trigger_Mode);
+      GIC_ICFGR_Value.Interrupt_Trigger_Mode_Array (ICFGR_Field_Index) :=
+        GIC_ICFGR_Interrupt_Trigger_Mode_Type (Trigger_Mode);
       GICD.GICD_ICFGR_Array (ICFGR_Register_Index) := GIC_ICFGR_Value;
 
       --

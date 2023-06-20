@@ -59,6 +59,8 @@
 
 #define SYSTEM_CLOCK_FREQUENCY_HZ 100000000
 
+#define FAST_MODELS_COUNTER_CONTROL_REG 0xaa430000
+
 /*
  * Imported symbols
  */
@@ -124,12 +126,24 @@ interrupt_vector_table:
  * @pre  CPU is in HYP mode (EL2)
  */
 	.macro INIT_CPU_REGS_EL2
-    // Starting in HYP mode from reset
-    mov     r0,   #0
-    mov     sp,   #0
-    mov     lr,   #0
-    msr     spsr_cxsf, r0
-    msr     elr_hyp,  r0
+        // Starting in HYP mode from reset
+        mov     r0,   #0
+        mov     r1,   #0
+        mov     r2,   #0
+        mov     r3,   #0
+        mov     r4,   #0
+        mov     r5,   #0
+        mov     r6,   #0
+        mov     r7,   #0
+        mov     r8,   #0
+        mov     r9,   #0
+        mov     r10,  #0
+        mov     r11,  #0
+        mov     r12,  #0
+        mov     sp,   #0
+        mov     lr,   #0
+        msr     spsr_cxsf, r0
+        msr     elr_hyp,  r0
 	.endm
 
 /**
@@ -222,13 +236,17 @@ reset_handler:
         ldr r0, =#SYSTEM_CLOCK_FREQUENCY_HZ
         mcr p15, 0, r0, c14, c0, 0
 
+#if 0 // Not needed ???
         /*
-         * Disable HVC instruction, by setting HCD bit in HCR register:
+         * Enable use of generic timer for ARM FVP platform:
          */
-        mrc p15, 4, r0, c1, c1, 0
-        orr r0, #BIT(29u)
-        mcr p15, 4, r0, c1, c1, 0
+        ldr r0, =#FAST_MODELS_COUNTER_CONTROL_REG
+        ldr r1, [r0]
+        orr r1, r1, #0x13u
+        str r1, [r0]
+#endif
 
+//#if defined(RTOS)
         /*
          * Set HACTLR to allow EL1 access to system registers
          */
@@ -249,6 +267,7 @@ reset_handler_el1:
                                 // CPU in SVC mode (EL1)
         INIT_CPU_REGS_EL1
                                 // CPU in SYS mode (EL1)
+//#endif // defined(RTOS)
 
         /*
          * Set ISR stack for calling CPU:

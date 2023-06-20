@@ -56,7 +56,6 @@ package body HiRTOS.Interrupt_Handling is
                HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
          begin
             Current_Thread_Obj.Stats.Times_Preempted_By_Isr := @ + 1;
-            Save_Thread_Extended_Context (Current_Thread_Obj);
 
             --
             --  Save current thread's stack pointer in current RTOS task context:
@@ -113,24 +112,40 @@ package body HiRTOS.Interrupt_Handling is
       --  in case the highest priority runnable thread has changed:
       --
       if Current_Interrupt_Nesting_Counter = 1 then
-         HiRTOS.Thread_Private.Run_Thread_Scheduler;
-
          declare
-            Current_Thread_Id : constant Valid_Thread_Id_Type :=
+            Old_Current_Thread_Id : constant Thread_Id_Type :=
                   RTOS_Cpu_Instance.Current_Thread_Id;
-            Current_Thread_Obj : Thread_Type renames
-               HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
          begin
-            Restore_Thread_Extended_Context (Current_Thread_Obj);
-            HiRTOS.Interrupt_Handling_Private.Decrement_Interrupt_Nesting (
-               RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
+            HiRTOS.Thread_Private.Run_Thread_Scheduler;
+            declare
+               New_Current_Thread_Id : constant Valid_Thread_Id_Type :=
+                     RTOS_Cpu_Instance.Current_Thread_Id;
+               New_Current_Thread_Obj : Thread_Type renames
+                  HiRTOS_Obj.Thread_Instances (New_Current_Thread_Id);
+            begin
+               if New_Current_Thread_Id /= Old_Current_Thread_Id then
+                  if Old_Current_Thread_Id /= Invalid_Thread_Id then
+                     declare
+                        Old_Current_Thread_Obj : Thread_Type renames
+                           HiRTOS_Obj.Thread_Instances (Old_Current_Thread_Id);
+                     begin
+                        Save_Thread_Extended_Context (Old_Current_Thread_Obj);
+                     end;
+                  end if;
 
-            --
-            --  Restore saved stack pointer from the current RTOS task context:
-            --
-            New_Stack_Pointer := Thread_Private.Get_Thread_Stack_Pointer (Current_Thread_Obj);
-              --  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit thread_id: "); --???
-              --  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Current_Thread_Id), End_line => True); --???
+                  Restore_Thread_Extended_Context (New_Current_Thread_Obj);
+               end if;
+
+               HiRTOS.Interrupt_Handling_Private.Decrement_Interrupt_Nesting (
+                  RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
+
+               --
+               --  Restore saved stack pointer from the current RTOS task context:
+               --
+               New_Stack_Pointer := Thread_Private.Get_Thread_Stack_Pointer (New_Current_Thread_Obj);
+               --  ???HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR exit thread_id: "); --???
+               --  ???HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Current_Thread_Id), End_line => True); --???
+            end;
          end;
       else
          pragma Assert (Current_Interrupt_Nesting_Counter > 1);

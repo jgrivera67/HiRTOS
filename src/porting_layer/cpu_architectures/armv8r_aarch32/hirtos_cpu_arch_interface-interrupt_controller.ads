@@ -68,7 +68,7 @@ is
      (Interrupt_Level_Sensitive, Interrupt_Edge_Triggered);
 
    for Interrupt_Trigger_Mode_Type use
-     (Interrupt_Level_Sensitive => 2#0#, Interrupt_Edge_Triggered => 2#1#);
+     (Interrupt_Level_Sensitive => 2#00#, Interrupt_Edge_Triggered => 2#10#);
 
    ----------------------------------------------------------------------------
    --  Public Subprograms
@@ -388,21 +388,12 @@ private
    --
    type GICD_IPRIORITYR_Array_Type is array (8 .. 247) of GIC_IPRIORITYR_Type;
 
-   type GIC_ICFGR_Interrupt_Trigger_Type is
+   type GIC_ICFGR_Interrupt_Trigger_Mode_Type is
      new Interrupt_Trigger_Mode_Type with
-     Size => 1;
+     Size => 2;
 
-   type GIC_ICFGR_Field_Type is record
-      Interrupt_Trigger : GIC_ICFGR_Interrupt_Trigger_Type;
-   end record with
-     Size => 2, Bit_Order => System.Low_Order_First;
-
-   for GIC_ICFGR_Field_Type use record
-      Interrupt_Trigger at 0 range 1 .. 1;
-   end record;
-
-   type GIC_ICFGR_Field_Array_Type is
-     array (0 .. 15) of GIC_ICFGR_Field_Type with
+   type GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type is
+     array (0 .. 15) of GIC_ICFGR_Interrupt_Trigger_Mode_Type with
      Component_Size => 2, Size => 32;
 
    type GIC_ICFGR_Type (As_Word : Boolean := True) is record
@@ -410,7 +401,7 @@ private
          when True =>
             Value : Interfaces.Unsigned_32 := 0;
          when False =>
-            Interrupt_Config_Array : GIC_ICFGR_Field_Array_Type;
+            Interrupt_Trigger_Mode_Array : GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type;
       end case;
    end record with
      Size => 32, Unchecked_Union, Volatile_Full_Access;
