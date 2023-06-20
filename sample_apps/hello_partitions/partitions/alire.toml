@@ -1,0 +1,32 @@
+name = "partitions"
+description = "partitions"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+project-files = ["hello_partition1.gpr", "hello_partition2.gpr"]
+executables = ["hello_partition1", "hello_partition2"]
+
+[[depends-on]]
+hirtos = "*"
+portable_minimal_ada_rts = "*"
+
+[[pins]]
+hirtos = { path='../../..' }
+portable_minimal_ada_rts = { path='../../../third_party/portable_minimal_ada_rts' }
+
+[build-profiles]
+hirtos = "development"
+portable_minimal_ada_rts = "development"
+
+[[actions]]
+type = "post-build"
+command = ["arm-none-eabi-objcopy", "-O", "binary", "-S", "bin/hello_partition1.elf",
+           "bin/hello_partition1.bin"]
+
+[[actions]]
+type = "post-build"
+command = ["arm-none-eabi-objcopy", "-O", "binary", "-S", "bin/hello_partition2.elf",
+           "bin/hello_partition2.bin"]

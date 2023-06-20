@@ -6,14 +6,13 @@
 --
 
 --
---  @summary RTOS to target platform interface - ARMv8-R hypervisor system registers
+--  @summary RTOS to target platform interface - ARMv8-R hypervisor registers
 --
 
 package HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor
    with SPARK_Mode => On,
         No_Elaboration_Code_All
 is
-
    type HCR_VM_Type is
       (HCR_Virtualization_Disabled,
        HCR_Virtualization_Enabled)
@@ -291,8 +290,6 @@ is
 
    procedure Set_HCR (HCR_Value : HCR_Type);
 
-   type HSR_ISS_Type is mod 2**25 with Size => 25;
-
    type HSR_IL_Type is
       (HSR_16_Bit_Instruction_Trapped,
        HSR_32_Bit_Instruction_Trapped)
@@ -342,13 +339,93 @@ is
       HSR_Exception_From_Data_Abort_At_EL2 => 2#100101#);
 
    --
+   --  Values for the IFSC subfield of the ISS field of the HSR register.
+   --  They are the Instruction Fault Status Codes for EL2 prefetch abort
+   --  exceptions
+   --
+   type HSR_ISS_IFSC_Type is
+      (IFSC_Translation_Fault,
+       IFSC_Permission_Fault,
+       IFSC_Synchronous_External_Abort,
+       IFSC_Debug_Exception)
+   with Size => 6;
+
+   for HSR_ISS_IFSC_Type use
+     (IFSC_Translation_Fault => 2#000100#,
+      IFSC_Permission_Fault => 2#001100#,
+      IFSC_Synchronous_External_Abort => 2#010000#,
+      IFSC_Debug_Exception => 2#100010#);
+
+   --
+   --  Values for the DFSC subfield of the ISS field of the HSR register.
+   --  They are the Data Fault Status Codes for EL2 data abort exceptions
+   --
+   type HSR_ISS_DFSC_Type is
+      (DFSC_Translation_Fault,
+       DFSC_Permission_Fault,
+       DFSC_Synchronous_External_Abort,
+       DFSC_Serror_Interrupt,
+       DFSC_Synchronous_Parity_Or_Ecc_Error,
+       DFSC_Serror_Interrupt_Parity_Or_Ecc_Error,
+       DFSC_Alignment_Fault,
+       DFSC_Debug_Exception,
+       DFSC_Cache_Lockdown_Fault,
+       DFSC_Unsupported_Exclusive_Access_Fault)
+   with Size => 6;
+
+   for HSR_ISS_DFSC_Type use
+     (DFSC_Translation_Fault => 2#000100#,
+      DFSC_Permission_Fault => 2#001100#,
+      DFSC_Synchronous_External_Abort => 2#010000#,
+      DFSC_Serror_Interrupt => 2#010001#,
+      DFSC_Synchronous_Parity_Or_Ecc_Error => 2#011000#,
+      DFSC_Serror_Interrupt_Parity_Or_Ecc_Error => 2#011001#,
+      DFSC_Alignment_Fault => 2#100001#,
+      DFSC_Debug_Exception => 2#100010#,
+      DFSC_Cache_Lockdown_Fault => 2#110100#,
+      DFSC_Unsupported_Exclusive_Access_Fault => 2#110101#);
+
+   type HSR_ISS_WnR_Type is
+      (WnR_Read_Access_Fault,
+       WnR_Write_Access_Fault)
+   with Size => 1;
+
+   for HSR_ISS_WnR_Type use
+     (WnR_Read_Access_Fault => 2#0#,
+      WnR_Write_Access_Fault => 2#1#);
+
+   type HSR_Raw_ISS_Type is mod 2**25 with Size => 25;
+
+   type HSR_ISS_Type (EC : HSR_EC_Type := HSR_Exceptions_With_Unknown_Reason) is record
+      case EC is
+         when HSR_Exception_From_Prefetch_Abort_Routed_To_EL2 |
+              HSR_Exception_From_Prefetch_Abort_At_EL2 =>
+            IFSC : HSR_ISS_IFSC_Type;
+         when HSR_Exception_From_Data_Abort_Routed_To_EL2 |
+              HSR_Exception_From_Data_Abort_At_EL2 =>
+            DFSC : HSR_ISS_DFSC_Type;
+            WnR : HSR_ISS_WnR_Type;
+         when others =>
+            ISS : HSR_Raw_ISS_Type := 0;
+      end case;
+   end record with
+        Size => 25, Unchecked_Union, Bit_Order => System.Low_Order_First;
+
+   for HSR_ISS_Type use record
+      IFSC at 0 range 0 .. 5;
+      DFSC at 0 range 0 .. 5;
+      WnR  at 0 range 6 .. 6;
+      ISS at 0 range 0 .. 24;
+   end record;
+
+   --
    --  Hypervisor syndrome register
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
    --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
    --
    type HSR_Type is record
-      ISS : HSR_ISS_Type := 0;
+      ISS : HSR_ISS_Type;
       IL : HSR_IL_Type := HSR_16_Bit_Instruction_Trapped;
       EC : HSR_EC_Type := HSR_Exceptions_With_Unknown_Reason;
    end record
@@ -410,6 +487,46 @@ is
    function Get_HSCTLR return HSCTLR_Type;
 
    procedure Set_HSCTLR (HSCTLR_Value : HSCTLR_Type);
+
+   type S2DMAD_Type is (S2DMAD_Disabled, S2DMAD_Enabled)
+      with Size => 1;
+
+   for S2DMAD_Type use
+     (S2DMAD_Disabled => 2#0#,
+      S2DMAD_Enabled => 2#1#);
+
+   type S2NIE_Type is (S2NIE_Disabled, S2NIE_Enabled)
+      with Size => 1;
+
+   for S2NIE_Type use
+     (S2NIE_Disabled => 2#0#,
+      S2NIE_Enabled => 2#1#);
+
+   type Virtual_Machine_ID_Type is new Interfaces.Unsigned_8;
+
+   --
+   --  Virtualization System control register
+   --
+   --  NOTE: We don't need to declare this register with Volatile_Full_Access,
+   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --
+   type VSCTLR_Type is record
+      S2DMAD : S2DMAD_Type := S2DMAD_Disabled;
+      S2NIE : S2NIE_Type := S2NIE_Disabled;
+      VMID : Virtual_Machine_ID_Type := Virtual_Machine_ID_Type'First;
+   end record
+   with Size => 32,
+        Bit_Order => System.Low_Order_First;
+
+   for VSCTLR_Type use record
+      S2DMAD at 0 range 1 .. 1;
+      S2NIE at 0 range 2 .. 2;
+      VMID at 0 range 16 .. 23;
+   end record;
+
+   function Get_VSCTLR return VSCTLR_Type;
+
+   procedure Set_VSCTLR (VSCTLR_Value : VSCTLR_Type);
 
    function Get_HVBAR return System.Address;
 

@@ -47,7 +47,7 @@
 This document describes the design of \emph{HiRTOS} (\emph{``High Integrity''} RTOS),
 a real-time operating system kernel (RTOS) written in SPARK Ada. HiRTOS targets
 safety-critical and security-sensitive embedded software applications that run
-in samll multi-core microcontrollers. HiRTOS was designed using the Z notation,
+in small multi-core microcontrollers. HiRTOS was designed using the Z notation,
 as a methodical way to capture correctness assumptions that can be expressed
 as programming contracts in SPARK Ada. Z is a software modeling notation based
 on discrete mathematics structures (such as sets, relations and functions)
@@ -81,7 +81,7 @@ abstraction that can be mapped directly to corresponding data types in SPARK Ada
 
 \chapter{HiRTOS Overview}
 
-\section{Major Design Decisions}
+\section{RTOS Major Design Decisions}
 
 \begin{itemize}
 \item For API simplicity, mutexes and condition variables \cite{threads1, threads2} are the only
@@ -129,6 +129,43 @@ system call.
 \item Interrupt service routines (ISRs) are seen as hardware-scheduled threads that have higher priority than all
 software-scheduled threads. They can only be preempted by higher-priority ISRs.
 They cannot block waiting on mutexes or condition variables.
+
+\end{itemize}
+
+\section{Separation Kernel Major Design Decisions}
+
+Besides being a fully functional RTOS, HiRTOS can be used as a separation kernel \cite{SepK}.
+
+\begin{itemize}
+
+\item In a multi-core platform, there is one separation kernel instance per CPU Core. Each instance is
+independent of each other. No resources are shared between separation kernel instances. No communication between
+CPU cores is supported, so that the separation kernel API can stay the same for both single-core
+and multi-core platforms. Inter-core communication would need to be provided outside of HiRTOS,
+using doorbell interrupts and mailboxes or shared memory, for example.
+
+\item Each separation-kernel instance consists of one or more partitions. A partition is a spatial and temporal
+separation/isolation unit on which a bare-metal or RTOS-based firmware binary runs. Each partition
+consists of one more disjoint address ranges covering portions of RAM and MMIO space that only that
+partition can access. Also, each partition has its own interrupt vector table, its own set of physical
+interrupts and its own global machine state. So, the firmware hosted in each partition has the illusion
+that it owns an entire physical machine, with is own set of of physical peripherals, dedicated memory
+and CPU core. The CPU core is time-sliced among the partitions running on the same separation kernel instance.
+
+\item
+Partitions are bound to the CPU core in which they were created. That is, no partition migration between
+CPU cores is supported.
+
+\item
+Partitions are created at boot time before starting the partition scheduler on the corresponding CPU core.
+Partitions cannot be destroyed or terminated.
+
+\item
+The separation kernel code itself runs in hypervisor privilege mode. All partitions run at a privilege lower
+than hypervisor mode. Partitions can communicate with the separation kernel via hypervisor calls and via
+traps to hypervisor mode triggered from special machine instructions such as $WFI$. The separation kernel
+can communicate with partitions, by forwarding interrupts targeted to the corresponding partition.
+
 \end{itemize}
 
 \section{HiRTOS Code Architecture}
@@ -370,6 +407,7 @@ Below are the primitive types used in HiRTOS:
 \end{axdef}
 
 \begin{zed}
+    [CpuRegistersType] \\
     ValidCpuIdType == CpuIdType \setminus \{ invalidCpuId \} \\
     MemoryAddressType == \\
     \t1 minMemoryAddress \upto maxMemoryAddress \\
@@ -416,7 +454,6 @@ Below are the primitive types used in HiRTOS:
 \end{zed}
 
 \begin{zed}
-    TimerTicksType == \nat \\
     ThreadQueueType == \iseq ValidThreadIdType \\
     MutexListType == \iseq ValidMutexIdType \\
     TimerListType == \iseq ValidTimerIdType \\
@@ -435,13 +472,13 @@ values represent lower priorities.
 \subsection{\emph{HiRTOS} Axiomatic Definitions}
 
 \begin{axdef}
-    zAddressRangeSet: \\
+    zAddressRange : \\
     \t1 (MemoryAddressType \cross MemoryAddressType) \inj \\
     \t1 \finset_1 MemoryAddressType
 \where
     \forall x, y : MemoryAddressType | \\
-   \t1  (x, y) \in \dom zAddressRangeSet @ \\
-   \t1 x < y \land zAddressRangeSet(x, y) = x \upto y
+   \t1  (x, y) \in \dom zAddressRange @ \\
+   \t1 x < y \land zAddressRange(x, y) = x \upto y
 \end{axdef}
 
 \begin{axdef}
@@ -450,10 +487,10 @@ values represent lower priorities.
    \t1 (MemoryAddressType \cross MemoryAddressType) \\
 \where
    \bigcap~\{~ i: ValidCpuIdType @ \\
-     zAddressRangeSet(zCpuToISRstackAddressRange(i)) ~\} = \emptyset
+     zAddressRange(zCpuToISRstackAddressRange(i)) ~\} = \emptyset
 \also
    \forall i : \dom zCpuToISRstackAddressRange @ \\
-      \# (zAddressRangeSet(zCpuToISRstackAddressRange(i))) \geq 2
+      \# (zAddressRange(zCpuToISRstackAddressRange(i))) \geq 2
 \end{axdef}
 
 \begin{axdef}
@@ -464,15 +501,15 @@ values represent lower priorities.
 
 \subsection{\emph{HiRTOS} State Variables}
 
-The $HiRtosType$ singleton object type represents the internal data
-structures of HiRTOS. All HiRTOS objects such as threads, mutexes,
+The $HiRtos$ schema represents the multi-core RTOS state variables (internal data
+structures). All HiRTOS objects such as threads, mutexes,
 condition variables and software timers are statically allocated
 internally by HiRTOS.
 
-\begin{schema}{HiRtosType}
+\begin{schema}{HiRtos}
     rtosCpuInstances: \\
     \t1 ValidCpuIdType \finj HiRtosCpuInstanceType \\
-    zAllCreatedThreadInstances: \power ThreadType \\
+    zAllCreatedThreadInstances: \finset ThreadType \\
 \where
     \# rtosCpuInstances \geq 1
 \also
@@ -487,7 +524,7 @@ internally by HiRTOS.
 \t1    \ran (rtosCpuInstances(i)).threads ~\} = \emptyset
 \also
     \bigcap~\{~ thread: zAllCreatedThreadInstances @ \\
-\t1    thread.stackBaseAddress \upto thread.stackEndAddress - 1 ~\} = \emptyset
+\t1    zAddressRange(thread.stack) ~\} = \emptyset
 \also
     \bigcap~\{~ i: ValidCpuIdType @ \\
 \t1    \ran (rtosCpuInstances(i)).mutexes ~\} = \emptyset
@@ -497,6 +534,9 @@ internally by HiRTOS.
 \also
     \bigcap~\{~ i: ValidCpuIdType @ \\
 \t1    \ran (rtosCpuInstances(i)).timers ~\} = \emptyset
+\also
+    %\bigcap~\{~ \bigcup~ \{~ t: zAllCreatedThreadInstances @ zAddressRange(t.stack) ~\} ~\} = \emptyset
+    \bigcap~\{ t: zAllCreatedThreadInstances @ zAddressRange(t.stack) ~\} = \emptyset
 \end{schema}
 
 \subsubsection{Per-CPU HiRTOS Instance}
@@ -506,11 +546,12 @@ are described below:
 
 \begin{schema}{HiRtosCpuInstanceType}
     cpuId: CpuIdType \\
+    currentCpuContext: CpuRegistersType \\
     threadSchedulerState: ThreadSchedulerStateType \\
     currentAtomicLevel: AtomicLevelType \\
     currentCpuExecutionMode: CpuExecutionModeType \\
     currentThreadId: ThreadIdType \\
-    timerTicksSinceBoot: TimerTicksType \\
+    timerTicksSinceBoot: \nat \\
     idleThreadId: ValidThreadIdType \\
     tickTimerThreadId: ValidThreadIdType \\
     interruptNestingLevelStack: InterruptNestingLevelStackType \\
@@ -579,7 +620,7 @@ are described below:
 \t1   (interruptNestingLevels(x)).interruptNestingCounter = x \\
 \t1   \land \\
 \t1   (interruptNestingLevels(x)).savedStackPointer \in \\
-\t1        zAddressRangeSet(zCpuToISRstackAddressRange(zCpuId))
+\t1        zAddressRange(zCpuToISRstackAddressRange(zCpuId))
 \also
    \dom interruptNestingLevels = \\
    1 \upto currentInterruptNestingCounter
@@ -622,8 +663,8 @@ are described below:
    waitingOnMutexId : MutexIdType \\
    ownedMutexes : \iseq ValidMutexIdType \\
    savedStackPointer : MemoryAddressType \\
-   stackBaseAddress : MemoryAddressType \\
-   stackEndAddress : MemoryAddressType \\
+   stack : AddressRangeType \\
+   stackSavedCpuContext : CpuRegistersType \\
    privilegedNestingCounter : \nat \\
    timeSliceLeftUs : \nat
 \where
@@ -633,8 +674,7 @@ are described below:
    \t1 builtinCondvarId \neq invalidCondvarId \land \\
    \t1 basePriority \neq invalidThreadPriority \land \\
    \t1 currentPriority \neq invalidThreadPriority \land \\
-   \t1 savedStackPointer \in \\
-   \t1 stackBaseAddress \upto stackEndAddress)
+   \t1 savedStackPointer \in zAddressRange(stack))
 \also
    currentPriority \geq basePriority
 \also
@@ -682,7 +722,7 @@ On boot, before the \verb`HiRTOS.Initialize` \emph{HiRTOS} API is called on any 
 the global state of \emph{HiRTOS} is as follows:
 
 \begin{schema}{HiRtosInitialState}
-    HiRtosType' \\
+    HiRtos' \\
     HiRtosCpuInstanceInitialState
 \where
     \forall i : \dom rtosCpuInstances' @ \\
@@ -780,13 +820,13 @@ the global state of \emph{HiRTOS} is as follows:
 \t1      waitingThreadsQueue'.threadQueues(p) = \emptyset
 \end{schema}
 
-\subsection{HiRTOS Runtime-time Initialization}
+\subsection{HiRTOS Runtime Initialization}
 When \verb`HiRTOS.Initialize` is called for each CPU core, the idle thread
 and the tick timer thread for that CPU are created, but the thread
 scheduler is not started yet:
 
 \begin{schema}{HiRtosInitialize}
-   \Delta HiRtosType \\
+   \Delta HiRtos \\
    \Delta HiRtosCpuInstanceType \\
    cpuId? : CpuIdType \\
 \where
@@ -885,7 +925,7 @@ operations that can be performed on mutexes that were previously created by a ca
 \verb'HiRTOS.Mutex.Create':
 
 \begin{schema}{CreatedMutexMutableOperation}
-   \Delta HiRtosType \\
+   \Delta HiRtos \\
    \Delta HiRtosCpuInstanceType \\
    \Delta MutexType \\
    cpuId? : CpuIdType \\
@@ -975,6 +1015,171 @@ mutexId? = head~ (threads(currentThreadId)).ownedMutexes
 (threads'(currentThreadId)).ownedMutexes = tail~ (threads(currentThreadId)).ownedMutexes
 \end{schema}
 
+\clearpage
+\chapter{HiRTOS Separation Kernel Z Specification}
+
+\section{Separation Kernel Data Structures}
+
+\subsection{Separation Kernel Configuration Parameters}
+
+Constants defined here represent compile-time configuration parameters for the
+\emph{HiRTOS} Separation kernel.
+
+\begin{axdef}
+    maxNumPartitionsPerCpu: \nat_1 \\
+    TickTimerPeriodUs: \nat_1 \\
+    PartitionTimeSliceTicks: \nat_1
+\end{axdef}
+
+\subsection{Separation Kernel Primitive Types}
+
+Below are the primitive types used in HiRTOS:
+
+\begin{zed}
+[PartitionIdType] \\
+\# PartitionIdType = maxNumPartitionsPerCpu + 1 \\
+\end{zed}
+
+\begin{axdef}
+   invalidPartitionId : PartitionIdType \\
+\end{axdef}
+
+\begin{zed}
+    ValidPartitionIdType == \\
+    \t1 PartitionIdType \setminus \{ invalidPartitionId \} \\
+    PartitionQueueType == \iseq ValidPartitionIdType \\
+    PartitionStateType ::= partitionNotCreated | \\
+    \t5 partitionRunnable | partitionRunning | \\
+    \t5 partitionSuspended \\
+    PartitionSchedulerStateType ::= \\
+    \t1 partitionSchedulerStopped | partitionSchedulerRunning \\
+    AddressRangeType == MemoryAddressType \cross MemoryAddressType \\
+\end{zed}
+
+\subsection{Separation Kernel State Variables}
+
+The $HiRtosSeparationKernel$ schema represents the internal data
+structures of the HiRTOS separation kernel.
+
+\begin{schema}{HiRtosSeparationKernel}
+    separationKernelCpuInstances: \\
+    \t1 ValidCpuIdType \finj SeparationKernelCpuInstanceType \\
+    zAllCreatedPartitionInstances: \finset PartitionType \\
+\where
+    \# separationKernelCpuInstances \geq 1
+\also
+    \forall i : \dom separationKernelCpuInstances @ \\
+\t1   (separationKernelCpuInstances(i)).cpuId = i
+\also
+    zAllCreatedPartitionInstances = \\
+\t1    \bigcup~\{~ i: ValidCpuIdType @ \\
+\t2    \ran~ (separationKernelCpuInstances(i)).partitions ~\}
+\also
+    \bigcap~\{~ i: ValidCpuIdType @ \\
+\t1    \ran~ (separationKernelCpuInstances(i)).partitions ~\} = \emptyset
+\also
+    \bigcap~\{~ r: \bigcup~\{~ p: zAllCreatedPartitionInstances @ p.savedHypervisorLevelMpuRegions~\} @ \\
+    \t1 zAddressRange(r) ~\} = \emptyset
+\end{schema}
+
+\subsubsection{Per-CPU Separation Kernel Instance}
+
+The state variables and internal data structures of each per-CPU \emph{HiRTOS} separation kernel instance
+are described below:
+
+\begin{schema}{SeparationKernelCpuInstanceType}
+    cpuId: ValidCpuIdType \\
+    interruptStack : AddressRangeType \\
+    partitionSchedulerState: PartitionSchedulerStateType \\
+    currentPartitionId: PartitionIdType \\
+    timerTicksSinceBoot: \nat \\
+    runnablePartitionsQueue : PartitionQueueType \\
+    partitions: ValidPartitionIdType \finj PartitionType \\
+    zCurrentCpuContext: CpuRegistersType \\
+    zCurrentHypervisorLevelMpuRegions : \finset_1 AddressRangeType \\
+    zCurrentSupervisorLevelMpuRegions : \finset AddressRangeType \\
+    zCurrentSupervisorLevelInterruptVectorTableAddr : MemoryAddressType \\
+    zCurrentSupervisorLevelInterruptsEnabled : \finset ValidInterruptIdType \\
+    zCurrentHighestInterruptPriorityDisabled : InterruptPriorityType \\
+\where
+   zAddressRange(interruptStack) \neq \emptyset
+\also
+   currentPartitionId \neq invalidPartitionId \implies \\
+   \t1 currentPartitionId \in \dom partitions \land \\
+   \t1 zCurrentHypervisorLevelMpuRegions = \\
+   \t2 (partitions(currentPartitionId)).savedHypervisorLevelMpuRegions \land \\
+   \t1 zCurrentSupervisorLevelInterruptVectorTableAddr = \\
+   \t2 (partitions(currentPartitionId)).savedInterruptVectorTableAddr \\
+\also
+   \forall p : \ran partitions @ \\
+   \t1 \bigcap~\{~ i: p.savedHypervisorLevelMpuRegions @ zAddressRange(i) ~\} = \emptyset
+\also
+   \forall i : zCurrentSupervisorLevelMpuRegions @ \\
+   \t1 \exists_1 j : zCurrentHypervisorLevelMpuRegions @ \\
+   \t2 zAddressRange(i) \subseteq zAddressRange(j)
+\end{schema}
+
+\begin{schema}{PartitionType}
+   id : PartitionIdType \\
+   failoverPartitionId : PartitionIdType \\
+   state : PartitionStateType \\
+   timeSliceLeftUs : \nat \\
+   savedCpuContext : CpuRegistersType \\
+   savedHypervisorLevelMpuRegions : \finset_1 AddressRangeType \\
+   savedSupervisorLevelMpuRegions : \finset AddressRangeType \\
+   savedInterruptVectorTableAddr : MemoryAddressType \\
+   savedInterruptsEnabled : \finset InterruptIdType \\
+   savedHighestInterruptPriorityDisabled : InterruptPriorityType \\
+\where
+   state \neq partitionNotCreated \implies \\
+   \t1 id \neq invalidPartitionId
+\also
+   failoverPartitionId \neq invalidPartitionId \implies \\
+   \t1 failoverPartitionId \neq id
+\also
+   \bigcap~\{~ i: savedHypervisorLevelMpuRegions @ zAddressRange(i) ~\} = \emptyset
+\also
+   \emptyset \notin \{~ i: savedHypervisorLevelMpuRegions @ zAddressRange(i) ~\}
+\also
+   \forall i : savedSupervisorLevelMpuRegions @ \\
+    \t1 \exists_1 j : savedHypervisorLevelMpuRegions @ \\
+    \t2 zAddressRange(i) \subseteq zAddressRange(j)
+\end{schema}
+
+\subsection{Separation Kernel Boot-time Initialization}
+
+\subsubsection{Separation Kernel Elaboration-time Initialization}
+
+On boot, before the \verb`HiRTOS.Separation_Kernel.Initialize` \emph{HiRTOS} API is
+called on any CPU core, the global state of \emph{HiRtosSeparationKernel} is as follows:
+
+\begin{schema}{HiRtosSeparationKernelInitialState}
+    HiRtosSeparationKernel' \\
+    SeparationKernelCpuInstanceInitialState
+\where
+    \forall i : \dom separationKernelCpuInstances' @ \\
+\t1    \theta SeparationKernelCpuInstanceType' = separationKernelCpuInstances'(i)
+\end{schema}
+
+\begin{schema}{SeparationKernelCpuInstanceInitialState}
+   SeparationKernelCpuInstanceType'
+\where
+   zAddressRange(interruptStack') \neq \emptyset
+\also
+    partitionSchedulerState' = partitionSchedulerStopped
+\also
+   currentPartitionId' = invalidPartitionId
+\also
+   timerTicksSinceBoot' = 0
+\also
+   runnablePartitionsQueue' = \langle \rangle
+\also
+   partitions' = \emptyset
+\end{schema}
+
+\subsubsection{Separation Kernel Runtime Initialization}
+
+
 \begin{thebibliography}{9}
 
 \bibitem{Zref}
@@ -1018,6 +1223,10 @@ ISO, ``N2731: Working draft of the C23 standard, section 7.26'', October 2021 \\
 \bibitem{prioCeiling}
 Lui Sha et al, ``Priority Inheritance Protocols: An Approach to Real-Time Synchronization'', IEEE Transactions on Computers, September 1990 \\
 \url{https://www.csie.ntu.edu.tw/~r95093/papers/Priority%20Inheritance%20Protocols%20An%20Approach%20to%20Real-Time%20Synchronization.pdf}
+
+\bibitem{SepK}
+John Rushby, ``Design and Verification of Secure Systems'', ACM SIGOPS Operating Systems Review, 1981 \\
+\url{https://www.csl.sri.com/users/rushby/papers/sosp81.pdf}
 
 \bibitem{freeRTOS}
 FreeRTOS \\

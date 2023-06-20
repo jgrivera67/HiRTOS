@@ -207,7 +207,6 @@ package body HiRTOS.Thread is
    end Thread_Delay_Until;
 
    procedure Suspend_Current_Thread is
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
 

@@ -1,0 +1,50 @@
+--
+--  Copyright (c) 2023, German Rivera
+--  All rights reserved.
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
+with "config/partitions_config.gpr";
+with "../../../hirtos_compiler_flags.gpr";
+
+project Hello_Partition1 is
+   for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
+   for Runtime ("Ada") use "../../../third_party/portable_minimal_ada_rts";
+   for Languages use ("Ada");
+
+   for Source_Dirs use ("../../fvp_armv8r_aarch32_hello/src/", "config/");
+   for Object_Dir use "obj/" & Partitions_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Exec_Dir use "bin";
+   for Main use ("fvp_armv8r_aarch32_hello.adb");
+
+   Executable_Prefix := "hello_partition1";
+
+   package Compiler is
+      for Default_Switches ("Ada") use Partitions_Config.Ada_Compiler_Switches &
+                                       HiRTOS_Compiler_Flags.Compiler.ADAFLAGS;
+   end Compiler;
+
+   package Linker is
+      for Default_Switches ("Ada") use
+         HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS &
+         ("-nostartfiles",
+          "-nostdlib",
+        --"-nolibc",
+          "-lgcc", -- needed for __aeabi_uldivmod
+          "-Wl,-Map=" & Executable_Prefix & ".map",
+	  "-Xlinker", "--gc-sections",
+	  "-T../../" & HiRTOS_Compiler_Flags.Platform & "_" &
+                 Executable_Prefix & "_memory_layout.ld");
+   end Linker;
+
+   package Builder is
+      for Executable ("fvp_armv8r_aarch32_hello.adb") use Executable_Prefix;
+      for Executable_Suffix use ".elf";
+   end Builder;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Hello_Partition1;

@@ -74,20 +74,35 @@ package body HiRTOS_Cpu_Arch_Interface is
    function Cpu_Interrupting_Disabled return Boolean is
       CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
-      return (CPSR_Value and CPSR_IF_Bit_Mask) = CPSR_IF_Bit_Mask;
+      if Cpu_In_Hypervisor_Mode then
+         return (CPSR_Value and CPSR_IF_Bit_Mask) = CPSR_IF_Bit_Mask;
+      else
+         return (CPSR_Value and CPSR_I_Bit_Mask) = CPSR_I_Bit_Mask;
+      end if;
    end Cpu_Interrupting_Disabled;
 
    function Disable_Cpu_Interrupting return Cpu_Register_Type
    is
       CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
    begin
-      if (CPSR_Value and CPSR_IF_Bit_Mask) /= CPSR_IF_Bit_Mask then
-         System.Machine_Code.Asm (
-            "cpsid if" & LF &
-            "dsb" & LF &
-            "isb",
-            Clobber => "memory",
-            Volatile => True);
+      if Cpu_In_Hypervisor_Mode then
+         if (CPSR_Value and CPSR_IF_Bit_Mask) /= CPSR_IF_Bit_Mask then
+            System.Machine_Code.Asm (
+               "cpsid if" & LF &
+               "dsb" & LF &
+               "isb",
+               Clobber => "memory",
+               Volatile => True);
+         end if;
+      else
+         if (CPSR_Value and CPSR_I_Bit_Mask) /= CPSR_I_Bit_Mask then
+            System.Machine_Code.Asm (
+               "cpsid i" & LF &
+               "dsb" & LF &
+               "isb",
+               Clobber => "memory",
+               Volatile => True);
+         end if;
       end if;
 
       pragma Assert (Cpu_Interrupting_Disabled);

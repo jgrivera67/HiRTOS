@@ -22,7 +22,8 @@
  */
 #define CPSR_F_BIT_MASK BIT(6u)
 #define CPSR_I_BIT_MASK BIT(7u)
-#define CPSR_MODE_MASK MULTI_BIT_MASK(4u, 0u)
+#define CPSR_A_BIT_MASK BIT(8u)
+#define CPSR_MODE_MASK  MULTI_BIT_MASK(4u, 0)
 
 /*
  * Bit masks for the FPEXC register's bit fields:
@@ -69,29 +70,55 @@
 /*
  * Imported symbols
  */
-	.extern isr_stack			            /* defined in startup.adb */
-	.extern ada_reset_handler			    /* defined in startup.adb */
-	.extern undefined_instruction_exception_handler     /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern supervisor_call_exception_handler           /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern prefetch_abort_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern data_abort_exception_handler                /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern irq_interrupt_handler                       /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern fiq_interrupt_handler                       /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern isr_stack			                            /* defined in startup.adb */
+	.extern ada_reset_handler			                   /* defined in startup.adb */
+	.extern el1_undefined_instruction_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el1_supervisor_call_exception_handler       /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el1_prefetch_abort_exception_handler        /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el1_data_abort_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el1_irq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el1_fiq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_undefined_instruction_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_prefetch_abort_exception_handler        /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_data_abort_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_irq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_fiq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_hypervisor_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
 /**
- * Cortex-R52 interrupt vector table
+ * Cortex-R52 EL1 interrupt vector table
  */
         .section .text.privileged.interrupt_vector_table, "ax"
-        .global interrupt_vector_table
-interrupt_vector_table:
-	b reset_handler                           /* Reset */
-	b undefined_instruction_exception_handler /* Undefined Instruction */
-	b supervisor_call_exception_handler       /* Supervisor Call */
-	b prefetch_abort_exception_handler        /* Abort (prefetch) */
-	b data_abort_exception_handler            /* Abort (data) */
-	nop                                       /* Reserved */
-	b irq_interrupt_handler                   /* IRQ */
-   b fiq_interrupt_handler                   /* FIQ */
+        .align 5 // 32-byte aligned
+        .global el1_interrupt_vector_table
+el1_interrupt_vector_table:
+	b reset_handler                               /* Reset */
+	b el1_undefined_instruction_exception_handler /* Undefined Instruction */
+	b el1_supervisor_call_exception_handler       /* Supervisor Call */
+	b el1_prefetch_abort_exception_handler        /* Abort (prefetch) */
+	b el1_data_abort_exception_handler            /* Abort (data) */
+	b el1_undefined_instruction_exception_handler /* Hypervisor Exception */
+	b el1_irq_interrupt_handler                   /* IRQ */
+   b el1_fiq_interrupt_handler                   /* FIQ */
+
+/**
+ * Cortex-R52 EL2 interrupt vector table
+ *
+ * NOTE: On taking an exception, the exception level either increases or remains
+ * the same. The exception level cannot decrease on taking an exception.
+ */
+        .section .text.privileged.interrupt_vector_table, "ax"
+        .align 5 // 32-byte aligned
+        .global el2_interrupt_vector_table
+el2_interrupt_vector_table:
+	b reset_handler                               /* Reset */
+	b el2_undefined_instruction_exception_handler /* Undefined Instruction */
+	b el2_undefined_instruction_exception_handler /* Supervisor Call */
+	b el2_prefetch_abort_exception_handler        /* Abort (prefetch) */
+	b el2_data_abort_exception_handler            /* Abort (data) */
+	b el2_hypervisor_exception_handler            /* Hypervisor exceptions */
+	b el2_irq_interrupt_handler                   /* IRQ */
+   b el2_fiq_interrupt_handler                   /* FIQ */
 
 /**
  * Get sctlr
@@ -122,7 +149,7 @@ interrupt_vector_table:
 	.endm
 
 /**
- * Initializes minimum set of CPU registers for EL2 (HYP mode) to a known value.
+ * Initializes general-purpose CPUs registers to a known value
  *
  * NOTE: This is done to avoid an erroneous lockstep compare error. We need to ensure
  * that the CPU registers of both CPUs are initialized with the same values before the
@@ -130,8 +157,7 @@ interrupt_vector_table:
  *
  * @pre  CPU is in HYP mode (EL2)
  */
-	.macro INIT_CPU_REGS_EL2
-        // Starting in HYP mode from reset
+	.macro INIT_CPU_REGS
         mov     r0,   #0
         mov     r1,   #0
         mov     r2,   #0
@@ -145,15 +171,64 @@ interrupt_vector_table:
         mov     r10,  #0
         mov     r11,  #0
         mov     r12,  #0
-        mov     sp,   #0
-        mov     lr,   #0
-        msr     spsr_cxsf, r0
-        msr     elr_hyp,  r0
 	.endm
 
 /**
- * Initializes all CPUs registers to a known value, including banked registers
- * for all EL1 CPU modes.
+ * Initializes all EL2/EL1 banked CPUs registers to a known value
+ *
+ * NOTE: This is done to avoid an erroneous lockstep compare error. We need to ensure
+ * that the CPU registers of both CPUs are initialized with the same values before the
+ * registers are used, including function calls where the register values are pushed
+ * onto the stack.
+ *
+ * @pre  CPU is in HYP mode (EL2)
+ * @post CPU is in HYP mode (EL2)
+ * @post Stack pointers for all CPU modes are set to NULL
+ * @post Interrupts are disabled at the CPU in all CPU modes
+ */
+	.macro INIT_CPU_BANKED_REGS_FROM_EL2
+        // CPU started in HYP mode from reset
+        mov     sp,   #0
+        mov     lr,   #0
+        mov     r0,   #0
+        msr     spsr_cxsf, r0
+        msr     elr_hyp,  r0
+
+        msr     sp_svc,   r0
+        msr     lr_svc,   r0
+        msr     spsr_svc, r0
+
+        msr     r8_fiq,   r0
+        msr     r9_fiq,   r0
+        msr     r10_fiq,  r0
+        msr     r11_fiq,  r0
+        msr     r12_fiq,  r0
+        msr     sp_fiq,   r0
+        msr     lr_fiq,   r0
+        msr     spsr_fiq, r0
+
+        msr     sp_irq,   r0
+        msr     lr_irq,   r0
+        msr     spsr_irq, r0
+
+        msr     sp_abt,   r0
+        msr     lr_abt,   r0
+        msr     spsr_abt, r0
+
+        msr     sp_und,   r0
+        msr     lr_und,   r0
+        msr     spsr_und, r0
+
+        /*
+         * NOTE: SYS mode and USR mode share the same sp and lr
+         * and they don't have spsr.
+         */
+        msr     sp_usr,   r0
+        msr     lr_usr,   r0
+	.endm
+
+/**
+ * Initializes all EL1 banked CPUs registers to a known value
  *
  * NOTE: This is done to avoid an erroneous lockstep compare error. We need to ensure
  * that the CPU registers of both CPUs are initialized with the same values before the
@@ -165,23 +240,11 @@ interrupt_vector_table:
  * @post Stack pointers for all CPU modes are set to NULL
  * @post Interrupts are disabled at the CPU in all CPU modes
  */
-	.macro INIT_CPU_REGS_EL1
-        // Starting in SVC mode
-        mov     r0,   #0
-        mov     r1,   #0
-        mov     r2,   #0
-        mov     r3,   #0
-        mov     r4,   #0
-        mov     r5,   #0
-        mov     r6,   #0
-        mov     r7,   #0
-        mov     r8,   #0
-        mov     r9,   #0
-        mov     r10,  #0
-        mov     r11,  #0
-        mov     r12,  #0
+	.macro INIT_CPU_BANKED_REGS_FROM_EL1
+        // CPU started in SVC mode from reset
         mov     sp,   #0
         mov     lr,   #0
+        mov     r0,   #0
         msr     spsr_cxsf, r0
 
         msr     CPSR_c, #(CPSR_FAST_INTERRUPT_MODE | CPSR_NO_INT)
@@ -218,6 +281,24 @@ interrupt_vector_table:
         mov     lr,   #0
 	.endm
 
+/**
+ * Set VBAR register
+ * Modifies registers r0
+ */
+	.macro SET_VBAR _vector_base_addr_
+        ldr r0, =\_vector_base_addr_
+        mcr p15, 0, r0, c12, c0, 0      // write VBAR
+	.endm
+
+/**
+ * Set HVBAR register
+ * Modifies registers r0
+ */
+	.macro SET_HVBAR _vector_base_addr_
+        ldr r0, =\_vector_base_addr_
+        mcr p15, 4, r0, c12, c0, 0      // write HVBAR
+	.endm
+
 	.section .globals_initialized_at_load_time
    .align 6 // 64-byte aligned
 	.global hirtos_global_vars_elaborated_flag
@@ -233,7 +314,28 @@ hirtos_global_vars_elaborated_flag:
 	.global reset_handler
         .func reset_handler
 reset_handler:
-        INIT_CPU_REGS_EL2
+        INIT_CPU_REGS
+
+#if 0 // Not needed ???
+        /*
+         * Enable use of generic timer for ARM FVP platform:
+         */
+        ldr r0, =#FAST_MODELS_COUNTER_CONTROL_REG
+        ldr r1, [r0]
+        orr r1, r1, #0x3u
+        str r1, [r0]
+#endif
+
+        /*
+         * Check if we booted as a partition (guest)
+         *
+         * NOTE: The physical machine boots at EL2, but a partition (guest)
+         * boots at EL1.
+         */
+        mrs     r0, cpsr
+        and     r0, r0, #CPSR_MODE_MASK
+        cmp     r0, #CPSR_HYPERVISOR_MODE
+        bne     reset_handler_el1
 
         /*
          * Set generic timer's CNTFRQ register to the system clock frequency, while in EL2,
@@ -242,17 +344,13 @@ reset_handler:
         ldr r0, =#SYSTEM_CLOCK_FREQUENCY_HZ
         mcr p15, 0, r0, c14, c0, 0
 
-#if 0 // Not needed ???
-        /*
-         * Enable use of generic timer for ARM FVP platform:
-         */
-        ldr r0, =#FAST_MODELS_COUNTER_CONTROL_REG
-        ldr r1, [r0]
-        orr r1, r1, #0x13u
-        str r1, [r0]
-#endif
+        SET_HVBAR el2_interrupt_vector_table
 
-//#if defined(RTOS)
+                                // CPU in HYP mode (EL2)
+        INIT_CPU_BANKED_REGS_FROM_EL2
+                                // CPU in HYP mode (EL2)
+
+#if defined(UNSUPERVISED_RTOS)
         /*
          * Set HACTLR to allow EL1 access to system registers
          */
@@ -268,13 +366,17 @@ reset_handler:
         ldr r0, =reset_handler_el1
         msr elr_hyp, r0
         eret
+#else
+        b reset_handler_common
+#endif // defined(UNSUPERVISED_RTOS)
 
 reset_handler_el1:
+        SET_VBAR el1_interrupt_vector_table
                                 // CPU in SVC mode (EL1)
-        INIT_CPU_REGS_EL1
+        INIT_CPU_BANKED_REGS_FROM_EL1
                                 // CPU in SYS mode (EL1)
-//#endif // defined(RTOS)
 
+reset_handler_common:
         /*
          * Set ISR stack for calling CPU:
          */
@@ -290,6 +392,11 @@ reset_handler_el1:
          * (needed by unwind_stack())
          */
         mov     fp, sp
+
+        /*
+         * Enable async aborts:
+         */
+        cpsie a
                                 // r0 = CPU id
 	     bl ada_reset_handler
 

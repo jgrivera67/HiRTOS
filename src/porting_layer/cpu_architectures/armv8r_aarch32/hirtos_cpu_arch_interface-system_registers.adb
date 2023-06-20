@@ -116,4 +116,23 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => On is
          Volatile => True);
    end Set_VBAR;
 
+   function Get_CONTEXTIDR return CONTEXTIDR_Type is
+      CONTEXTIDR_Value : CONTEXTIDR_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 0, %0, c13, c0, 1",
+         Outputs => CONTEXTIDR_Type'Asm_Output ("=r", CONTEXTIDR_Value), --  %0
+         Volatile => True);
+
+      return CONTEXTIDR_Value;
+   end Get_CONTEXTIDR;
+
+   procedure Set_CONTEXTIDR (CONTEXTIDR_Value : CONTEXTIDR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c13, c0, 1",
+         Inputs => CONTEXTIDR_Type'Asm_Input ("r", CONTEXTIDR_Value), --  %0
+         Volatile => True);
+   end Set_CONTEXTIDR;
+
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

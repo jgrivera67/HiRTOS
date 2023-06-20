@@ -9,7 +9,7 @@
 --  @summary ARMv8-R EL2-controlled MPU
 --
 
-private package HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU
+private package HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.EL2_MPU
    with SPARK_Mode => On
 is
       --
@@ -83,24 +83,13 @@ is
    procedure Set_HMAIR_Pair (MAIR_Pair : MAIR_Pair_Type)
       with Inline_Always;
 
-   type HPRENR_Enables_Array_Type is array (0 .. 31) of Boolean with
-     Size => 32, Component_Size => 1;
-
    --
    --  EL2-controlled MPU's enabled regions register
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
    --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
    --
-   type HPRENR_Type (As_Word : Boolean := True) is record
-      case As_Word is
-         when True =>
-            Value : Interfaces.Unsigned_32 := 0;
-         when False =>
-            Enables_Array : HPRENR_Enables_Array_Type;
-      end case;
-   end record with
-     Size => 32, Unchecked_Union;
+   subtype HPRENR_Type is Memory_Regions_Enabled_Bit_Mask_Type;
 
    function Get_HPRENR return HPRENR_Type
       with Inline_Always;
@@ -111,13 +100,7 @@ is
    function Get_HDFAR return DFAR_Type
       with Inline_Always;
 
-   function Get_HDFSR return DFSR_Type
-      with Inline_Always;
-
    function Get_HIFAR return IFAR_Type
       with Inline_Always;
 
-   function Get_HIFSR return IFSR_Type
-      with Inline_Always;
-
-end HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU;
+end HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.EL2_MPU;

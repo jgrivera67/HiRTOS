@@ -11,7 +11,7 @@
 
 with System.Machine_Code;
 
-package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU with SPARK_Mode => On is
+package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.EL2_MPU with SPARK_Mode => On is
 
    function Get_HMPUIR return HMPUIR_Type is
       HMPUIR_Value : HMPUIR_Type;
@@ -746,17 +746,6 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU with SPARK_Mode
       return DFAR_Value;
    end Get_HDFAR;
 
-   function Get_HDFSR return DFSR_Type is
-      DFSR_Value : DFSR_Type;
-   begin
-      System.Machine_Code.Asm (
-         "mrc p15, 4, %0, c5, c0, 0",
-         Outputs => DFSR_Type'Asm_Output ("=r", DFSR_Value), --  %0
-         Volatile => True);
-
-      return DFSR_Value;
-   end Get_HDFSR;
-
    function Get_HIFAR return IFAR_Type is
       IFAR_Value : IFAR_Type;
    begin
@@ -768,15 +757,4 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU with SPARK_Mode
       return IFAR_Value;
    end Get_HIFAR;
 
-   function Get_HIFSR return IFSR_Type is
-      IFSR_Value : IFSR_Type;
-   begin
-      System.Machine_Code.Asm (
-         "mrc p15, 4, %0, c5, c0, 1",
-         Outputs => IFSR_Type'Asm_Output ("=r", IFSR_Value), --  %0
-         Volatile => True);
-
-      return IFSR_Value;
-   end Get_HIFSR;
-
-end HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU;
+end HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.EL2_MPU;

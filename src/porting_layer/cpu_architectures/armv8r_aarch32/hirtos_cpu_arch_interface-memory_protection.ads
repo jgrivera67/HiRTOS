@@ -7,7 +7,7 @@
 
 --
 --  @summary RTOS to target platform interface - Memory protection services
---  for ARMv8-R MPU
+--  for ARMv8-R Supervisor MPU
 --
 
 with HiRTOS_Cpu_Arch_Parameters;
@@ -27,7 +27,8 @@ is
    type Region_Permissions_Type is (None,
                                     Read_Only,
                                     Read_Write,
-                                    Read_Execute);
+                                    Read_Execute,
+                                    Read_Write_Execute);
 
    type Region_Attributes_Type is (
       --  MMIO space:
@@ -59,7 +60,7 @@ is
 
    --
    --  Load all memory attributes supported into the EL1-controlled MPU's MAIR0/MAIR1
-   --  registers, or into the El2-controlled MPU's HMAIR0/HMAIR1 registers:
+   --  registers
    --
    procedure Load_Memory_Attributes_Lookup_Table
       with Pre => Cpu_In_Privileged_Mode;
@@ -147,7 +148,7 @@ is
 
    --
    --  Copies saved state of a memory protection descriptor to the
-   --  corresponding memory descriptor in the MPU
+   --  corresponding memory descriptor in the supervisor MPU
    --
    procedure Restore_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
@@ -155,7 +156,7 @@ is
       with Pre => Cpu_In_Privileged_Mode;
 
    --
-   --  Saves state of a memory protection descriptor from the MPU
+   --  Saves state of a memory protection descriptor from the supervisor MPU
    --
    procedure Save_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;

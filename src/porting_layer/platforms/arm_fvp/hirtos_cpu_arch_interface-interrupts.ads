@@ -16,7 +16,10 @@ package HiRTOS_Cpu_Arch_Interface.Interrupts
 is
    use type HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Interrupt_Priority_Type;
 
-   Generic_Timer_Interrupt_Id : constant
+   Generic_Hypervisor_Timer_Interrupt_Id : constant
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Internal_Interrupt_Id_Type := 26;
+
+   Generic_Physical_Timer_Interrupt_Id : constant
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Internal_Interrupt_Id_Type := 30;
 
    UART0_Interrupt_Id : constant
@@ -33,7 +36,8 @@ is
 
    Interrupt_Priorities : constant array (Interrupt_Controller.Valid_Interrupt_Id_Type) of
       Interrupt_Controller.Interrupt_Priority_Type :=
-      [Generic_Timer_Interrupt_Id => Interrupt_Controller.Highest_Interrupt_Priority + 1,
+      [Generic_Physical_Timer_Interrupt_Id => Interrupt_Controller.Highest_Interrupt_Priority + 1,
+       Generic_Hypervisor_Timer_Interrupt_Id => Interrupt_Controller.Highest_Interrupt_Priority + 1,
        UART0_Interrupt_Id => Interrupt_Controller.Lowest_Interrupt_Priority - 1,
        UART1_Interrupt_Id => Interrupt_Controller.Lowest_Interrupt_Priority - 1,
        UART2_Interrupt_Id => Interrupt_Controller.Lowest_Interrupt_Priority - 1,

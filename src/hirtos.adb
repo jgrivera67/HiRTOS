@@ -12,6 +12,7 @@ with HiRTOS.Timer_Private;
 with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
+with HiRTOS.Separation_Kernel;
 with HiRTOS_Platform_Parameters;
 with HiRTOS_Low_Level_Debug_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
@@ -80,7 +81,11 @@ is
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
       end if;
 
-      Initialize_RTOS;
+      if HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode then
+         HiRTOS.Separation_Kernel.Initialize;
+      else
+         Initialize_RTOS;
+      end if;
    end Initialize_HiRTOS_Lib;
 
    procedure Initialize_RTOS with
@@ -132,6 +137,63 @@ is
 
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_RTOS;
+
+   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
+      procedure Privileged_Last_Chance_Handler (Msg : System.Address; Line : Integer)
+         with No_Return
+      is
+         Msg_Text : String (1 .. 128) with Address => Msg;
+         Msg_Length : Natural := 0;
+         Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+           HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
+      begin
+         HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
+         --
+         --  Calculate length of the null-terminated 'Msg' string:
+         --
+         for Msg_Char of Msg_Text loop
+            Msg_Length := Msg_Length + 1;
+            exit when Msg_Char = ASCII.NUL;
+         end loop;
+
+         if RTOS_Cpu_Instance.Last_Chance_Handler_Running then
+            HiRTOS_Low_Level_Debug_Interface.Print_String (
+               "*** Recursive call to Last_Chance_Handler: " &
+               Msg_Text (1 .. Msg_Length) & "' at line ");
+            HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
+                                                                  End_Line => True);
+            loop
+               HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
+            end loop;
+         end if;
+
+         RTOS_Cpu_Instance.Last_Chance_Handler_Running := True;
+
+         --
+         --  Print exception message to UART:
+         --
+         if Line /= 0 then
+            HiRTOS_Low_Level_Debug_Interface.Print_String (
+               ASCII.LF & "*** Exception: '" & Msg_Text (1 .. Msg_Length) &
+               "' at line ");
+            HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
+                                                                  End_Line => True);
+         else
+            HiRTOS_Low_Level_Debug_Interface.Print_String (
+               ASCII.LF &
+               "*** Exception: '" & Msg_Text (1 .. Msg_Length) & "'" & ASCII.LF);
+         end if;
+
+         loop
+            HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
+         end loop;
+      end Privileged_Last_Chance_Handler;
+
+   begin
+      Enter_Cpu_Privileged_Mode;
+      Privileged_Last_Chance_Handler (Msg, Line);
+   end Last_Chance_Handler;
 
    function Get_Current_Cpu_Id return Cpu_Id_Type is
       Cpu_Id : Cpu_Id_Type;

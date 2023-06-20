@@ -58,7 +58,7 @@ package body HiRTOS.Interrupt_Handling is
          end if;
 
          --
-         --  Interupted context must be a thread
+         --  Interrupted context must be a thread
          --
          pragma Assert (Current_Thread_Id /= Invalid_Thread_Id);
 
@@ -126,7 +126,7 @@ package body HiRTOS.Interrupt_Handling is
             Interfaces.Unsigned_32 (Current_Interrupt_Nesting_Counter));
          HiRTOS_Low_Level_Debug_Interface.Print_String (", old stack pointer: ");
          HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
-            Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (New_Stack_Pointer)),
+            Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (Stack_Pointer)),
             End_Line => True);
       end if;
 

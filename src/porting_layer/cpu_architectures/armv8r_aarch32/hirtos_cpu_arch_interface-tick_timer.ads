@@ -24,7 +24,8 @@ is
    pragma Compile_Time_Error
      (Timer_Counter_Cycles_Per_Us = 0, "Invalid Timer_Counter_Cycles_Per_Us");
 
-   procedure Initialize;
+   procedure Initialize
+      with Pre => Cpu_In_Privileged_Mode;
 
    type Timer_Timestamp_Cycles_Type is new Interfaces.Unsigned_64;
 
@@ -33,9 +34,11 @@ is
    function Get_Timer_Timestamp_Us return HiRTOS.Absolute_Time_Us_Type;
 
    procedure Start_Timer (Expiration_Time_Us : HiRTOS.Relative_Time_Us_Type)
-      with Pre => Expiration_Time_Us /= 0;
+      with Pre => Expiration_Time_Us /= 0 and then
+                  Cpu_In_Privileged_Mode;
 
-   procedure Stop_Timer;
+   procedure Stop_Timer
+      with Pre => Cpu_In_Privileged_Mode;
 
 private
 

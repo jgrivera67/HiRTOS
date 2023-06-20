@@ -1,0 +1,24 @@
+name = "hello_partitions"
+description = "Separation kernel hello partititions demo"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["hello_partitions"]
+
+[[depends-on]]
+hirtos = "*"
+portable_minimal_ada_rts = "*"
+partitions = "*"
+
+[[pins]]
+hirtos = { path='../..' }
+portable_minimal_ada_rts = { path='../../third_party/portable_minimal_ada_rts' }
+partitions = { path='./partitions' }
+
+[build-profiles]
+hirtos = "development"
+portable_minimal_ada_rts = "development"
+partitions = "development"

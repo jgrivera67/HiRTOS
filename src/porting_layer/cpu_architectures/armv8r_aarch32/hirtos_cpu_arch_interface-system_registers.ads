@@ -255,4 +255,10 @@ is
 
    procedure Set_VBAR (VBAR_Value : System.Address);
 
+   type CONTEXTIDR_Type is new Interfaces.Unsigned_32;
+
+   function Get_CONTEXTIDR return CONTEXTIDR_Type;
+
+   procedure Set_CONTEXTIDR (CONTEXTIDR_Value : CONTEXTIDR_Type);
+
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

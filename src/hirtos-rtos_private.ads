@@ -51,12 +51,6 @@ is
    procedure Allocate_Timer_Object (Timer_Id : out Valid_Timer_Id_Type)
       with Pre => Timer_Objects_Free_Count /= 0;
 
-   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer)
-     with No_Return,
-          Export,
-          Convention => C,
-          External_Name => "__gnat_last_chance_handler";
-
    type Thread_Scheduler_State_Type is
      (Thread_Scheduler_Stopped, Thread_Scheduler_Running);
 

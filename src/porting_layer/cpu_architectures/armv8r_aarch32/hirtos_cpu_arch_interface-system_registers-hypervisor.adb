@@ -6,13 +6,14 @@
 --
 
 --
---  @summary RTOS to target platform interface - ARMv8-R system registers
+--  @summary RTOS to target platform interface - ARMv8-R hypervisor registers
 --
 
 with System.Machine_Code;
 
-package body HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor with SPARK_Mode => On is
-
+package body HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor
+   with SPARK_Mode => On
+is
    function Get_HCR return HCR_Type is
       HCR_Value : HCR_Type;
    begin
@@ -69,6 +70,25 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor with SPARK_Mo
          Inputs => HSCTLR_Type'Asm_Input ("r", HSCTLR_Value), --  %0
          Volatile => True);
    end Set_HSCTLR;
+
+   function Get_VSCTLR return VSCTLR_Type is
+      VSCTLR_Value : VSCTLR_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrc p15, 4, %0, c2, c0, 0",
+         Outputs => VSCTLR_Type'Asm_Output ("=r", VSCTLR_Value), --  %0
+         Volatile => True);
+
+      return VSCTLR_Value;
+   end Get_VSCTLR;
+
+   procedure Set_VSCTLR (VSCTLR_Value : VSCTLR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 4, %0, c2, c0, 0",
+         Inputs => VSCTLR_Type'Asm_Input ("r", VSCTLR_Value), --  %0
+         Volatile => True);
+   end Set_VSCTLR;
 
    function Get_HVBAR return System.Address is
       HVBAR_Value : System.Address;
