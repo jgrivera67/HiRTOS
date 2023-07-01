@@ -280,63 +280,6 @@ package body HiRTOS_Cpu_Arch_Interface is
          Volatile => True);
    end Strong_Memory_Barrier;
 
-   function Atomic_Test_Set
-     (Flag_Address : System.Address) return Boolean
-   is
-      Old_Value : Cpu_Register_Type;
-   begin
-      loop
-         Old_Value := Ldrex_Word (Flag_Address);
-         exit when Old_Value = 1;
-         exit when Strex_Word (Flag_Address, 1);
-      end loop;
-
-      return Old_Value = 1;
-   end Atomic_Test_Set;
-
-   function Atomic_Fetch_Add
-     (Atomic_Var : in out Interfaces.Unsigned_8;
-      Value : Interfaces.Unsigned_8) return Interfaces.Unsigned_8
-   is
-      use type Interfaces.Unsigned_8;
-      Old_Value : Interfaces.Unsigned_8;
-   begin
-      loop
-         Old_Value := Ldrex_Byte (Atomic_Var'Address);
-         exit when Strex_Byte (Atomic_Var'Address, Old_Value + Value);
-      end loop;
-
-      return Old_Value;
-   end Atomic_Fetch_Add;
-
-   function Atomic_Fetch_Sub
-     (Counter_Address : System.Address;
-      Value : Cpu_Register_Type) return Cpu_Register_Type
-   is
-      Old_Value : Cpu_Register_Type;
-   begin
-      loop
-         Old_Value := Ldrex_Word (Counter_Address);
-         exit when Strex_Word (Counter_Address, Old_Value - Value);
-      end loop;
-
-      return Old_Value;
-   end Atomic_Fetch_Sub;
-
-   function Atomic_Fetch_Or
-     (Counter_Address : System.Address;
-      Value : Cpu_Register_Type) return Cpu_Register_Type
-   is
-      Old_Value : Cpu_Register_Type;
-   begin
-      loop
-         Old_Value := Ldrex_Word (Counter_Address);
-         exit when Strex_Word (Counter_Address, Old_Value or Value);
-      end loop;
-
-      return Old_Value;
-   end Atomic_Fetch_Or;
-
    function Count_Leading_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type is
       Result : Cpu_Register_Type;
    begin
@@ -366,6 +309,7 @@ package body HiRTOS_Cpu_Arch_Interface is
    begin
       Memory_Barrier;
       Memory_Utils.Invalidate_Data_Cache;
+      Memory_Utils.Invalidate_Instruction_Cache;
       SCTLR_Value := Get_SCTLR;
       SCTLR_Value.C := Cacheable;
       SCTLR_Value.I := Instruction_Access_Cacheable; --  TODO: This too slow in ARM FVP simulator

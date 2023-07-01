@@ -17,6 +17,9 @@ package body HiRTOS.Timer_Private is
    use HiRTOS.RTOS_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
 
+   function Initialized (Timer_Id : Valid_Timer_Id_Type) return Boolean is
+      (HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id).Timer_Instances (Timer_Id).Initialized);
+
    procedure Initialize_Timer_Wheel (Timer_Wheel : out Timer_Wheel_Type) is
    begin
       for I in Timer_Wheel.Wheel_Spokes_Hash_Table'Range loop
@@ -30,20 +33,24 @@ package body HiRTOS.Timer_Private is
    procedure Process_Timer_Wheel_Hash_Chain (Timer_Wheel_Hash_Chain : in out Timer_List_Package.List_Anchor_Type)
    is
       procedure Process_Timer (Timer_Wheel_Hash_Chain : in out Timer_List_Package.List_Anchor_Type;
-                               Timer_Id : Timer_Id_Type)
-         with Pre => HiRTOS.Timer.Initialized (Timer_Id) and then
+                               Timer_Id : Timer_Id_Type;
+                               Timer_Lists_Nodes : in out Timer_List_Package.List_Nodes_Type)
+         with Pre => Initialized (Timer_Id) and then
                      HiRTOS.Timer.Timer_Running (Timer_Id) and then
                      HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
       procedure Process_Timer (Timer_Wheel_Hash_Chain : in out Timer_List_Package.List_Anchor_Type;
-                               Timer_Id : Timer_Id_Type) is
-         Timer_Obj : Timer_Type renames HiRTOS_Obj.Timer_Instances (Timer_Id);
+                               Timer_Id : Timer_Id_Type;
+                               Timer_Lists_Nodes : in out Timer_List_Package.List_Nodes_Type) is
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Timer_Obj : Timer_Type renames RTOS_Cpu_Instance.Timer_Instances (Timer_Id);
       begin
          if Timer_Obj.Timer_Wheel_Revolutions_Left = 0 then
             if Timer_Obj.Periodic then
                Timer_Obj.Timer_Wheel_Revolutions_Left := Timer_Obj.Timer_Wheel_Revolutions;
             else
-               Timer_List_Package.List_Remove_This (Timer_Wheel_Hash_Chain, Timer_Id);
+               Timer_List_Package.List_Remove_This (Timer_Wheel_Hash_Chain, Timer_Id,
+                                                    Timer_Lists_Nodes);
                Timer_Obj.Running := False;
             end if;
 
@@ -60,9 +67,11 @@ package body HiRTOS.Timer_Private is
          Timer_List_Package.List_Traverse (Element_Visitor => Process_Timer);
 
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
    begin
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
-      Traverse_Timer_Wheel_Hash_Chain (Timer_Wheel_Hash_Chain);
+      Traverse_Timer_Wheel_Hash_Chain (Timer_Wheel_Hash_Chain,
+                                       RTOS_Cpu_Instance.Timer_Lists_Nodes);
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
    end Process_Timer_Wheel_Hash_Chain;
 
@@ -97,7 +106,7 @@ package body HiRTOS.Timer_Private is
       else
          declare
             Tick_timer_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
-               HiRTOS_Obj.Thread_Instances (RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
+               RTOS_Cpu_Instance.Thread_Instances (RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
          begin
             --
             --  Wake up timer thread
@@ -121,7 +130,7 @@ package body HiRTOS.Timer_Private is
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          Tick_Timer_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
-            HiRTOS_Obj.Thread_Instances (RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
+            RTOS_Cpu_Instance.Thread_Instances (RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
          Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       begin
          loop

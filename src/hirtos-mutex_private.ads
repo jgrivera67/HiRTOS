@@ -30,7 +30,8 @@ private package HiRTOS.Mutex_Private is
       Recursive_Count : Interfaces.Unsigned_8 := 0;
       Ceiling_Priority : Thread_Priority_Type := Invalid_Thread_Priority;
       Waiting_Threads_Queue : Thread_Priority_Queue_Type;
-   end record;
+   end record with
+     Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
 
    type Mutex_Array_Type is array (Valid_Mutex_Id_Type) of Mutex_Type;
 
@@ -49,7 +50,8 @@ private package HiRTOS.Mutex_Private is
                   and then
                   Current_Thread_Obj.Id /= Invalid_Thread_Id
                   and then
-                  Current_Thread_Obj.State = Thread_Running
+                  (Current_Thread_Obj.State = Thread_Running or else
+                   Current_Thread_Obj.State = Thread_Runnable)
                   and then
                   Current_Thread_Obj.Waiting_On_Mutex_Id = Invalid_Mutex_Id,
            Post =>
@@ -75,8 +77,8 @@ private package HiRTOS.Mutex_Private is
                   and then
                   Current_Thread_Obj.Id /= Invalid_Thread_Id
                   and then
-                  Current_Thread_Obj.State = Thread_Running
-                  and then
+                  --???Current_Thread_Obj.State = Thread_Running
+                  --???and then
                   not Mutex_List_Package.List_Is_Empty (Current_Thread_Obj.Owned_Mutexes_List)
                   and then
                   Current_Thread_Obj.Waiting_On_Mutex_Id = Invalid_Mutex_Id,

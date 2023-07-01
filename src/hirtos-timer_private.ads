@@ -17,6 +17,9 @@ is
    procedure Timer_Thread_Proc (Arg : System.Address) with
      Convention => C;
 
+   function Initialized (Timer_Id : Valid_Timer_Id_Type) return Boolean
+      with Ghost;
+
    --
    --  Number of spokes of a timer wheel
    --

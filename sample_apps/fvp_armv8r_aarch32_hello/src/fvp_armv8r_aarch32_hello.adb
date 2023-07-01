@@ -7,7 +7,6 @@
 
 with Interfaces;
 with HiRTOS_Low_Level_Debug_Interface;
---???with HiRTOS_Low_Level_Debug_Interface.UART_Input;
 with GNAT.Source_Info;
 with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS_Cpu_Multi_Core_Interface;
@@ -40,8 +39,8 @@ begin -- Main
    --
    HiRTOS_Low_Level_Debug_Interface.Initialize;
    Print_Console_Greeting;
+
    HiRTOS.Initialize_HiRTOS_Lib;
-   --???HiRTOS_Low_Level_Debug_Interface.UART_Input.Initialize_Uart_Input;
    App_Threads.Initialize;
    HiRTOS.Start_Thread_Scheduler;
 

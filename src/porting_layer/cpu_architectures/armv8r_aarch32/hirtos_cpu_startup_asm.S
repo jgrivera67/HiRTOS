@@ -50,9 +50,14 @@
 #define ISR_STACK_SIZE (4u*1024u + STACK_GUARD_SIZE)
 
 /**
- * stack guard size (in bytes)
+ * Stack guard size (in bytes)
  */
-#define STACK_GUARD_SIZE 64u
+#define STACK_GUARD_SIZE CACHE_LINE_SIZE
+
+/**
+ * Cache line size (in bytes)
+ */
+#define CACHE_LINE_SIZE 64u
 
 #define MPIDR_CORE_ID_MASK      MULTI_BIT_MASK(7u, MPIDR_CORE_ID_SHIFT)
 #define MPIDR_CORE_ID_SHIFT     0
@@ -213,11 +218,12 @@ interrupt_vector_table:
         mov     lr,   #0
 	.endm
 
-
-	.section .globals_initialized_at_load_time.hirtos_global_vars_elaborated_flag
+	.section .globals_initialized_at_load_time
+   .align 6 // 64-byte aligned
 	.global hirtos_global_vars_elaborated_flag
 hirtos_global_vars_elaborated_flag:
-   .byte 0
+   .word 0
+   .space CACHE_LINE_SIZE - 4
 
 /**
  * System Reset handler entry point

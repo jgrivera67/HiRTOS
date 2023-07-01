@@ -10,13 +10,18 @@
 --
 
 with HiRTOS_Platform_Parameters;
-private with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Cpu_Arch_Interface;
+private with HiRTOS_Cpu_Arch_Parameters;
+private with System;
 with Interfaces;
 
 package HiRTOS_Cpu_Multi_Core_Interface
    with SPARK_Mode => On,
         No_Elaboration_Code_All
 is
+
+   use HiRTOS_Cpu_Arch_Interface;
+
    --
    --  Ids of CPU cores
    --
@@ -34,6 +39,35 @@ is
       with Inline_Always,
            Suppress => All_Checks;
 
+   type Atomic_Counter_Type is limited private;
+
+   function Atomic_Counter_Initializer (Value : Cpu_Register_Type) return Atomic_Counter_Type;
+
+   function Atomic_Test_Set (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
+    return Cpu_Register_Type
+    with SPARK_Mode => Off;
+
+   function Atomic_Fetch_Add (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
+    return Cpu_Register_Type
+    with SPARK_Mode => Off;
+
+   function Atomic_Fetch_Sub (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
+    return Cpu_Register_Type
+    with SPARK_Mode => Off;
+
+   function Atomic_Fetch_Or (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
+    return Cpu_Register_Type
+    with SPARK_Mode => Off;
+
+   function Atomic_Fetch_And (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
+    return Cpu_Register_Type
+    with SPARK_Mode => Off;
+
+   function Atomic_Load (Atomic_Counter : Atomic_Counter_Type)
+    return Cpu_Register_Type;
+
+   procedure Atomic_Store (Atomic_Counter : out Atomic_Counter_Type; Value : Cpu_Register_Type);
+
    type Spinlock_Type is limited private;
 
    procedure Spinlock_Acquire (Spinlock : in out Spinlock_Type);
@@ -41,10 +75,17 @@ is
    procedure Spinlock_Release (Spinlock : in out Spinlock_Type);
 
 private
+   use HiRTOS_Cpu_Arch_Parameters;
 
-   type Spinlock_Type is limited record
-    Atomic_Flag : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type := 0;
+   type Atomic_Counter_Type is limited record
+      Counter : Cpu_Register_Type := 0 with Volatile_Full_Access;
    end record
-     with Volatile_Full_Access;
+     with Size => Cache_Line_Size_Bytes * System.Storage_Unit,
+          Alignment => Cache_Line_Size_Bytes;
+
+   function Atomic_Counter_Initializer (Value : Cpu_Register_Type) return Atomic_Counter_Type is
+      ((Counter => Value));
+
+   type Spinlock_Type is new Atomic_Counter_Type;
 
 end HiRTOS_Cpu_Multi_Core_Interface;

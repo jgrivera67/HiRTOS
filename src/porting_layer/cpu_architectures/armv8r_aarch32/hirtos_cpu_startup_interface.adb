@@ -7,12 +7,16 @@
 
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with HiRTOS_Cpu_Multi_Core_Interface;
+with HiRTOS_Platform_Parameters;
 with Memory_Utils;
 with System.Machine_Code;
+with System.Storage_Elements;
+with Interfaces;
 
 package body HiRTOS_Cpu_Startup_Interface is
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
    use HiRTOS_Cpu_Multi_Core_Interface;
+   use System.Storage_Elements;
    use ASCII;
 
    ----------------
@@ -71,18 +75,19 @@ package body HiRTOS_Cpu_Startup_Interface is
    -----------------------
 
    procedure Ada_Reset_Handler is
+
       procedure Gnat_Generated_Main with Import,
                                       Convention => C,
                                       External_Name => "main";
+
+      Global_Data_Region_Size_In_Bytes : constant Integer_Address :=
+         To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_End_Address) -
+         To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address);
    begin
-      --  HiRTOS_Cpu_Arch_Interface.Enable_Caches;
+      --??? HiRTOS_Cpu_Arch_Interface.Enable_Caches;
       Enable_FPU;
 
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
-         C_Global_Variables_Initialized_Flag := False;
-         HiRTOS_Global_Variables_Elaborated_Flag := False;
-         HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
-
          --
          --  In case C code is invoked from Ada, C global variables
          --  need to be initialized in RAM:
@@ -90,31 +95,9 @@ package body HiRTOS_Cpu_Startup_Interface is
          Memory_Utils.Copy_Data_Section;
          Memory_Utils.Clear_BSS_Section;
          Memory_Utils.Clear_Privileged_BSS_Section;
-         C_Global_Variables_Initialized_Flag := True;
-         HiRTOS_Cpu_Arch_Interface.Memory_Barrier; --???
-         --  Memory_Utils.Flush_Data_Cache_Range
-         --   (C_Global_Variables_Initialized_Flag'Address, Cache_Line_Size_Bytes);
-         HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
-      else
-         HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
-         --  Memory_Utils.Invalidate_Data_Cache_Range
-         --    (C_Global_Variables_Initialized_Flag'Address, Cache_Line_Size_Bytes);
-         while not C_Global_Variables_Initialized_Flag loop
-            HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
-            --  Memory_Utils.Invalidate_Data_Cache_Range
-            --    (C_Global_Variables_Initialized_Flag'Address, Cache_Line_Size_Bytes);
-         end loop;
-
-         --???
-         if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First + 1 or else
-            Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First + 2 or else
-            Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First + 3
-         then
-            loop
-               HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
-            end loop;
-         end if;
-         --????
+         Memory_Utils.Flush_Data_Cache_Range (
+            HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
+            Global_Data_Region_Size_In_Bytes);
       end if;
 
       --

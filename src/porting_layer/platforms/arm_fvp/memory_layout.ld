@@ -203,14 +203,10 @@ SECTIONS
     __privileged_bss_end = .;
   } >TCM
 
-  .globals_initialized_at_reset_time (NOLOAD) :
+  .globals_initialized_at_load_time :
   {
     . = ALIGN(MPU_REGION_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
-   c_global_vars_initialized_flag = .;
-    . += WORD_SIZE;
-    . = ALIGN(MPU_REGION_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
-   hirtos_global_vars_elaborated_flag = .;
-    . += WORD_SIZE;
+    *(.globals_initialized_at_load_time)
   } >TCM
 
   .stack (NOLOAD)  :

@@ -17,7 +17,8 @@ package body Generic_Linked_List with SPARK_Mode => On is
    end List_Init;
 
    procedure List_Add_Tail (List_Anchor : in out List_Anchor_Type;
-                            Element_Id : Element_Id_Type)
+                            Element_Id : Element_Id_Type;
+                            List_Nodes : in out List_Nodes_Type)
       with Refined_Post =>
          List_Anchor.Tail = Element_Id
          and then
@@ -43,7 +44,8 @@ package body Generic_Linked_List with SPARK_Mode => On is
    end List_Add_Tail;
 
    procedure List_Add_Head (List_Anchor : in out List_Anchor_Type;
-                            Element_Id : Element_Id_Type)
+                            Element_Id : Element_Id_Type;
+                            List_Nodes : in out List_Nodes_Type)
       with Refined_Post =>
          List_Anchor.Head = Element_Id
          and then
@@ -69,7 +71,8 @@ package body Generic_Linked_List with SPARK_Mode => On is
    end List_Add_Head;
 
    procedure List_Remove_Head (List_Anchor : in out List_Anchor_Type;
-                               Element_Id : out Element_Id_Type)
+                               Element_Id : out Element_Id_Type;
+                               List_Nodes : in out List_Nodes_Type)
       with Refined_Post =>
          Element_Id = List_Anchor'Old.Head
    is
@@ -90,7 +93,8 @@ package body Generic_Linked_List with SPARK_Mode => On is
    end List_Remove_Head;
 
    procedure List_Remove_This (List_Anchor : in out List_Anchor_Type;
-                               Element_Id : Element_Id_Type) is
+                               Element_Id : Element_Id_Type;
+                               List_Nodes : in out List_Nodes_Type) is
       Prev_Element_Id : constant Element_Id_Type := List_Nodes (Element_Id).Prev_Element_Id;
       Next_Element_Id : constant Element_Id_Type := List_Nodes (Element_Id).Next_Element_Id;
    begin
@@ -114,7 +118,8 @@ package body Generic_Linked_List with SPARK_Mode => On is
       List_Nodes (Element_Id).Containing_List_Id := Null_List_Id;
    end List_Remove_This;
 
-   procedure List_Traverse (List_Anchor : in out List_Anchor_Type) is
+   procedure List_Traverse (List_Anchor : in out List_Anchor_Type;
+                            List_Nodes : in out List_Nodes_Type) is
       Element_Id : Element_Id_Type := List_Anchor.Head;
       Next_Element_Id : Element_Id_Type;
       List_Length : constant Interfaces.Unsigned_32 := List_Anchor.Length;
@@ -136,7 +141,7 @@ package body Generic_Linked_List with SPARK_Mode => On is
             --  by Node_Visitor.
             --
             Next_Element_Id := List_Nodes (Element_Id).Next_Element_Id;
-            Element_Visitor (List_Anchor, Element_Id);
+            Element_Visitor (List_Anchor, Element_Id, List_Nodes);
             Element_Id := Next_Element_Id;
          end loop;
       end if;

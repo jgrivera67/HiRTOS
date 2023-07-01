@@ -110,22 +110,6 @@ is
    procedure Strong_Memory_Barrier  with
     Inline_Always;
 
-   function Atomic_Test_Set (Flag_Address : System.Address) return Boolean with
-    Inline_Always, Suppress => All_Checks;
-
-   function Atomic_Fetch_Add (Atomic_Var : in out Interfaces.Unsigned_8; Value : Interfaces.Unsigned_8)
-    return Interfaces.Unsigned_8 with
-    Inline_Always, Suppress => All_Checks,
-    SPARK_Mode =>  Off;
-
-   function Atomic_Fetch_Sub (Counter_Address : System.Address; Value : Cpu_Register_Type)
-    return Cpu_Register_Type with
-    Inline_Always, Suppress => All_Checks;
-
-   function Atomic_Fetch_Or (Counter_Address : System.Address; Value : Cpu_Register_Type)
-    return Cpu_Register_Type with
-    Inline_Always, Suppress => All_Checks;
-
    function Count_Leading_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
 

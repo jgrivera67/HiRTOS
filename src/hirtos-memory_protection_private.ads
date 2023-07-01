@@ -11,12 +11,14 @@
 
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
-private with HiRTOS_Platform_Parameters;
+with HiRTOS_Platform_Parameters;
 with System.Storage_Elements;
 
 private package HiRTOS.Memory_Protection_Private
    with SPARK_Mode => On
 is
+   use System.Storage_Elements;
+
    --
    --  Mapping of logical memory protection regions to memory protection descriptor
    --  indices
@@ -87,9 +89,12 @@ is
    procedure Save_Thread_Memory_Regions (Thread_Regions : out Thread_Memory_Regions_Type)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
+   Global_Data_Region_Size_In_Bytes : constant Integer_Address :=
+      To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_End_Address) -
+      To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address);
+
 private
    use HiRTOS_Cpu_Arch_Interface.Memory_Protection;
-   use System.Storage_Elements;
 
    --
    --  Thread-private memory protection regions
@@ -126,10 +131,6 @@ private
    Rodata_Section_Size_In_Bytes : constant Integer_Address :=
       To_Integer (HiRTOS_Platform_Parameters.Rodata_Section_End_Address) -
       To_Integer (HiRTOS_Platform_Parameters.Rodata_Section_Start_Address);
-
-   Global_Data_Region_Size_In_Bytes : constant Integer_Address :=
-      To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_End_Address) -
-      To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address);
 
    Global_Mmio_Region_Size_In_Bytes : constant Integer_Address :=
       To_Integer (HiRTOS_Platform_Parameters.Global_Mmio_Region_End_Address) -

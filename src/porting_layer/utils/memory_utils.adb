@@ -98,9 +98,9 @@ package body Memory_Utils is
 
    procedure Invalidate_Data_Cache is
    begin
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
       HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIM_ALL;
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
    end Invalidate_Data_Cache;
 
    procedure Invalidate_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address) is
@@ -147,8 +147,8 @@ package body Memory_Utils is
 
    procedure Invalidate_Instruction_Cache is
    begin
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
       HiRTOS_Cpu_Arch_Interface.System_Registers.Set_ICIALLU;
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
    end Invalidate_Instruction_Cache;
 end Memory_Utils;

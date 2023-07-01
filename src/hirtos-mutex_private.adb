@@ -23,6 +23,16 @@ package body HiRTOS.Mutex_Private is
          with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
                      Convention => C;
 
+   procedure Take_Mutex_Ownership (Mutex_Obj : in out Mutex_Type;
+                                   Thread_Obj : in out Thread_Type;
+                                   RTOS_Cpu_Instance : in out HiRTOS_Cpu_Instance_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
+                  Mutex_Obj.Owner_Thread_Id = Invalid_Thread_Id and then
+                  Mutex_Obj.Recursive_Count = 0 and then
+                  (Thread_Obj.State = Thread_Running or else
+                   Thread_Obj.State = Thread_Runnable) and then
+                  Thread_Obj.Waiting_On_Mutex_Id = Invalid_Mutex_Id;
+
    -----------------------------------------------------------------------------
    --  Public Subprograms
    -----------------------------------------------------------------------------
@@ -55,7 +65,7 @@ package body HiRTOS.Mutex_Private is
       procedure Move_Blocked_Thread_To_Higher_Priority_Queue (
          Thread_Obj : in out HiRTOS.Thread_Private.Thread_Type;
          New_Priority : Valid_Thread_Priority_Type)
-         with Pre => Thread_Obj.State = Thread_Blocked
+         with Pre => Thread_Obj.State = Thread_Blocked_On_Mutex
                      and then
                      New_Priority > Thread_Obj.Current_Priority
                      and then
@@ -69,11 +79,12 @@ package body HiRTOS.Mutex_Private is
                        and then
                        Thread_Obj.Waiting_On_Condvar_Id = Invalid_Condvar_Id))
       is
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       begin
          if Thread_Obj.Waiting_On_Condvar_Id /= Invalid_Condvar_Id then
             declare
                Condvar_Obj : Condvar_Type renames
-                  HiRTOS_Obj.Condvar_Instances (Thread_Obj.Waiting_On_Condvar_Id);
+                  RTOS_Cpu_Instance.Condvar_Instances (Thread_Obj.Waiting_On_Condvar_Id);
             begin
                Thread_Priority_Queue_Remove_This (Condvar_Obj.Waiting_Threads_Queue, Thread_Obj.Id);
                Thread_Priority_Queue_Add (Condvar_Obj.Waiting_Threads_Queue, Thread_Obj.Id,
@@ -83,7 +94,7 @@ package body HiRTOS.Mutex_Private is
          else
             declare
                Mutex_Obj : Mutex_Type renames
-                  HiRTOS_Obj.Mutex_Instances (Thread_Obj.Waiting_On_Mutex_Id);
+                  RTOS_Cpu_Instance.Mutex_Instances (Thread_Obj.Waiting_On_Mutex_Id);
             begin
                Thread_Priority_Queue_Remove_This (Mutex_Obj.Waiting_Threads_Queue, Thread_Obj.Id);
                Thread_Priority_Queue_Add (Mutex_Obj.Waiting_Threads_Queue, Thread_Obj.Id,
@@ -104,7 +115,7 @@ package body HiRTOS.Mutex_Private is
                      Timeout_Ms /= 0
       is
          Owner_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
-            HiRTOS_Obj.Thread_Instances (Mutex_Obj.Owner_Thread_Id);
+            RTOS_Cpu_Instance.Thread_Instances (Mutex_Obj.Owner_Thread_Id);
       begin
          if Mutex_Obj.Ceiling_Priority = Invalid_Thread_Priority then
             --
@@ -145,6 +156,7 @@ package body HiRTOS.Mutex_Private is
                                     Current_Thread_Obj.Current_Priority,
                                     First_In_Queue => False);
          Current_Thread_Obj.Waiting_On_Mutex_Id := Mutex_Obj.Id;
+         Current_Thread_Obj.State := Thread_Blocked_On_Mutex;
 
          if Timeout_Ms /= Time_Ms_Type'Last then
             --
@@ -168,15 +180,7 @@ package body HiRTOS.Mutex_Private is
    begin
       Current_Thread_Obj.Last_Mutex_Acquire_Timed_Out := False;
       if Mutex_Obj.Owner_Thread_Id = Invalid_Thread_Id then
-         Mutex_Obj.Owner_Thread_Id := Current_Thread_Obj.Id;
-         Mutex_List_Package.List_Add_Head (Current_Thread_Obj.Owned_Mutexes_List,
-                                           Mutex_Obj.Id);
-
-         if Mutex_Obj.Ceiling_Priority /= Invalid_Thread_Priority and then
-            Current_Thread_Obj.Current_Priority < Mutex_Obj.Ceiling_Priority
-         then
-            Current_Thread_Obj.Current_Priority := Mutex_Obj.Ceiling_Priority;
-         end if;
+         Take_Mutex_Ownership (Mutex_Obj, Current_Thread_Obj, RTOS_Cpu_Instance);
       elsif Mutex_Obj.Owner_Thread_Id = Current_Thread_Obj.Id then
          Mutex_Obj.Recursive_Count := @ + 1;
       else
@@ -205,13 +209,10 @@ package body HiRTOS.Mutex_Private is
       end if;
 
       Mutex_List_Package.List_Remove_Head (Current_Thread_Obj.Owned_Mutexes_List,
-                                           Last_Mutex_Acquired_Id);
+                                           Last_Mutex_Acquired_Id,
+                                           RTOS_Cpu_Instance.Mutex_Lists_Nodes);
       pragma Assert (Last_Mutex_Acquired_Id = Mutex_Obj.Id);
       Current_Thread_Obj.Current_Priority := Current_Thread_Obj.Base_Priority;
-      Thread_Priority_Queue_Add (RTOS_Cpu_Instance.Runnable_Threads_Queue,
-                                 Current_Thread_Obj.Id,
-                                 Current_Thread_Obj.Current_Priority,
-                                 First_In_Queue => False);
 
       if Thread_Priority_Queue_Is_Empty (Mutex_Obj.Waiting_Threads_Queue) then
          Mutex_Obj.Owner_Thread_Id := Invalid_Thread_Id;
@@ -220,39 +221,56 @@ package body HiRTOS.Mutex_Private is
                                             Mutex_Obj.Owner_Thread_Id);
          declare
             New_Owner_Thread_Obj : Thread_Type renames
-               HiRTOS_Obj.Thread_Instances (Mutex_Obj.Owner_Thread_Id);
+               RTOS_Cpu_Instance.Thread_Instances (Mutex_Obj.Owner_Thread_Id);
          begin
             if Mutex_Obj.Ceiling_Priority /= Invalid_Thread_Priority then
                pragma Assert (New_Owner_Thread_Obj.Current_Priority <= Mutex_Obj.Ceiling_Priority);
                New_Owner_Thread_Obj.Current_Priority := Mutex_Obj.Ceiling_Priority;
             end if;
 
-            Thread_Priority_Queue_Add (RTOS_Cpu_Instance.Runnable_Threads_Queue,
-                                       New_Owner_Thread_Obj.Id,
-                                       New_Owner_Thread_Obj.Current_Priority,
-                                       First_In_Queue => False);
-            New_Owner_Thread_Obj.Waiting_On_Mutex_Id := Invalid_Mutex_Id;
-            Mutex_List_Package.List_Add_Head (New_Owner_Thread_Obj.Owned_Mutexes_List,
-                                              Mutex_Obj.Id);
-         end;
-      end if;
+            Schedule_Awaken_Thread (New_Owner_Thread_Obj);
 
-      --
-      --  Trigger synchronous context switch to run the thread scheduler
-      --
-      HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
+            pragma Assert (New_Owner_Thread_Obj.Waiting_On_Mutex_Id = Mutex_Obj.Id);
+            New_Owner_Thread_Obj.Waiting_On_Mutex_Id := Invalid_Mutex_Id;
+            Take_Mutex_Ownership (Mutex_Obj, New_Owner_Thread_Obj, RTOS_Cpu_Instance);
+         end;
+
+         --
+         --  Trigger synchronous context switch to run the thread scheduler
+         --
+         HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
+      end if;
    end Release_Mutex_Internal;
 
    -----------------------------------------------------------------------------
    --  Private Subprograms
    -----------------------------------------------------------------------------
 
+   procedure Take_Mutex_Ownership (Mutex_Obj : in out Mutex_Type;
+                                   Thread_Obj : in out Thread_Type;
+                                   RTOS_Cpu_Instance : in out HiRTOS_Cpu_Instance_Type) is
+   begin
+      Thread_Obj.Waiting_On_Mutex_Id := Invalid_Mutex_Id;
+      Mutex_Obj.Owner_Thread_Id := Thread_Obj.Id;
+      Mutex_Obj.Recursive_Count := 1;
+      Mutex_List_Package.List_Add_Head (Thread_Obj.Owned_Mutexes_List,
+                                          Mutex_Obj.Id,
+                                          RTOS_Cpu_Instance.Mutex_Lists_Nodes);
+
+      if Mutex_Obj.Ceiling_Priority /= Invalid_Thread_Priority and then
+         Thread_Obj.Current_Priority < Mutex_Obj.Ceiling_Priority
+      then
+         Thread_Obj.Current_Priority := Mutex_Obj.Ceiling_Priority;
+      end if;
+   end Take_Mutex_Ownership;
+
    procedure Mutex_Acquire_Timeout_Callback (Timer_Id : Valid_Timer_Id_Type;
                                              Callback_Arg : System.Storage_Elements.Integer_Address)
    is
       Thread_Id : constant Valid_Thread_Id_Type := Valid_Thread_Id_Type (Callback_Arg);
-      Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames HiRTOS_Obj.Thread_Instances (Thread_Id);
-      Mutex_Obj : Mutex_Type renames HiRTOS_Obj.Mutex_Instances (Thread_Obj.Waiting_On_Mutex_Id);
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames RTOS_Cpu_Instance.Thread_Instances (Thread_Id);
+      Mutex_Obj : Mutex_Type renames RTOS_Cpu_Instance.Mutex_Instances (Thread_Obj.Waiting_On_Mutex_Id);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       pragma Assert (Timer_Id = Thread_Obj.Builtin_Timer_Id);
@@ -267,7 +285,7 @@ package body HiRTOS.Mutex_Private is
       --  Remove thread from mutex wait queue and add it to the corresponding run queue:
       --
       Thread_Priority_Queue_Remove_This (Mutex_Obj.Waiting_Threads_Queue, Thread_Id);
-      Schedule_Awaken_Thread (Thread_Id);
+      Schedule_Awaken_Thread (Thread_Obj);
 
       --  end critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);

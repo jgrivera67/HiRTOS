@@ -10,6 +10,7 @@ with Interfaces;
 with HiRTOS_Config_Parameters;
 with HiRTOS_Cpu_Arch_Parameters;
 with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with Generic_Execution_Stack;
 private with Generic_Linked_List;
 
@@ -91,6 +92,12 @@ is
    --  Get current time in microseconds since boot
    --
    function Get_Current_Time_Us return Time_Us_Type;
+
+   subtype Cpu_Id_Type is HiRTOS_Cpu_Multi_Core_Interface.Valid_Cpu_Core_Id_Type;
+
+   function Get_Current_Cpu_Id return Cpu_Id_Type with
+     Export, Convention => C,
+     External_Name => "hirtos_get_current_cpu_id";
 
    -----------------------------------------------------------------------------
    --  Atomic levels public declarations                                      --

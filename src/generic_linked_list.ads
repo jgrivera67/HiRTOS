@@ -20,7 +20,11 @@ package Generic_Linked_List with
 is
    use type Interfaces.Unsigned_32;
 
+   type List_Node_Type is limited private;
+
    type List_Anchor_Type is private;
+
+   type List_Nodes_Type is limited private;
 
    function List_Initialized
      (List_Anchor : List_Anchor_Type) return Boolean with
@@ -30,7 +34,8 @@ is
      (List_Anchor : List_Anchor_Type) return Interfaces.Unsigned_32 with
      Ghost => True;
 
-   function Get_Containing_List (Element_Id : Element_Id_Type) return List_Id_Type
+   function Get_Containing_List (Element_Id : Element_Id_Type;
+                                 List_Nodes : List_Nodes_Type) return List_Id_Type
       with Ghost => True;
 
    procedure List_Init
@@ -47,56 +52,62 @@ is
      Pre    => List_Initialized (List_Anchor);
 
    procedure List_Add_Tail
-     (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type) with
-     Global => null, Depends => (List_Anchor =>+ Element_Id),
+     (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type;
+      List_Nodes : in out List_Nodes_Type) with
+     Global => null, Depends => (List_Anchor =>+ Element_Id, List_Nodes =>+ Element_Id),
      Pre    =>
       List_Initialized (List_Anchor)
       and then Element_Id /= Null_Element_Id
-      and then Get_Containing_List (Element_Id) = Null_List_Id,
+      and then Get_Containing_List (Element_Id, List_Nodes) = Null_List_Id,
      Post =>
       List_Length (List_Anchor) = List_Length (List_Anchor'Old) + 1
-      and then Get_Containing_List (Element_Id) /= Null_List_Id;
+      and then Get_Containing_List (Element_Id, List_Nodes) /= Null_List_Id;
 
    procedure List_Add_Head
-     (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type) with
-     Global => null, Depends => (List_Anchor =>+ Element_Id),
+     (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type;
+      List_Nodes : in out List_Nodes_Type) with
+     Global => null, Depends => (List_Anchor =>+ Element_Id, List_Nodes =>+ Element_Id),
      Pre    =>
       List_Initialized (List_Anchor)
       and then Element_Id /= Null_Element_Id
-      and then Get_Containing_List (Element_Id) = Null_List_Id,
+      and then Get_Containing_List (Element_Id, List_Nodes) = Null_List_Id,
      Post =>
       List_Length (List_Anchor) = List_Length (List_Anchor'Old) + 1
-      and then Get_Containing_List (Element_Id) /= Null_List_Id;
+      and then Get_Containing_List (Element_Id, List_Nodes) /= Null_List_Id;
 
    procedure List_Remove_Head
      (List_Anchor : in out List_Anchor_Type;
-      Element_Id  :    out Element_Id_Type) with
+      Element_Id  :    out Element_Id_Type;
+      List_Nodes : in out List_Nodes_Type) with
      Global  => null,
-     Depends => (List_Anchor =>+ null, Element_Id => List_Anchor),
+     Depends => (List_Anchor =>+ null, List_Nodes =>+ null, Element_Id => List_Anchor),
      Pre     =>
       List_Initialized (List_Anchor)
       and then List_Length (List_Anchor) /= 0,
      Post =>
       List_Length (List_Anchor) = List_Length (List_Anchor'Old) - 1
       and then Element_Id /= Null_Element_Id
-      and then Get_Containing_List (Element_Id) = Null_List_Id;
+      and then Get_Containing_List (Element_Id, List_Nodes) = Null_List_Id;
 
    procedure List_Remove_This
-     (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type) with
-     Global => null, Depends => (List_Anchor =>+ Element_Id),
+     (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type;
+      List_Nodes : in out List_Nodes_Type) with
+     Global => null, Depends => (List_Anchor =>+ Element_Id, List_Nodes =>+ Element_Id),
      Pre    =>
       List_Initialized (List_Anchor)
       and then List_Length (List_Anchor) /= 0
       and then Element_Id /= Null_Element_Id
-      and then Get_Containing_List (Element_Id) /= Null_List_Id,
+      and then Get_Containing_List (Element_Id, List_Nodes) /= Null_List_Id,
      Post =>
       List_Length (List_Anchor) = List_Length (List_Anchor'Old) - 1
-      and then Get_Containing_List (Element_Id) = Null_List_Id;
+      and then Get_Containing_List (Element_Id, List_Nodes) = Null_List_Id;
 
    generic
       with procedure Element_Visitor
-        (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type);
-   procedure List_Traverse (List_Anchor : in out List_Anchor_Type) with
+        (List_Anchor : in out List_Anchor_Type; Element_Id : Element_Id_Type;
+         List_Nodes : in out List_Nodes_Type);
+   procedure List_Traverse (List_Anchor : in out List_Anchor_Type;
+                            List_Nodes : in out List_Nodes_Type) with
      Pre => List_Initialized (List_Anchor);
 
 private
@@ -136,7 +147,7 @@ private
    --  NOTE: The same element cannot be in more than one list. So,
    --  the maximal set of nodes that we need is `Valid_Element_Id_Type`
    --
-   List_Nodes : array (Valid_Element_Id_Type) of List_Node_Type;
+   type List_Nodes_Type is array (Valid_Element_Id_Type) of List_Node_Type;
 
    function List_Initialized (List_Anchor : List_Anchor_Type) return Boolean is
      (List_Anchor.List_Id /= Null_List_Id);
@@ -145,7 +156,8 @@ private
      (List_Anchor : List_Anchor_Type) return Interfaces.Unsigned_32 is
      (List_Anchor.Length);
 
-   function Get_Containing_List (Element_Id : Element_Id_Type) return List_Id_Type is
+   function Get_Containing_List (Element_Id : Element_Id_Type;
+                                 List_Nodes : List_Nodes_Type) return List_Id_Type is
       (List_Nodes (Element_Id).Containing_List_Id);
 
    function List_Is_Empty (List_Anchor : List_Anchor_Type) return Boolean is

@@ -19,7 +19,8 @@ is
      HiRTOS_Config_Parameters.Tick_Timer_Period_Us;
 
    type Thread_State_Type is
-     (Thread_Not_Created, Thread_Runnable, Thread_Running, Thread_Blocked);
+     (Thread_Not_Created, Thread_Suspended, Thread_Runnable, Thread_Running,
+      Thread_Blocked_On_Condvar, Thread_Blocked_On_Mutex);
 
    Max_Privilege_Nesting : constant := 64;
 
@@ -147,16 +148,21 @@ is
    procedure Dequeue_Highest_Priority_Runnable_Thread (Thread_Id : out Valid_Thread_Id_Type)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
-   procedure Enqueue_Runnable_Thread (Thread_Id : Valid_Thread_Id_Type; Priority : Valid_Thread_Priority_Type;
+   procedure Enqueue_Runnable_Thread (Thread_Obj : in out Thread_Type; Priority : Valid_Thread_Priority_Type;
                                       First_In_Queue : Boolean := False)
-      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+                  HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+           Post => Thread_Obj.State = Thread_Runnable;
 
    procedure Run_Thread_Scheduler
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
            Post => HiRTOS.Thread.Get_Current_Thread_Id /= Invalid_Thread_Id;
 
-   procedure Schedule_Awaken_Thread (Thread_Id : Thread_Id_Type)
-      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
-           Post => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+   procedure Schedule_Awaken_Thread (Thread_Obj : in out Thread_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
+                  (Thread_Obj.State = Thread_Blocked_On_Condvar or else
+                   Thread_Obj.State = Thread_Blocked_On_Mutex),
+           Post => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
+                   Thread_Obj.State = Thread_Runnable;
 
 end HiRTOS.Thread_Private;

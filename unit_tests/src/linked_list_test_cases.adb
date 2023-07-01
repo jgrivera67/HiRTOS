@@ -41,6 +41,8 @@ package body Linked_List_Test_Cases is
        6 => (Value => 16),
        7 => (Value => 17)];
 
+   Test_Lists_Nodes : Test_List_Package.List_Nodes_Type;
+
    -----------------------------------------------------------------------------
    --  Test cases
    -----------------------------------------------------------------------------
@@ -64,12 +66,14 @@ package body Linked_List_Test_Cases is
       AUnit.Assertions.Assert (
          Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List not empty");
-      Test_List_Package.List_Add_Tail (Test_List_Anchor,  Valid_Test_Element_Id_Type'First);
+      Test_List_Package.List_Add_Tail (Test_List_Anchor,  Valid_Test_Element_Id_Type'First,
+                                       Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          not Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List empty");
 
-      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                          Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          Element_Id = Valid_Test_Element_Id_Type'First,
          "Element Id is wrong");
@@ -87,19 +91,23 @@ package body Linked_List_Test_Cases is
       AUnit.Assertions.Assert (
          Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List not empty");
-      Test_List_Package.List_Add_Tail (Test_List_Anchor,  Valid_Test_Element_Id_Type'First);
+      Test_List_Package.List_Add_Tail (Test_List_Anchor,  Valid_Test_Element_Id_Type'First,
+                                       Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          not Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List empty");
 
-      Test_List_Package.List_Add_Tail (Test_List_Anchor,  Valid_Test_Element_Id_Type'First + 1);
+      Test_List_Package.List_Add_Tail (Test_List_Anchor,  Valid_Test_Element_Id_Type'First + 1,
+                                       Test_Lists_Nodes);
 
-      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                          Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          Element_Id = Valid_Test_Element_Id_Type'First,
          "Element Id is wrong");
 
-      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                          Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          Element_Id = Valid_Test_Element_Id_Type'First + 1,
          "Element Id is wrong");
@@ -114,8 +122,10 @@ package body Linked_List_Test_Cases is
       Elements_Visited : Natural := 0;
 
       procedure Test_Element_Visitor (List_Anchor : in out Test_List_Package.List_Anchor_Type;
-                                      Element_Id : Valid_Test_Element_Id_Type) is
+                                      Element_Id : Valid_Test_Element_Id_Type;
+                                      List_Nodes : in out Test_List_Package.List_Nodes_Type) is
          pragma Unreferenced (List_Anchor);
+         pragma Unreferenced (List_Nodes);
       begin
          AUnit.Assertions.Assert (
             Test_Elements (Element_Id).Value = 10 + Natural (Element_Id),
@@ -140,10 +150,11 @@ package body Linked_List_Test_Cases is
 
       --  Add all elements Ids to the list in increasting order:
       for Elem_Id in Valid_Test_Element_Id_Type loop
-         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id);
+         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id,
+                                          Test_Lists_Nodes);
       end loop;
 
-      Test_List_Traverse (Test_List_Anchor);
+      Test_List_Traverse (Test_List_Anchor, Test_Lists_Nodes);
 
       AUnit.Assertions.Assert (
          Elements_Visited = Test_Elements'Length,
@@ -154,7 +165,8 @@ package body Linked_List_Test_Cases is
          AUnit.Assertions.Assert (
             not Test_List_Package.List_Is_Empty (Test_List_Anchor),
             "List empty");
-         Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+         Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                             Test_Lists_Nodes);
          AUnit.Assertions.Assert (
             Element_Id = Elem_Id,
             "Element Id is wrong");
@@ -174,12 +186,14 @@ package body Linked_List_Test_Cases is
       AUnit.Assertions.Assert (
          Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List not empty");
-      Test_List_Package.List_Add_Head (Test_List_Anchor,  Valid_Test_Element_Id_Type'First);
+      Test_List_Package.List_Add_Head (Test_List_Anchor,  Valid_Test_Element_Id_Type'First,
+                                       Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          not Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List empty");
 
-      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                          Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          Element_Id = Valid_Test_Element_Id_Type'First,
          "Element Id is wrong");
@@ -197,19 +211,23 @@ package body Linked_List_Test_Cases is
       AUnit.Assertions.Assert (
          Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List not empty");
-      Test_List_Package.List_Add_Head (Test_List_Anchor,  Valid_Test_Element_Id_Type'First);
+      Test_List_Package.List_Add_Head (Test_List_Anchor,  Valid_Test_Element_Id_Type'First,
+                                       Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          not Test_List_Package.List_Is_Empty (Test_List_Anchor),
          "List empty");
 
-      Test_List_Package.List_Add_Head (Test_List_Anchor,  Valid_Test_Element_Id_Type'First + 1);
+      Test_List_Package.List_Add_Head (Test_List_Anchor,  Valid_Test_Element_Id_Type'First + 1,
+                                       Test_Lists_Nodes);
 
-      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                          Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          Element_Id = Valid_Test_Element_Id_Type'First + 1,
          "Element Id is wrong");
 
-      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+      Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                          Test_Lists_Nodes);
       AUnit.Assertions.Assert (
          Element_Id = Valid_Test_Element_Id_Type'First,
          "Element Id is wrong");
@@ -224,8 +242,10 @@ package body Linked_List_Test_Cases is
       Elements_Visited : Natural := 0;
 
       procedure Test_Element_Visitor (List_Anchor : in out Test_List_Package.List_Anchor_Type;
-                                      Element_Id : Valid_Test_Element_Id_Type) is
+                                      Element_Id : Valid_Test_Element_Id_Type;
+                                      List_Nodes : in out Test_List_Package.List_Nodes_Type) is
          pragma Unreferenced (List_Anchor);
+         pragma Unreferenced (List_Nodes);
       begin
          AUnit.Assertions.Assert (
             Test_Elements (Element_Id).Value = 10 + Natural (Element_Id),
@@ -255,10 +275,11 @@ package body Linked_List_Test_Cases is
 
       --  Add all elements Ids to the list in increasting order:
       for Elem_Id in Valid_Test_Element_Id_Type loop
-         Test_List_Package.List_Add_Head (Test_List_Anchor, Elem_Id);
+         Test_List_Package.List_Add_Head (Test_List_Anchor, Elem_Id,
+                                          Test_Lists_Nodes);
       end loop;
 
-      Test_List_Traverse (Test_List_Anchor);
+      Test_List_Traverse (Test_List_Anchor, Test_Lists_Nodes);
 
       AUnit.Assertions.Assert (
          Elements_Visited = Test_Elements'Length,
@@ -269,7 +290,8 @@ package body Linked_List_Test_Cases is
          AUnit.Assertions.Assert (
             not Test_List_Package.List_Is_Empty (Test_List_Anchor),
             "List empty");
-         Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id);
+         Test_List_Package.List_Remove_Head (Test_List_Anchor,  Element_Id,
+                                             Test_Lists_Nodes);
          AUnit.Assertions.Assert (
             Element_Id = Elem_Id,
             "Element Id is wrong");
@@ -291,7 +313,8 @@ package body Linked_List_Test_Cases is
 
       --  Add all elements Ids to the list in increasting order:
       for Elem_Id in Valid_Test_Element_Id_Type loop
-         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id);
+         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id,
+                                          Test_Lists_Nodes);
       end loop;
 
       --  Remove all elements Ids from the list in increasting order:
@@ -299,7 +322,8 @@ package body Linked_List_Test_Cases is
          AUnit.Assertions.Assert (
             not Test_List_Package.List_Is_Empty (Test_List_Anchor),
             "List empty");
-         Test_List_Package.List_Remove_This (Test_List_Anchor, Elem_Id);
+         Test_List_Package.List_Remove_This (Test_List_Anchor, Elem_Id,
+                                             Test_Lists_Nodes);
       end loop;
 
       AUnit.Assertions.Assert (
@@ -318,7 +342,8 @@ package body Linked_List_Test_Cases is
 
       --  Add all elements Ids to the list in increasting order:
       for Elem_Id in Valid_Test_Element_Id_Type loop
-         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id);
+         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id,
+                                          Test_Lists_Nodes);
       end loop;
 
       --  Remove all elements Ids from the list in decreasting order:
@@ -326,7 +351,8 @@ package body Linked_List_Test_Cases is
          AUnit.Assertions.Assert (
             not Test_List_Package.List_Is_Empty (Test_List_Anchor),
             "List empty");
-         Test_List_Package.List_Remove_This (Test_List_Anchor, Elem_Id);
+         Test_List_Package.List_Remove_This (Test_List_Anchor, Elem_Id,
+                                             Test_Lists_Nodes);
       end loop;
 
       AUnit.Assertions.Assert (
@@ -340,7 +366,8 @@ package body Linked_List_Test_Cases is
       Elements_Visited : Natural := 0;
 
       procedure Test_Element_Visitor (List_Anchor : in out Test_List_Package.List_Anchor_Type;
-                                      Element_Id : Valid_Test_Element_Id_Type) is
+                                      Element_Id : Valid_Test_Element_Id_Type;
+                                      List_Nodes : in out Test_List_Package.List_Nodes_Type) is
       begin
          AUnit.Assertions.Assert (
             Test_Elements (Element_Id).Value = 10 + Natural (Element_Id),
@@ -350,7 +377,7 @@ package body Linked_List_Test_Cases is
 
          Visitor_Cursor := @ + 1;
          Elements_Visited := @ + 1;
-         Test_List_Package.List_Remove_This (List_Anchor, Element_Id);
+         Test_List_Package.List_Remove_This (List_Anchor, Element_Id, List_Nodes);
       end Test_Element_Visitor;
 
       procedure Test_List_Traverse_Remove is new
@@ -365,10 +392,11 @@ package body Linked_List_Test_Cases is
 
       --  Add all elements Ids to the list in increasting order:
       for Elem_Id in Valid_Test_Element_Id_Type loop
-         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id);
+         Test_List_Package.List_Add_Tail (Test_List_Anchor, Elem_Id,
+                                          Test_Lists_Nodes);
       end loop;
 
-      Test_List_Traverse_Remove (Test_List_Anchor);
+      Test_List_Traverse_Remove (Test_List_Anchor, Test_Lists_Nodes);
 
       AUnit.Assertions.Assert (
          Elements_Visited = Test_Elements'Length,

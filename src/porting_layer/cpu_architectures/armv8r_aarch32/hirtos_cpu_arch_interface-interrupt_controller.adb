@@ -215,10 +215,8 @@ is
 
       Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
 
-      Old_Flags :=
-        Atomic_Fetch_Or
-          (Interrupt_Controller_Obj.Per_Cpu_Initialized_Flags'Address,
-           Bit_Mask (Bit_Index_Type (Cpu_Id)));
+      Old_Flags := Atomic_Fetch_Or (Interrupt_Controller_Obj.Per_Cpu_Initialized_Flags,
+                                    Bit_Mask (Bit_Index_Type (Cpu_Id)));
 
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
       HiRTOS.Exit_Cpu_Privileged_Mode;

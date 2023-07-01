@@ -6,87 +6,98 @@
 --
 
 with HiRTOS.Thread;
+with HiRTOS.Mutex;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Low_Level_Debug_Interface;
 with System.Storage_Elements;
+with Interfaces;
 
 package body App_Threads is
+   use System.Storage_Elements;
 
    procedure Hello_Thread_Proc (Arg : System.Address) with
      Convention => C;
 
-   Hello_Thread_Stack : HiRTOS.Small_Thread_Stack_Package.Execution_Stack_Type with
+   Num_Threads : constant := 8;
+
+   Hello_Thread_Stacks :
+      array (HiRTOS.Cpu_Id_Type, 1 .. Num_Threads) of HiRTOS.Small_Thread_Stack_Package.Execution_Stack_Type with
       Linker_Section => ".thread_stacks",
       Convention => C;
 
+   Per_Cpu_Mutex_Id : array (HiRTOS.Cpu_Id_Type) of HiRTOS.Mutex_Id_Type;
+
    procedure Initialize is
       use type HiRTOS.Thread_Priority_Type;
-      use type System.Storage_Elements.Integer_Address;
       Thread_Id : HiRTOS.Valid_Thread_Id_Type;
+      Cpu_Id : constant HiRTOS.Cpu_Id_Type := HiRTOS.Get_Current_Cpu_Id;
    begin
-      HiRTOS.Thread.Create_Thread
-        (Hello_Thread_Proc'Access,
-         System.Null_Address,
-         HiRTOS.Highest_Thread_Priority - 1,
-         Hello_Thread_Stack'Address,
-         Hello_Thread_Stack'Size / System.Storage_Unit,
-         Thread_Id);
+      HiRTOS.Mutex.Create_Mutex (Per_Cpu_Mutex_Id (Cpu_Id)); --  HiRTOS.Highest_Thread_Priority - 1,
+
+      for I in 1 .. Num_Threads loop
+         HiRTOS.Thread.Create_Thread
+         (Hello_Thread_Proc'Access,
+            To_Address (Integer_Address (I)),
+            HiRTOS.Highest_Thread_Priority - HiRTOS.Valid_Thread_Priority_Type (I),
+            Hello_Thread_Stacks (Cpu_Id, I)'Address,
+            Hello_Thread_Stacks (Cpu_Id, I)'Size / System.Storage_Unit,
+            Thread_Id);
+      end loop;
    end Initialize;
 
    procedure Hello_Thread_Proc (Arg : System.Address) is
       use type System.Address;
+      use type Interfaces.Unsigned_32;
       use type HiRTOS.Time_Us_Type;
 
-      --  procedure Naive_Delay (N : Interfaces.Unsigned_32) is
-      --     use Interfaces;
-      --     Count : Unsigned_32 := N;
-      --  begin
-      --     loop
-      --        exit when Count = 0;
-      --        Count := Count - 1;
-      --     end loop;
-      --  end Naive_Delay;
-
       Turn_LED_On : Boolean := True;
-      Period_Us : constant HiRTOS.Time_Us_Type := 500_000;
+      Cpu_Id : constant HiRTOS.Cpu_Id_Type := HiRTOS.Get_Current_Cpu_Id;
+      Arg_Value : constant Positive range 1 .. Num_Threads := Positive (To_Integer (Arg));
+      Period_Us : constant HiRTOS.Time_Us_Type := 500_000 * HiRTOS.Time_Us_Type (Arg_Value);
       Next_Wakeup_Time_Us : HiRTOS.Time_Us_Type := HiRTOS.Get_Current_Time_Us + Period_Us;
-
+      Counter : Interfaces.Unsigned_32 := 0;
+      Thread_Id : constant HiRTOS.Thread_Id_Type := HiRTOS.Thread.Get_Current_Thread_Id;
    begin
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
-      pragma Assert (Arg = System.Null_Address);
-      HiRTOS.Enter_Cpu_Privileged_Mode;
-      HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt; --???
-      pragma Assert (not HiRTOS.Current_Execution_Context_Is_Interrupt);
-      HiRTOS.Exit_Cpu_Privileged_Mode;
+      --  HiRTOS.Enter_Cpu_Privileged_Mode;
+      --  HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
+      --  pragma Assert (not HiRTOS.Current_Execution_Context_Is_Interrupt);
+      --  HiRTOS.Exit_Cpu_Privileged_Mode;
 
       loop
+         HiRTOS.Mutex.Acquire (Per_Cpu_Mutex_Id (Cpu_Id));
+
          HiRTOS.Enter_Cpu_Privileged_Mode;
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("Hello ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String (" Thread ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Arg_Value));
+         HiRTOS_Low_Level_Debug_Interface.Print_String (" (thread id ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (Thread_Id));
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("): ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("Wakeups count: ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Counter, End_Line => True);
          HiRTOS.Exit_Cpu_Privileged_Mode;
-         if Turn_LED_On then
-            Turn_LED_On := False;
-            HiRTOS.Enter_Cpu_Privileged_Mode;
-            HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
-            HiRTOS.Exit_Cpu_Privileged_Mode;
-         else
-            Turn_LED_On := True;
-            HiRTOS.Enter_Cpu_Privileged_Mode;
-            HiRTOS_Low_Level_Debug_Interface.Set_Led (False);
-            HiRTOS.Exit_Cpu_Privileged_Mode;
+
+         HiRTOS.Mutex.Release (Per_Cpu_Mutex_Id (Cpu_Id));
+
+         if Arg_Value = 1 then
+            if Turn_LED_On then
+               Turn_LED_On := False;
+               HiRTOS.Enter_Cpu_Privileged_Mode;
+               HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
+               HiRTOS.Exit_Cpu_Privileged_Mode;
+            else
+               Turn_LED_On := True;
+               HiRTOS.Enter_Cpu_Privileged_Mode;
+               HiRTOS_Low_Level_Debug_Interface.Set_Led (False);
+               HiRTOS.Exit_Cpu_Privileged_Mode;
+            end if;
          end if;
 
-         --  ???Naive_Delay (10_000_000);
+         Counter := @ + 1;
          HiRTOS.Thread.Thread_Delay_Until (Next_Wakeup_Time_Us);
          Next_Wakeup_Time_Us := @ + Period_Us;
-
-         --???
-        --   declare
-        --      C : Character;
-        --   begin
-        --      C := HiRTOS_Low_Level_Debug_Interface.UART_Input.Get_Char; --???
-        --      HiRTOS_Low_Level_Debug_Interface.Put_Char (C);  --???
-        --   end;
       end loop;
    end Hello_Thread_Proc;
 

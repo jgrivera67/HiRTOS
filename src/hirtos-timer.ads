@@ -15,14 +15,9 @@ package HiRTOS.Timer is
                  Callback_Arg : System.Storage_Elements.Integer_Address)
           with Convention => C;
 
-   function Initialized (Timer_Id : Valid_Timer_Id_Type) return Boolean
-      with Ghost;
+   function Timer_Running (Timer_Id : Valid_Timer_Id_Type) return Boolean;
 
-   function Timer_Running (Timer_Id : Valid_Timer_Id_Type) return Boolean
-      with Pre => Initialized (Timer_Id);
-
-   procedure Create_Timer (Timer_Id : out Valid_Timer_Id_Type)
-      with Post => Initialized (Timer_Id);
+   procedure Create_Timer (Timer_Id : out Valid_Timer_Id_Type);
 
    --
    --  NOTE: Due to a race condition with the tick timer ISR, the timer may have already expired
@@ -34,8 +29,7 @@ package HiRTOS.Timer is
                           Expiration_Callback : Timer_Expiration_Callback_Type;
                           Expiration_Callback_Arg : System.Storage_Elements.Integer_Address;
                           Periodic : Boolean := False)
-      with Pre => Initialized (Timer_Id) and then
-                  not Timer_Running (Timer_Id) and then
+      with Pre => not Timer_Running (Timer_Id) and then
                   HiRTOS.Memory_Protection.Valid_Code_Address (Expiration_Callback.all'Address);
 
    --
@@ -44,7 +38,6 @@ package HiRTOS.Timer is
    --  pre-condition that the timer is still running upon entry.
    --
    procedure Stop_Timer (Timer_Id : Valid_Timer_Id_Type)
-      with Pre => Initialized (Timer_Id),
-           Post => not Timer_Running (Timer_Id);
+      with Post => not Timer_Running (Timer_Id);
 
 end HiRTOS.Timer;

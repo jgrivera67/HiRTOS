@@ -23,16 +23,16 @@ package body HiRTOS.Timer is
    --  Public Subprograms
    -----------------------------------------------------------------------------
 
-   function Initialized (Timer_Id : Valid_Timer_Id_Type) return Boolean is
-      (HiRTOS_Obj.Timer_Instances (Timer_Id).Initialized);
-
    function Timer_Running (Timer_Id : Valid_Timer_Id_Type) return Boolean is
-      (HiRTOS_Obj.Timer_Instances (Timer_Id).Running);
+      (HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id).Timer_Instances (Timer_Id).Running);
 
-   procedure Create_Timer (Timer_Id : out Valid_Timer_Id_Type) is
+   procedure Create_Timer (Timer_Id : out Valid_Timer_Id_Type)
+      with Refined_Post => Initialized (Timer_Id)
+   is
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
    begin
       RTOS_Private.Allocate_Timer_Object (Timer_Id);
-      Initialize_Timer (HiRTOS_Obj.Timer_Instances (Timer_Id), Timer_Id);
+      Initialize_Timer (RTOS_Cpu_Instance.Timer_Instances (Timer_Id), Timer_Id);
    end Create_Timer;
 
    procedure Start_Timer (Timer_Id : Valid_Timer_Id_Type;
@@ -40,7 +40,8 @@ package body HiRTOS.Timer is
                           Expiration_Callback : Timer_Expiration_Callback_Type;
                           Expiration_Callback_Arg : System.Storage_Elements.Integer_Address;
                           Periodic : Boolean := False) is
-      Timer_Obj : Timer_Type renames HiRTOS_Obj.Timer_Instances (Timer_Id);
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames RTOS_Cpu_Instance.Timer_Instances (Timer_Id);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
@@ -86,7 +87,8 @@ package body HiRTOS.Timer is
                                                 HiRTOS_Config_Parameters.Timer_Wheel_Num_Spokes);
          Timer_Obj.Timer_Wheel_Revolutions_Left := Timer_Obj.Timer_Wheel_Revolutions;
 
-         Timer_List_Package.List_Add_Tail (Timer_Wheel_Hash_Chain, Timer_Id);
+         Timer_List_Package.List_Add_Tail (Timer_Wheel_Hash_Chain, Timer_Id,
+                                           RTOS_Cpu_Instance.Timer_Lists_Nodes);
          Timer_Obj.Wheel_Spoke_Index := Wheel_Spoke_Index;
          Timer_Obj.Running := True;
       end;
@@ -96,7 +98,8 @@ package body HiRTOS.Timer is
    end Start_Timer;
 
    procedure Stop_Timer (Timer_Id : Valid_Timer_Id_Type) is
-      Timer_Obj : Timer_Type renames HiRTOS_Obj.Timer_Instances (Timer_Id);
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Timer_Obj : Timer_Type renames RTOS_Cpu_Instance.Timer_Instances (Timer_Id);
       Old_Atomic_Level : Atomic_Level_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
@@ -112,7 +115,8 @@ package body HiRTOS.Timer is
             RTOS_Cpu_Instance.Timer_Wheel.Wheel_Spokes_Hash_Table (Wheel_Spoke_Index);
       begin
          if Timer_Obj.Running then
-            Timer_List_Package.List_Remove_This (Timer_Wheel_Hash_Chain, Timer_Id);
+            Timer_List_Package.List_Remove_This (Timer_Wheel_Hash_Chain, Timer_Id,
+                                                 RTOS_Cpu_Instance.Timer_Lists_Nodes);
             Timer_Obj.Wheel_Spoke_Index := Invalid_Timer_Wheel_Spoke_Index;
             Timer_Obj.Running := False;
          end if;

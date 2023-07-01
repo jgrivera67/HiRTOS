@@ -9,15 +9,15 @@ with HiRTOS.Mutex_Private;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS.Memory_Protection;
---  ???with HiRTOS.Timer;
 with HiRTOS_Cpu_Multi_Core_Interface;
---  ???with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 
 package body HiRTOS.Mutex is
    use HiRTOS.Mutex_Private;
    use HiRTOS.RTOS_Private;
    use HiRTOS.Thread_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
+
+   function Initialized (Mutex_Id : Valid_Mutex_Id_Type) return Boolean  with Ghost;
 
    procedure Initialize_Mutex (Mutex_Obj : out Mutex_Type; Mutex_Id : Mutex_Id_Type;
                                Ceiling_Priority : Thread_Priority_Type)
@@ -27,13 +27,19 @@ package body HiRTOS.Mutex is
    --  Public Subprograms
    -----------------------------------------------------------------------------
 
-   function Initialized (Mutex_Id : Valid_Mutex_Id_Type) return Boolean is
-      (HiRTOS_Obj.Mutex_Instances (Mutex_Id).Initialized);
-
-   procedure Create_Mutex (Ceiling_Priority : Thread_Priority_Type; Mutex_Id : out Valid_Mutex_Id_Type) is
+   procedure Create_Mutex (Mutex_Id : out Valid_Mutex_Id_Type;
+                           Ceiling_Priority : Thread_Priority_Type := Invalid_Thread_Priority)
+      with Refined_Post => Initialized (Mutex_Id)
+   is
    begin
-      RTOS_Private.Allocate_Mutex_Object (Mutex_Id);
-      Initialize_Mutex (HiRTOS_Obj.Mutex_Instances (Mutex_Id), Mutex_Id, Ceiling_Priority);
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      begin
+         RTOS_Private.Allocate_Mutex_Object (Mutex_Id);
+         Initialize_Mutex (RTOS_Cpu_Instance.Mutex_Instances (Mutex_Id), Mutex_Id, Ceiling_Priority);
+      end;
+      HiRTOS.Exit_Cpu_Privileged_Mode;
    end Create_Mutex;
 
    procedure Acquire (Mutex_Id : Valid_Mutex_Id_Type) is
@@ -45,10 +51,10 @@ package body HiRTOS.Mutex is
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          Mutex_Obj : HiRTOS.Mutex_Private.Mutex_Type renames
-            HiRTOS_Obj.Mutex_Instances (Mutex_Id);
+            RTOS_Cpu_Instance.Mutex_Instances (Mutex_Id);
          Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
          Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
-            HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+            RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
          Current_Atomic_Level : constant Atomic_Level_Type := Get_Current_Atomic_Level;
       begin
          pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
@@ -75,10 +81,10 @@ package body HiRTOS.Mutex is
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          Mutex_Obj : HiRTOS.Mutex_Private.Mutex_Type renames
-            HiRTOS_Obj.Mutex_Instances (Mutex_Id);
+            RTOS_Cpu_Instance.Mutex_Instances (Mutex_Id);
          Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
          Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
-            HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+            RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
          Current_Atomic_Level : constant Atomic_Level_Type := Get_Current_Atomic_Level;
       begin
          pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
@@ -104,10 +110,10 @@ package body HiRTOS.Mutex is
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          Mutex_Obj : HiRTOS.Mutex_Private.Mutex_Type renames
-            HiRTOS_Obj.Mutex_Instances (Mutex_Id);
+            RTOS_Cpu_Instance.Mutex_Instances (Mutex_Id);
          Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
          Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
-            HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+            RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
       begin
          Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
          Release_Mutex_Internal (Mutex_Obj, Current_Thread_Obj);
@@ -120,6 +126,9 @@ package body HiRTOS.Mutex is
    -----------------------------------------------------------------------------
    --  Private Subprograms
    -----------------------------------------------------------------------------
+
+   function Initialized (Mutex_Id : Valid_Mutex_Id_Type) return Boolean is
+      (HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id).Mutex_Instances (Mutex_Id).Initialized);
 
    procedure Initialize_Mutex (Mutex_Obj : out Mutex_Type; Mutex_Id : Mutex_Id_Type;
                                Ceiling_Priority : Thread_Priority_Type) is

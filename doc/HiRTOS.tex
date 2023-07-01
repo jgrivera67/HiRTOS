@@ -408,9 +408,9 @@ Below are the primitive types used in HiRTOS:
     \t1 cpuExecutingResetHandler | \\
     \t1 cpuExecutingInterruptHandler | \\
     \t1 cpuExecutingThread \\
-    ThreadStateType ::= threadNotCreated | \\
+    ThreadStateType ::= threadNotCreated | threadSuspended | \\
     \t5 threadRunnable | threadRunning | \\
-    \t5 threadInterrupted | threadBlocked \\
+    \t5 threadBlockedOnCondvar | threadBlockedOnMutex \\
     ThreadSchedulerStateType ::= \\
     \t1 threadSchedulerStopped | threadSchedulerRunning \\
 \end{zed}
@@ -470,49 +470,33 @@ condition variables and software timers are statically allocated
 internally by HiRTOS.
 
 \begin{schema}{HiRtosType}
-    createdThreadInstances: \\
-    \t1 ValidThreadIdType \finj ThreadType \\
-    createdMutexInstances: \\
-    \t1 ValidMutexIdType \finj MutexType \\
-    createdCondvarInstances: \\
-    \t1 ValidCondvarIdType \finj CondvarType \\
-    createdTimerInstances: \\
-    \t1 ValidTimerIdType \finj TimerType \\
     rtosCpuInstances: \\
     \t1 ValidCpuIdType \finj HiRtosCpuInstanceType \\
+    zAllCreatedThreadInstances: \power ThreadType \\
 \where
     \# rtosCpuInstances \geq 1
 \also
     \forall i : \dom rtosCpuInstances @ \\
 \t1   (rtosCpuInstances(i)).cpuId = i
 \also
-    \bigcup~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).threads ~\} = \\
-\t1    createdThreadInstances
+    zAllCreatedThreadInstances = \\
+\t1    \bigcup~\{~ i: ValidCpuIdType @ \\
+\t2    \ran (rtosCpuInstances(i)).threads ~\}
 \also
     \bigcap~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).threads ~\} = \emptyset
+\t1    \ran (rtosCpuInstances(i)).threads ~\} = \emptyset
 \also
-    \bigcup~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).mutexes ~\} = \\
-\t1    createdMutexInstances
-\also
-    \bigcap~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).mutexes ~\} = \emptyset
-\also
-    \bigcup~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).condvars ~\} = \\
-\t1    createdCondvarInstances
+    \bigcap~\{~ thread: zAllCreatedThreadInstances @ \\
+\t1    thread.stackBaseAddress \upto thread.stackEndAddress - 1 ~\} = \emptyset
 \also
     \bigcap~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).condvars ~\} = \emptyset
-\also
-    \bigcup~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).timers ~\} = \\
-\t1    createdTimerInstances
+\t1    \ran (rtosCpuInstances(i)).mutexes ~\} = \emptyset
 \also
     \bigcap~\{~ i: ValidCpuIdType @ \\
-\t1    (rtosCpuInstances(i)).timers ~\} = \emptyset
+\t1    \ran (rtosCpuInstances(i)).condvars ~\} = \emptyset
+\also
+    \bigcap~\{~ i: ValidCpuIdType @ \\
+\t1    \ran (rtosCpuInstances(i)).timers ~\} = \emptyset
 \end{schema}
 
 \subsubsection{Per-CPU HiRTOS Instance}
@@ -654,9 +638,11 @@ are described below:
 \also
    currentPriority \geq basePriority
 \also
-   state = threadBlocked \iff \\
-   \t1 (waitingOnCondvarId \neq invalidCondvarId \lor \\
-   \t1  waitingOnMutexId \neq invalidMutexId)
+   state = threadBlockedOnCondvar \iff \\
+   \t1 waitingOnCondvarId \neq invalidCondvarId
+\also
+   state = threadBlockedOnMutex \iff \\
+   \t1  waitingOnMutexId \neq invalidMutexId
 \also
    waitingOnCondvarId \neq invalidCondvarId \implies \\
    \t1 waitingOnMutexId = invalidMutexId
@@ -696,15 +682,11 @@ On boot, before the \verb`HiRTOS.Initialize` \emph{HiRTOS} API is called on any 
 the global state of \emph{HiRTOS} is as follows:
 
 \begin{schema}{HiRtosInitialState}
-    HiRtosType'
+    HiRtosType' \\
+    HiRtosCpuInstanceInitialState
 \where
-    createdThreadInstances' =  \emptyset
-\also
-    createdMutexInstances' = \emptyset
-\also
-    createdCondvarInstances' = \emptyset
-\also
-    createdTimerInstances' = \emptyset
+    \forall i : \dom rtosCpuInstances' @ \\
+\t1    \theta HiRtosCpuInstanceType' = rtosCpuInstances'(i)
 \end{schema}
 
 \begin{schema}{HiRtosCpuInstanceInitialState}
@@ -847,32 +829,36 @@ scheduler is not started yet:
 
 \section{HiRTOS Callable Services}
 
+\subsection{\emph{HiRTOS} Threads Operations}
+
+\subsubsection{Create a new thread}
+
+A thread can be created by calling \verb`HiRTOS.Thread.Create`. Threads are allocated from the pool of
+thread objects of the calling CPU:
+
+\begin{schema}{CreateThread}
+   \Delta HiRtosCpuInstanceType \\
+   %InitializeNewMutex \\
+   cpuId? : CpuIdType \\
+%\where
+\end{schema}
+
 \subsection{\emph{HiRTOS} Mutex Operations}
 
 \subsubsection{Create a new mutex}
 
-A mutex can be created by calling \verb`HiRTOS.Mutex.Create`. Mutexes are allocated from a pool of
-mutex objects shared among all CPU cores:
+A mutex can be created by calling \verb`HiRTOS.Mutex.Create`. Mutexes are allocated from the pool of
+mutex objects of the calling CPU:
 
 \begin{schema}{CreateMutex}
-   \Delta HiRtosType \\
    \Delta HiRtosCpuInstanceType \\
    InitializeNewMutex \\
-   cpuId? : CpuIdType \\
 \where
-   \theta HiRtosCpuInstanceType = rtosCpuInstances(cpuId?)
-\also
-   \theta HiRtosCpuInstanceType' = rtosCpuInstances'(cpuId?)
-\also
-   \theta MutexType' = createdMutexInstances'(mutexId!)
-\also
-   mutexId! \notin \dom createdMutexInstances
-\also
    mutexId! \notin \dom mutexes
 \also
-   mutexId! \in \dom createdMutexInstances'
+   mutexId! \in \dom mutexes'
 \also
-   mutexes'(mutexId!) = createdMutexInstances'(mutexId!)
+   \theta MutexType' = mutexes'(mutexId!)
 \end{schema}
 
 \begin{schema}{InitializeNewMutex}
@@ -958,9 +944,9 @@ specified by the $AcquireMutex$ schema:
  currentThreadId' \neq ownerThreadId \implies \\
  ((threads'(currentThreadId')).currentPriority \geq \\
  \t1 (threads'(ownerThreadId)).currentPriority \lor \\
- (threads'(ownerThreadId)).state = threadBlocked) \\
+ (threads'(ownerThreadId)).state \in  \{threadBlockedOnMutex , threadBlockedOnCondvar\}) \\
 \land \\
- (threads'(currentThreadId)).state = threadBlocked \\
+ (threads'(currentThreadId)).state = threadBlockedOnMutex \\
 \land \\
 currentThreadId \in \\
 \t1 \ran (waitingThreadsQueue'.threadQueues(oldCurrentPriority)))
@@ -968,7 +954,7 @@ currentThreadId \in \\
 ceilingPriority \neq invalidThreadPriority \implies \\
 ((threads(currentThreadId)).currentPriority \leq \\
  \t1 (threads'(ownerThreadId)).currentPriority \land \\
- (threads'(ownerThreadId)).state = threadBlocked)
+ (threads'(ownerThreadId)).state \in \{threadBlockedOnMutex , threadBlockedOnCondvar\})
 \end{schema}
 
 \begin{zed}

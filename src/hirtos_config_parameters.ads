@@ -16,7 +16,7 @@ package HiRTOS_Config_Parameters
         No_Elaboration_Code_All
 is
    --
-   --  Maximum number of threads (total for all CPU cores)
+   --  Maximum number of threads per CPU core
    --
    Max_Num_Threads : constant := 32;
 

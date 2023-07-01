@@ -12,13 +12,13 @@ with HiRTOS.Timer_Private;
 with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
+with HiRTOS_Platform_Parameters;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
-with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Cpu_Startup_Interface;
 with System.Storage_Elements;
+with Memory_Utils;
 
 --
 --  @summary HiRTOS implementation
@@ -32,11 +32,18 @@ is
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
    use type System.Address;
 
-   Idle_Thread_Stack : Small_Thread_Stack_Package.Execution_Stack_Type with
+   HiRTOS_Global_Vars_Elaborated_Flag : Atomic_Counter_Type
+      with Import,
+           Convention => C,
+           External_Name => "hirtos_global_vars_elaborated_flag";
+
+   Idle_Thread_Stacks :
+      array (Valid_Cpu_Core_Id_Type) of Small_Thread_Stack_Package.Execution_Stack_Type with
       Linker_Section => ".thread_stacks",
       Convention => C;
 
-   Timer_Thread_Stack : Medium_Thread_Stack_Package.Execution_Stack_Type with
+   Timer_Thread_Stacks :
+      array (Valid_Cpu_Core_Id_Type) of Medium_Thread_Stack_Package.Execution_Stack_Type with
       Linker_Section => ".thread_stacks",
       Convention => C;
 
@@ -46,6 +53,8 @@ is
 
    procedure Initialize_HiRTOS_Lib with SPARK_Mode => Off
    is
+      use type HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+
       --  Compiler-generated Ada elaboration code:
       procedure HiRTOSinit with
          Import,
@@ -55,12 +64,19 @@ is
    begin
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          HiRTOSinit;
-         HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Variables_Elaborated_Flag := True;
+         Atomic_Store (HiRTOS_Global_Vars_Elaborated_Flag, 1);
+         Memory_Utils.Flush_Data_Cache_Range (
+            HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
+            HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
          HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
       else
-         while not HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Variables_Elaborated_Flag loop
+         loop
             HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
+            exit when Atomic_Load (HiRTOS_Global_Vars_Elaborated_Flag) = 1;
          end loop;
+         Memory_Utils.Invalidate_Data_Cache_Range (
+            HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
+            HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
       end if;
 
       Initialize_RTOS;
@@ -88,34 +104,39 @@ is
          System.Storage_Elements.To_Integer (ISR_Stack_Info.Base_Address) + ISR_Stack_Info.Size_In_Bytes);
       RTOS_Cpu_Instance.Cpu_Id := Cpu_Id;
 
-      Per_Cpu_Thread_List_Package.List_Init (RTOS_Cpu_Instance.All_Threads, Cpu_Id);
-      Per_Cpu_Mutex_List_Package.List_Init (RTOS_Cpu_Instance.All_Mutexes, Cpu_Id);
-      Per_Cpu_Condvar_List_Package.List_Init (RTOS_Cpu_Instance.All_Condvars, Cpu_Id);
-      Per_Cpu_Timer_List_Package.List_Init (RTOS_Cpu_Instance.All_Timers, Cpu_Id);
-
       HiRTOS.Interrupt_Handling_Private.Initialize_Interrupt_Nesting_Level_Stack
-      (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
+         (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
       HiRTOS.Initialize_Thread_Priority_Queue (RTOS_Cpu_Instance.Runnable_Threads_Queue);
       HiRTOS.Timer_Private.Initialize_Timer_Wheel (RTOS_Cpu_Instance.Timer_Wheel);
 
       HiRTOS.Thread.Create_Thread
-      (Idle_Thread_Proc'Access,
+        (Idle_Thread_Proc'Access,
          System.Null_Address,
          Lowest_Thread_Priority,
-         Idle_Thread_Stack'Address,
-         Idle_Thread_Stack'Size / System.Storage_Unit,
+         Idle_Thread_Stacks (Cpu_Id)'Address,
+         Idle_Thread_Stacks (Cpu_Id)'Size / System.Storage_Unit,
          RTOS_Cpu_Instance.Idle_Thread_Id);
 
       HiRTOS.Thread.Create_Thread
       (HiRTOS.Timer_Private.Timer_Thread_Proc'Access,
          System.Null_Address,
          Highest_Thread_Priority,
-         Timer_Thread_Stack'Address,
-         Timer_Thread_Stack'Size / System.Storage_Unit,
+         Timer_Thread_Stacks (Cpu_Id)'Address,
+         Timer_Thread_Stacks (Cpu_Id)'Size / System.Storage_Unit,
          RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
 
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_RTOS;
+
+   function Get_Current_Cpu_Id return Cpu_Id_Type is
+      Cpu_Id : Cpu_Id_Type;
+   begin
+      Enter_Cpu_Privileged_Mode;
+      Cpu_Id := Get_Cpu_Id;
+      Exit_Cpu_Privileged_Mode;
+
+      return Cpu_Id;
+   end Get_Current_Cpu_Id;
 
    procedure Initialize_Thread_Priority_Queue (Thread_Priority_Queue : out Thread_Priority_Queue_Type)
    is
@@ -135,6 +156,7 @@ is
       Leading_Zeros : constant HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type :=
          HiRTOS_Cpu_Arch_Interface.Count_Leading_Zeros (Non_Empty_Thread_Queues_Map_Value);
       Highest_Thread_Prioritiy : Valid_Thread_Priority_Type;
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
    begin
       pragma Assert (Non_Empty_Thread_Queues_Map_Value /= 0);
       pragma Assert (Leading_Zeros in 0 .. HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size - 1);
@@ -142,7 +164,8 @@ is
          Valid_Thread_Priority_Type (HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size - Leading_Zeros - 1);
 
       Thread_Queue_Package.List_Remove_Head (Thread_Priority_Queue.Thread_Queues_Array (Highest_Thread_Prioritiy),
-                                             Thread_Id);
+                                             Thread_Id,
+                                             RTOS_Cpu_Instance.Thread_Queues_Nodes);
       if Thread_Queue_Package.List_Is_Empty (Thread_Priority_Queue.Thread_Queues_Array (Highest_Thread_Prioritiy)) then
          Thread_Priority_Queue.Non_Empty_Thread_Queues_Map (Highest_Thread_Prioritiy) := False;
       end if;
@@ -150,10 +173,13 @@ is
 
    procedure Thread_Priority_Queue_Remove_This (Thread_Priority_Queue : in out Thread_Priority_Queue_Type;
                                                 Thread_Id : Valid_Thread_Id_Type) is
-      Thread_Obj : Thread_Type renames HiRTOS_Obj.Thread_Instances (Thread_Id);
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames RTOS_Cpu_Instance.Thread_Instances (Thread_Id);
    begin
       Thread_Queue_Package.List_Remove_This (Thread_Priority_Queue.Thread_Queues_Array (Thread_Obj.Current_Priority),
-                                             Thread_Id);
+                                             Thread_Id,
+                                             RTOS_Cpu_Instance.Thread_Queues_Nodes);
       if Thread_Queue_Package.List_Is_Empty (Thread_Priority_Queue.Thread_Queues_Array (Thread_Obj.Current_Priority))
       then
          Thread_Priority_Queue.Non_Empty_Thread_Queues_Map (Thread_Obj.Current_Priority) := False;
@@ -167,11 +193,14 @@ is
    is
       Per_Priority_Thread_Queue : Thread_Queue_Package.List_Anchor_Type renames
          Thread_Priority_Queue.Thread_Queues_Array (Priority);
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
    begin
       if First_In_Queue then
-         Thread_Queue_Package.List_Add_Head (Per_Priority_Thread_Queue, Thread_Id);
+         Thread_Queue_Package.List_Add_Head (Per_Priority_Thread_Queue, Thread_Id,
+                                             RTOS_Cpu_Instance.Thread_Queues_Nodes);
       else
-         Thread_Queue_Package.List_Add_Tail (Per_Priority_Thread_Queue, Thread_Id);
+         Thread_Queue_Package.List_Add_Tail (Per_Priority_Thread_Queue, Thread_Id,
+                                             RTOS_Cpu_Instance.Thread_Queues_Nodes);
       end if;
 
       Thread_Priority_Queue.Non_Empty_Thread_Queues_Map (Priority) := True;
@@ -248,7 +277,7 @@ is
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
-         Current_Thread_Obj : Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+         Current_Thread_Obj : Thread_Type renames RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
       begin
          Thread_Private.Increment_Privilege_Nesting (Current_Thread_Obj);
       end;
@@ -270,7 +299,7 @@ is
          Current_Thread_Id :
            Thread_Id_Type renames RTOS_Cpu_Instance.Current_Thread_Id;
          Current_Thread_Obj :
-           Thread_Type renames HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+           Thread_Type renames RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
       begin
          Thread_Private.Decrement_Privilege_Nesting (Current_Thread_Obj);
          if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then

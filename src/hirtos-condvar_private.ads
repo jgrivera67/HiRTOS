@@ -26,8 +26,9 @@ private package HiRTOS.Condvar_Private is
       Wakeup_Atomic_Level : Atomic_Level_Type := Atomic_Level_None;
       Wakeup_Mutex_id : Mutex_Id_Type := Invalid_Mutex_Id;
       Waiting_Threads_Queue : Thread_Priority_Queue_Type;
-   end record;
-   --  with Type_Invariant =>
+   end record with
+     Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+   --  Type_Invariant =>
    --    (if Condvar_Type.Wakeup_Atomic_Level /= Atomic_Level_None then
    --        Condvar_Type.Wakeup_Mutex_id = Invalid_Mutex_Id);
 

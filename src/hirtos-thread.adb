@@ -74,13 +74,12 @@ package body HiRTOS.Thread is
          Thread_Cpu_Context : Cpu_Context_Type with
             Import, Address => Initial_Stack_Pointer;
          Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
-         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
          Old_Cpu_Interrupting : Cpu_Register_Type;
       begin
          HiRTOS.RTOS_Private.Allocate_Thread_Object (Thread_Id);
 
-         Initialize_Thread (HiRTOS_Obj.Thread_Instances (Thread_Id), Thread_Id, Priority,
+         Initialize_Thread (RTOS_Cpu_Instance.Thread_Instances (Thread_Id), Thread_Id, Priority,
                            Stack_Base_Address, Stack_End_Address, Initial_Stack_Pointer);
          Initialize_Thread_Cpu_Context (Thread_Cpu_Context,
                                        Cpu_Register_Type (To_Integer (Entry_Point.all'Address)),
@@ -89,8 +88,13 @@ package body HiRTOS.Thread is
 
          --  Begin critical section
          Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
-         Per_Cpu_Thread_List_Package.List_Add_Tail (RTOS_Cpu_Instance.All_Threads, Thread_Id);
-         Enqueue_Runnable_Thread (Thread_Id, Priority);
+         declare
+            Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
+               RTOS_Cpu_Instance.Thread_Instances (Thread_Id);
+         begin
+            Enqueue_Runnable_Thread (Thread_Obj, Priority);
+         end;
+
          --  End critical section
          HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
       end;
@@ -99,10 +103,19 @@ package body HiRTOS.Thread is
    end Create_Thread;
 
    function Get_Current_Thread_Id return Thread_Id_Type is
-      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Thread_Id : Thread_Id_Type;
    begin
-      return RTOS_Cpu_Instance.Current_Thread_Id;
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      begin
+         Thread_Id := RTOS_Cpu_Instance.Current_Thread_Id;
+      end;
+
+      Exit_Cpu_Privileged_Mode;
+      return Thread_Id;
    end Get_Current_Thread_Id;
 
    procedure Thread_Delay_Until (Wakeup_Time_Us : Time_Us_Type) is
@@ -114,7 +127,7 @@ package body HiRTOS.Thread is
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
          Current_Thread_Obj : Thread_Type renames
-            HiRTOS_Obj.Thread_Instances (Current_Thread_Id);
+            RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
          --  ???Old_Atomic_Level : Atomic_Level_Type;
          Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       begin
@@ -161,7 +174,7 @@ package body HiRTOS.Thread is
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (Thread_Obj'Address, Thread_Obj'Size, Old_Data_Range);
       Thread_Obj.Id := Thread_Id;
-      Thread_Obj.State := Thread_Runnable;
+      Thread_Obj.State := Thread_Suspended;
       Thread_Obj.Base_Priority := Priority;
       Thread_Obj.Current_Priority := Thread_Obj.Base_Priority;
       Thread_Obj.Atomic_Level := Atomic_Level_None;
@@ -188,7 +201,8 @@ package body HiRTOS.Thread is
    procedure Thread_Delay_Timer_Callback (Timer_Id : Valid_Timer_Id_Type;
                                           Callback_Arg : Integer_Address) is
       Thread_Id : constant Valid_Thread_Id_Type := Valid_Thread_Id_Type (Callback_Arg);
-      Thread_Obj : Thread_Type renames HiRTOS_Obj.Thread_Instances (Thread_Id);
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Thread_Obj : Thread_Type renames RTOS_Cpu_Instance.Thread_Instances (Thread_Id);
    begin
       pragma Assert (Timer_Id = Thread_Obj.Builtin_Timer_Id);
 

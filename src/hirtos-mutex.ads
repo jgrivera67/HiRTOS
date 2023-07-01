@@ -6,19 +6,14 @@
 --
 package HiRTOS.Mutex is
 
-   function Initialized (Mutex_Id : Valid_Mutex_Id_Type) return Boolean  with Ghost;
+   procedure Create_Mutex (Mutex_Id : out Valid_Mutex_Id_Type;
+                           Ceiling_Priority : Thread_Priority_Type := Invalid_Thread_Priority);
 
-   procedure Create_Mutex (Ceiling_Priority : Thread_Priority_Type; Mutex_Id : out Valid_Mutex_Id_Type)
-      with Post => Initialized (Mutex_Id);
-
-   procedure Acquire (Mutex_Id : Valid_Mutex_Id_Type)
-      with Pre => Initialized (Mutex_Id);
+   procedure Acquire (Mutex_Id : Valid_Mutex_Id_Type);
 
    function Try_Acquire (Mutex_Id : Valid_Mutex_Id_Type;
-                         Timeout_Ms : Time_Ms_Type) return Boolean
-      with Pre => Initialized (Mutex_Id);
+                         Timeout_Ms : Time_Ms_Type) return Boolean;
 
-   procedure Release (Mutex_Id : Valid_Mutex_Id_Type)
-      with Pre => Initialized (Mutex_Id);
+   procedure Release (Mutex_Id : Valid_Mutex_Id_Type);
 
 end HiRTOS.Mutex;
