@@ -403,15 +403,15 @@ is
       return RTOS_Cpu_Instance.Current_Atomic_Level;
    end Get_Current_Atomic_Level;
 
-   function Get_Current_Time_Us return Time_Us_Type is
-      Current_Time_Us : Time_Us_Type;
+   function Get_Current_Time_Us return Absolute_Time_Us_Type is
+      Current_Time_Us : Absolute_Time_Us_Type;
    begin
       Enter_Cpu_Privileged_Mode;
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       begin
-         Current_Time_Us := Time_Us_Type (RTOS_Cpu_Instance.Timer_Ticks_Since_Boot) *
+         Current_Time_Us := Absolute_Time_Us_Type (RTOS_Cpu_Instance.Timer_Ticks_Since_Boot) *
                             HiRTOS_Config_Parameters.Tick_Timer_Period_Us;
       end;
 

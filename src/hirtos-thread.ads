@@ -54,6 +54,7 @@ is
    --  Put the calling thread to sleep until the current time matches
    --  the specified wakeup time.
    --
-   procedure Thread_Delay_Until (Wakeup_Time_Us : Time_Us_Type);
+   function Thread_Delay_Until (Wakeup_Time_Us : Absolute_Time_Us_Type) return Absolute_Time_Us_Type
+      with Pre => Wakeup_Time_Us mod HiRTOS_Config_Parameters.Tick_Timer_Period_Us = 0;
 
 end HiRTOS.Thread;

@@ -9,24 +9,15 @@
 --  @summary RTOS to target platform interface - Tick timer driver
 --
 
-with HiRTOS_Platform_Parameters;
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with System.Machine_Code;
 with System.Storage_Elements;
---  ???with HiRTOS_Low_Level_Debug_Interface; --???
---  ???with GNAT.Source_Info; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
    procedure Tick_Timer_Interrupt_Handler (Arg : System.Address);
-
-   Timer_Ticks_Per_Us : constant :=
-      HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz / 1_000_000;
-
-   pragma Compile_Time_Error
-     (Timer_Ticks_Per_Us = 0, "Invalid Timer_Ticks_Per_Us");
 
    procedure Initialize is
       CNTP_CTL_Value : CNTP_CTL_Type;
@@ -55,12 +46,19 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Initialize;
 
-   procedure Start_Timer (Expiration_Time_Us : HiRTOS.Time_Us_Type) is
+   function Get_Timer_Timestamp_Cycles return Timer_Timestamp_Cycles_Type is
+      CNTPCT_Value : constant CNTPCT_Type := Get_CNTPCT;
+   begin
+      return  Timer_Timestamp_Cycles_Type (CNTPCT_Value.Value);
+   end Get_Timer_Timestamp_Cycles;
+
+   procedure Start_Timer (Expiration_Time_Us : HiRTOS.Relative_Time_Us_Type) is
       use System.Storage_Elements;
       CNTP_CTL_Value : CNTP_CTL_Type;
       CNTP_TVAL_Value : constant CNTP_TVAL_Type :=
-         CNTP_TVAL_Type (Expiration_Time_Us * Timer_Ticks_Per_Us);
+         CNTP_TVAL_Type (Expiration_Time_Us * Timer_Counter_Cycles_Per_Us);
    begin
+      pragma Assert (CNTP_TVAL_Value >= CNTP_TVAL_Type (Expiration_Time_Us));
       HiRTOS.Enter_Cpu_Privileged_Mode;
 
       --

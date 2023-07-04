@@ -163,7 +163,7 @@ package body HiRTOS.Mutex_Private is
             --  Start timer for the current thread:
             --
             HiRTOS.Timer.Start_Timer (Current_Thread_Obj.Builtin_Timer_Id,
-                                      HiRTOS.Get_Current_Time_Us + Time_Us_Type (Timeout_Ms * 1000),
+                                      Relative_Time_Us_Type (Timeout_Ms * 1000),
                                       Mutex_Acquire_Timeout_Callback'Access,
                                       Integer_Address (Current_Thread_Obj.Id));
          end if;

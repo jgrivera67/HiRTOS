@@ -32,7 +32,9 @@ is
 
    type Stats_Counter_Type is new Interfaces.Unsigned_32;
 
-   type Time_Us_Type is new Interfaces.Unsigned_32;
+   type Absolute_Time_Us_Type is new Interfaces.Unsigned_64;
+
+   type Relative_Time_Us_Type is new Interfaces.Unsigned_32;
 
    type Time_Ms_Type is new Interfaces.Unsigned_32;
 
@@ -91,7 +93,7 @@ is
    --
    --  Get current time in microseconds since boot
    --
-   function Get_Current_Time_Us return Time_Us_Type;
+   function Get_Current_Time_Us return Absolute_Time_Us_Type;
 
    subtype Cpu_Id_Type is HiRTOS_Cpu_Multi_Core_Interface.Valid_Cpu_Core_Id_Type;
 
@@ -197,7 +199,7 @@ is
    --  Timer public declarations                                              --
    -----------------------------------------------------------------------------
 
-   type Timer_Ticks_Count_Type is new Interfaces.Unsigned_32;
+   type Timer_Ticks_Count_Type is new Interfaces.Unsigned_64;
 
    type Timer_Id_Type is
      range 0 .. HiRTOS_Config_Parameters.Max_Num_Timers with
@@ -266,10 +268,10 @@ is
       Times_Preempted_By_Isr                   : Stats_Counter_Type := 0;
       Times_Switched_In                        : Stats_Counter_Type := 0;
       Delay_Until_In_the_Past_Count            : Stats_Counter_Type := 0;
-      Last_Switched_In_Timestamp_Us            : Time_Us_Type := 0;
-      Total_Cpu_Utilization_Us                 : Time_Us_Type := 0;
-      Average_Cpu_Utlization_Per_Time_Slice_Us : Time_Us_Type := 0;
-      Maximum_Cpu_Utlization_Per_Time_Slice_Us : Time_Us_Type := 0;
+      Last_Switched_In_Timestamp_Us            : Absolute_Time_Us_Type := 0;
+      Total_Cpu_Utilization_Us                 : Absolute_Time_Us_Type := 0;
+      Average_Cpu_Utlization_Per_Time_Slice_Us : Relative_Time_Us_Type := 0;
+      Maximum_Cpu_Utlization_Per_Time_Slice_Us : Relative_Time_Us_Type := 0;
    end record;
 
    package Small_Thread_Stack_Package is new Generic_Execution_Stack

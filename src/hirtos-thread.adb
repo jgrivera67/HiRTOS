@@ -118,7 +118,9 @@ package body HiRTOS.Thread is
       return Thread_Id;
    end Get_Current_Thread_Id;
 
-   procedure Thread_Delay_Until (Wakeup_Time_Us : Time_Us_Type) is
+   function Thread_Delay_Until (Wakeup_Time_Us : Absolute_Time_Us_Type) return Absolute_Time_Us_Type
+   is
+      Current_Time_Us : Absolute_Time_Us_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
 
@@ -130,20 +132,43 @@ package body HiRTOS.Thread is
             RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
          --  ???Old_Atomic_Level : Atomic_Level_Type;
          Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+         Expiration_Time_Us : Relative_Time_Us_Type;
       begin
-         if Wakeup_Time_Us <= HiRTOS.Get_Current_Time_Us then
-            Current_Thread_Obj.Stats.Delay_Until_In_the_Past_Count := @ + 1;
-         end if;
-
          --   ???Old_Atomic_Level := HiRTOS.Enter_Atomic_Level (
          --   ???      HiRTOS.Atomic_Level_Type (HiRTOS.Interrupt_Handling.Tick_Timer_Interrupt_Priority));
          Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+
+         Current_Time_Us := HiRTOS.Get_Current_Time_Us;
+
+         --
+         --  NOTE: The time delta calculation below works even if
+         --  Wakeup_Time_Us < Get_Current_Time_Us
+         --  since we are using unsigned modulo-32 arithmetic.
+         --
+         Expiration_Time_Us := Relative_Time_Us_Type (Wakeup_Time_Us - Current_Time_Us);
+         if Expiration_Time_Us = 0 then
+            goto Common_Exit;
+         end if;
+
+         if Wakeup_Time_Us < Current_Time_Us then
+            --
+            --  Disambiguate if the RTOS tiock count has wrapped around or Thread_Delay_Until()
+            --  has been called with a time point that is already in the past (which would be
+            --  a sing that a thread is missing its dealines or starving)
+            --
+            if Expiration_Time_Us > HiRTOS_Config_Parameters.Max_Thread_Delay_Us then
+               Current_Thread_Obj.Stats.Delay_Until_In_the_Past_Count := @ + 1;
+               goto Common_Exit;
+            end if;
+
+            Expiration_Time_Us := HiRTOS_Config_Parameters.Max_Thread_Delay_Us;
+         end if;
 
          --
          --  Start timer for the current thread:
          --
          HiRTOS.Timer.Start_Timer (Current_Thread_Obj.Builtin_Timer_Id,
-                                   Wakeup_Time_Us,
+                                   Expiration_Time_Us,
                                    Thread_Delay_Timer_Callback'Access,
                                    Integer_Address (Current_Thread_Id));
 
@@ -154,9 +179,13 @@ package body HiRTOS.Thread is
 
          --  ???HiRTOS.Exit_Atomic_Level (Old_Atomic_Level);
          HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+         Current_Time_Us := Get_Current_Time_Us;
       end;
 
+<<Common_Exit>>
       HiRTOS.Exit_Cpu_Privileged_Mode;
+
+      return Current_Time_Us;
    end Thread_Delay_Until;
 
    -----------------------------------------------------------------------------

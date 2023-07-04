@@ -84,7 +84,7 @@ is
       Owned_Mutexes_List : Mutex_List_Package.List_Anchor_Type;
       Saved_Stack_Pointer : System.Address := System.Null_Address;
       Privilege_Nesting_Counter : Privilege_Nesting_Counter_Type := 0;
-      Time_Slice_Left_Us : Time_Us_Type := Thread_Time_Slice_Us;
+      Time_Slice_Left_Us : Relative_Time_Us_Type := Thread_Time_Slice_Us;
       Saved_Thread_Memory_Regions :
          HiRTOS.Memory_Protection_Private.Thread_Memory_Regions_Type;
       Stats : Thread_Stats_Type;

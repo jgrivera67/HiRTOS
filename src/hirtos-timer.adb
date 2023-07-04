@@ -36,7 +36,7 @@ package body HiRTOS.Timer is
    end Create_Timer;
 
    procedure Start_Timer (Timer_Id : Valid_Timer_Id_Type;
-                          Expiration_Time_Us : Time_Us_Type;
+                          Expiration_Time_Us : Relative_Time_Us_Type;
                           Expiration_Callback : Timer_Expiration_Callback_Type;
                           Expiration_Callback_Arg : System.Storage_Elements.Integer_Address;
                           Periodic : Boolean := False) is
@@ -56,25 +56,13 @@ package body HiRTOS.Timer is
          use type Interfaces.Unsigned_32;
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
             HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-         --
-         --  NOTE: If `Expiration_Time_Ticks` is not a whole multiple of
-         --  `Tick_Timer_Period_Us`, the timer will expire a little sooner
-         --  than expected.
-         --
          Expiration_Time_Ticks : constant Timer_Ticks_Count_Type :=
             Timer_Ticks_Count_Type (
                Expiration_Time_Us / HiRTOS_Config_Parameters.Tick_Timer_Period_Us);
-         --
-         --  NOTE: The ticks delta calculation below works even if
-         --  Expiration_Time_Ticks < RTOS_Cpu_Instance.Timer_Ticks_Since_Boot,
-         --  since we are using unsigned modulo-32 arithmetic.
-         --
-         Delta_Timer_Ticks_Before_Expiration : constant Timer_Ticks_Count_Type :=
-            Expiration_Time_Ticks - RTOS_Cpu_Instance.Timer_Ticks_Since_Boot;
          Wheel_Spoke_Index : constant Valid_Timer_Wheel_Spoke_Index_Type :=
             Valid_Timer_Wheel_Spoke_Index_Type (
                (Interfaces.Unsigned_32 (RTOS_Cpu_Instance.Timer_Wheel.Current_Wheel_Spoke_Index) +
-                Interfaces.Unsigned_32 (Delta_Timer_Ticks_Before_Expiration)) mod
+                Interfaces.Unsigned_32 (Expiration_Time_Ticks)) mod
                HiRTOS_Config_Parameters.Timer_Wheel_Num_Spokes);
          Timer_Wheel_Hash_Chain : Timer_List_Package.List_Anchor_Type renames
             RTOS_Cpu_Instance.Timer_Wheel.Wheel_Spokes_Hash_Table (Wheel_Spoke_Index);
@@ -83,7 +71,7 @@ package body HiRTOS.Timer is
          Timer_Obj.Expiration_Callback_Arg := Expiration_Callback_Arg;
          Timer_Obj.Periodic := Periodic;
          Timer_Obj.Timer_Wheel_Revolutions :=
-            Timer_Wheel_Revolutions_Count_Type (Delta_Timer_Ticks_Before_Expiration /
+            Timer_Wheel_Revolutions_Count_Type (Expiration_Time_Ticks /
                                                 HiRTOS_Config_Parameters.Timer_Wheel_Num_Spokes);
          Timer_Obj.Timer_Wheel_Revolutions_Left := Timer_Obj.Timer_Wheel_Revolutions;
 

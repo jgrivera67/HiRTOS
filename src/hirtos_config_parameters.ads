@@ -69,6 +69,15 @@ is
    Tick_Timer_Period_Us : constant := 500;
 
    --
+   --  Longest time that a thread can request to be delayed (by calling Thread_Delay_Until)
+   --
+   --  NOTE: Having this limit is necessary to be able to disambiguate if the RTOS tiock count
+   --  has wrapped around or Thread_Delay_Until() has been called with a time point that is
+   --  already in the past (which would be a sing that a thread is missing its dealines or starving)
+   --
+   Max_Thread_Delay_Us : constant := 3600_000_000;
+
+   --
    --  Thread time slice in RTOS ticks
    --
    Thread_Time_Slice_Ticks : constant := 2;

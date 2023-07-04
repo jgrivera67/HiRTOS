@@ -31,6 +31,7 @@ project Fvp_Armv8r_Aarch32_Hello is
          ("-nostartfiles",
           "-nostdlib",
         --"-nolibc",
+         "-lgcc", -- needed for __aeabi_uldivmod
           "-Wl,-Map=" & "memory_map.map",
 			 "-Xlinker", "--gc-sections",
 	       "-T../../src/porting_layer/platforms/" & HiRTOS_Compiler_Flags.Platform & "/memory_layout.ld");
