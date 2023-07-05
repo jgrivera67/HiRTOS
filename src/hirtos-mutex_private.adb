@@ -228,10 +228,9 @@ package body HiRTOS.Mutex_Private is
                New_Owner_Thread_Obj.Current_Priority := Mutex_Obj.Ceiling_Priority;
             end if;
 
+            pragma Assert (New_Owner_Thread_Obj.Waiting_On_Mutex_Id = Mutex_Obj.Id);
             Schedule_Awaken_Thread (New_Owner_Thread_Obj);
 
-            pragma Assert (New_Owner_Thread_Obj.Waiting_On_Mutex_Id = Mutex_Obj.Id);
-            New_Owner_Thread_Obj.Waiting_On_Mutex_Id := Invalid_Mutex_Id;
             Take_Mutex_Ownership (Mutex_Obj, New_Owner_Thread_Obj, RTOS_Cpu_Instance);
          end;
 
@@ -279,7 +278,7 @@ package body HiRTOS.Mutex_Private is
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
       Thread_Obj.Last_Mutex_Acquire_Timed_Out := True;
-      Thread_Obj.Waiting_On_Mutex_Id := Invalid_Mutex_Id;
+      pragma Assert (Thread_Obj.Waiting_On_Mutex_Id = Mutex_Obj.Id);
 
       --
       --  Remove thread from mutex wait queue and add it to the corresponding run queue:

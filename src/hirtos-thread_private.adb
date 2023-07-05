@@ -103,6 +103,8 @@ package body HiRTOS.Thread_Private is
                   RTOS_Cpu_Instance.Current_Thread_Id := Invalid_Thread_Id;
                end if;
             else
+               pragma Assert (Old_Thread_Obj.State /= Thread_Running and then
+                              Old_Thread_Obj.State /= Thread_Runnable);
                RTOS_Cpu_Instance.Current_Thread_Id := Invalid_Thread_Id;
             end if;
          end;
@@ -165,6 +167,14 @@ package body HiRTOS.Thread_Private is
    begin
       if HiRTOS.Timer.Timer_Running (Thread_Obj.Builtin_Timer_Id) then
          HiRTOS.Timer.Stop_Timer (Thread_Obj.Builtin_Timer_Id);
+      end if;
+
+      if Thread_Obj.Waiting_On_Mutex_Id /= Invalid_Mutex_Id then
+         Thread_Obj.Waiting_On_Mutex_Id := Invalid_Mutex_Id;
+         pragma Assert (Thread_Obj.Waiting_On_Condvar_Id = Invalid_Condvar_Id);
+      else
+         pragma Assert (Thread_Obj.Waiting_On_Condvar_Id /= Invalid_Condvar_Id);
+         Thread_Obj.Waiting_On_Condvar_Id := Invalid_Condvar_Id;
       end if;
 
       HiRTOS.Thread_Private.Enqueue_Runnable_Thread (Thread_Obj, Thread_Obj.Current_Priority);

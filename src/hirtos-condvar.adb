@@ -266,6 +266,7 @@ package body HiRTOS.Condvar is
       --  Remove thread from condvar wait queue and add it to the corresponding run queue:
       --
       Thread_Priority_Queue_Remove_This (Condvar_Obj.Waiting_Threads_Queue, Thread_Id);
+      pragma Assert (Thread_Obj.Waiting_On_Condvar_Id = Condvar_Obj.Id);
       Schedule_Awaken_Thread (Thread_Obj);
 
       --  end critical section
@@ -281,6 +282,7 @@ package body HiRTOS.Condvar is
          Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
             RTOS_Cpu_Instance.Thread_Instances (Thread_Id);
       begin
+         pragma Assert (Thread_Obj.Waiting_On_Condvar_Id = Condvar_Obj.Id);
          Schedule_Awaken_Thread (Thread_Obj);
       end;
    end Wakeup_One_Thread;

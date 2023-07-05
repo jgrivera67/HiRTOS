@@ -51,6 +51,13 @@ is
    function Get_Current_Thread_Id return Thread_Id_Type;
 
    --
+   --  Return the priority of the current thread executing on the current CPU core,
+   --  if that core is running in thread context, or the priority of the last thread
+   --  prempted by an interrupt handler, if running in interrupt context.
+   --
+   function Get_Current_Thread_Priority return Thread_Priority_Type;
+
+   --
    --  Put the calling thread to sleep until the current time matches
    --  the specified wakeup time.
    --

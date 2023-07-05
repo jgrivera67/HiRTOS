@@ -163,6 +163,8 @@ is
                   (Thread_Obj.State = Thread_Blocked_On_Condvar or else
                    Thread_Obj.State = Thread_Blocked_On_Mutex),
            Post => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled and then
-                   Thread_Obj.State = Thread_Runnable;
+                   Thread_Obj.State = Thread_Runnable and then
+                   Thread_Obj.Waiting_On_Condvar_Id = Invalid_Condvar_Id and then
+                   Thread_Obj.Waiting_On_Mutex_Id = Invalid_Mutex_Id;
 
 end HiRTOS.Thread_Private;

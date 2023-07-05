@@ -118,6 +118,24 @@ package body HiRTOS.Thread is
       return Thread_Id;
    end Get_Current_Thread_Id;
 
+   function Get_Current_Thread_Priority return Thread_Priority_Type is
+      Thread_Priority : Thread_Priority_Type;
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Current_Thread_Obj : Thread_Type renames
+            RTOS_Cpu_Instance.Thread_Instances (RTOS_Cpu_Instance.Current_Thread_Id);
+      begin
+         Thread_Priority := Current_Thread_Obj.Current_Priority;
+      end;
+
+      Exit_Cpu_Privileged_Mode;
+      return Thread_Priority;
+   end Get_Current_Thread_Priority;
+
    function Thread_Delay_Until (Wakeup_Time_Us : Absolute_Time_Us_Type) return Absolute_Time_Us_Type
    is
       Current_Time_Us : Absolute_Time_Us_Type;

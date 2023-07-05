@@ -8,7 +8,7 @@
 with HiRTOS.Thread;
 with HiRTOS.Mutex;
 with HiRTOS.Timer;
-with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
 with HiRTOS_Low_Level_Debug_Interface;
 with System.Storage_Elements;
 with Interfaces;
@@ -78,14 +78,16 @@ package body App_Threads is
       Period_Us : constant HiRTOS.Relative_Time_Us_Type :=
          500_000 * HiRTOS.Relative_Time_Us_Type (Arg_Value);
       Thread_Id : constant HiRTOS.Thread_Id_Type := HiRTOS.Thread.Get_Current_Thread_Id;
+      Time_Since_Boot_Us : HiRTOS.Absolute_Time_Us_Type;
       Last_Wakeup_Time_Us : HiRTOS.Absolute_Time_Us_Type;
       Next_Wakeup_Time_Us : HiRTOS.Absolute_Time_Us_Type :=
          HiRTOS.Get_Current_Time_Us + HiRTOS.Absolute_Time_Us_Type (Period_Us);
-      Counter : Interfaces.Unsigned_32 := 0;
+      Counter : Interfaces.Unsigned_32 := 1;
       My_Cpu_Data : My_Cpu_Data_Type renames Per_Cpu_Data (Cpu_Id);
    begin
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
+      pragma Assert (Arg_Value = Positive (Thread_Id) - 1);
       --  HiRTOS.Enter_Cpu_Privileged_Mode;
       --  HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
       --  pragma Assert (not HiRTOS.Current_Execution_Context_Is_Interrupt);
@@ -97,11 +99,24 @@ package body App_Threads is
          HiRTOS.Enter_Cpu_Privileged_Mode;
          HiRTOS_Low_Level_Debug_Interface.Print_String (" Thread ");
          HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Arg_Value));
-         HiRTOS_Low_Level_Debug_Interface.Print_String (" (thread id ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String (" (id ");
          HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
             Interfaces.Unsigned_32 (Thread_Id));
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("): ");
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("Wakeups count: ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String (", prio ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (HiRTOS.Thread.Get_Current_Thread_Priority));
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("): Period ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (Period_Us / 1000));
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("ms, Last run at ");
+         Time_Since_Boot_Us := HiRTOS_Cpu_Arch_Interface.Tick_Timer.Get_Timer_Timestamp_Us;
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (Time_Since_Boot_Us / 1000_000));
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("s ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (Time_Since_Boot_Us mod 1000_000));
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("us, ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("Wakeups ");
          HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Counter, End_Line => True);
          HiRTOS.Exit_Cpu_Privileged_Mode;
 
