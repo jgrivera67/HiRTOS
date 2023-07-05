@@ -8,15 +8,14 @@
 with HiRTOS.Thread;
 with HiRTOS.Mutex;
 with HiRTOS.Timer;
-with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
-with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS.Debug;
 with System.Storage_Elements;
 with Interfaces;
 
 package body App_Threads is
    use System.Storage_Elements;
 
-   procedure Heat_Beat_Timer_Callback (Timer_Id : HiRTOS.Valid_Timer_Id_Type;
+   procedure Heart_Beat_Timer_Callback (Timer_Id : HiRTOS.Valid_Timer_Id_Type;
                                        Callback_Arg : Integer_Address)
       with Convention => C;
 
@@ -62,7 +61,7 @@ package body App_Threads is
 
       HiRTOS.Timer.Start_Timer (My_Cpu_Data.Heart_Beat_Timer_Id,
                                 Heart_Beat_Timer_Period_Us * (HiRTOS.Relative_Time_Us_Type (Cpu_Id) + 1),
-                                Heat_Beat_Timer_Callback'Access,
+                                Heart_Beat_Timer_Callback'Access,
                                 To_Integer (My_Cpu_Data'Address),
                                 Periodic => True);
    end Initialize;
@@ -73,6 +72,7 @@ package body App_Threads is
       use type HiRTOS.Relative_Time_Us_Type;
       use type HiRTOS.Absolute_Time_Us_Type;
 
+      One_Hour_Us : constant := 3_600 * 1_000_000;
       Cpu_Id : constant HiRTOS.Cpu_Id_Type := HiRTOS.Get_Current_Cpu_Id;
       Arg_Value : constant Positive range 1 .. Num_Threads := Positive (To_Integer (Arg));
       Period_Us : constant HiRTOS.Relative_Time_Us_Type :=
@@ -85,8 +85,8 @@ package body App_Threads is
       Counter : Interfaces.Unsigned_32 := 1;
       My_Cpu_Data : My_Cpu_Data_Type renames Per_Cpu_Data (Cpu_Id);
    begin
-      pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
-      pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
+      pragma Assert (not HiRTOS.Cpu_In_Privileged_Mode);
+      pragma Assert (not HiRTOS.Cpu_Interrupting_Disabled);
       pragma Assert (Arg_Value = Positive (Thread_Id) - 1);
       --  HiRTOS.Enter_Cpu_Privileged_Mode;
       --  HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
@@ -96,29 +96,33 @@ package body App_Threads is
       loop
          HiRTOS.Mutex.Acquire (My_Cpu_Data.Mutex_Id);
 
-         HiRTOS.Enter_Cpu_Privileged_Mode;
-         HiRTOS_Low_Level_Debug_Interface.Print_String (" Thread ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Arg_Value));
-         HiRTOS_Low_Level_Debug_Interface.Print_String (" (id ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+         HiRTOS.Debug.Print_String (" Thread ");
+         HiRTOS.Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Arg_Value));
+         HiRTOS.Debug.Print_String (" (id ");
+         HiRTOS.Debug.Print_Number_Decimal (
             Interfaces.Unsigned_32 (Thread_Id));
-         HiRTOS_Low_Level_Debug_Interface.Print_String (", prio ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+         HiRTOS.Debug.Print_String (", prio ");
+         HiRTOS.Debug.Print_Number_Decimal (
             Interfaces.Unsigned_32 (HiRTOS.Thread.Get_Current_Thread_Priority));
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("): Period ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
-            Interfaces.Unsigned_32 (Period_Us / 1000));
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("ms, Last run at ");
-         Time_Since_Boot_Us := HiRTOS_Cpu_Arch_Interface.Tick_Timer.Get_Timer_Timestamp_Us;
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
-            Interfaces.Unsigned_32 (Time_Since_Boot_Us / 1000_000));
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("s ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
-            Interfaces.Unsigned_32 (Time_Since_Boot_Us mod 1000_000));
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("us, ");
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("Wakeups ");
-         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Counter, End_Line => True);
-         HiRTOS.Exit_Cpu_Privileged_Mode;
+         HiRTOS.Debug.Print_String ("): Period ");
+         HiRTOS.Debug.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (Period_Us / 1_000));
+         HiRTOS.Debug.Print_String ("ms, Last run at ");
+         Time_Since_Boot_Us := HiRTOS.Timer.Get_Timestamp_Us;
+         if Time_Since_Boot_Us >= One_Hour_Us then
+            HiRTOS.Debug.Print_Number_Decimal (
+               Interfaces.Unsigned_32 (Time_Since_Boot_Us / One_Hour_Us));
+            HiRTOS.Debug.Print_String ("h ");
+            Time_Since_Boot_Us := Time_Since_Boot_Us mod One_Hour_Us;
+         end if;
+         HiRTOS.Debug.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (Time_Since_Boot_Us / 1_000_000));
+         HiRTOS.Debug.Print_String ("s ");
+         HiRTOS.Debug.Print_Number_Decimal (
+            Interfaces.Unsigned_32 (Time_Since_Boot_Us mod 1_000_000));
+         HiRTOS.Debug.Print_String ("us, ");
+         HiRTOS.Debug.Print_String ("Wakeups ");
+         HiRTOS.Debug.Print_Number_Decimal (Counter, End_Line => True);
 
          HiRTOS.Mutex.Release (My_Cpu_Data.Mutex_Id);
 
@@ -131,14 +135,12 @@ package body App_Threads is
                   HiRTOS.Relative_Time_Us_Type (Last_Wakeup_Time_Us - Next_Wakeup_Time_Us);
             begin
                HiRTOS.Mutex.Acquire (My_Cpu_Data.Mutex_Id);
-               HiRTOS.Enter_Cpu_Privileged_Mode;
-               HiRTOS_Low_Level_Debug_Interface.Print_String ("*** WARNING: Thread ");
-               HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Arg_Value));
-               HiRTOS_Low_Level_Debug_Interface.Print_String (" was late by ");
-               HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (
+               HiRTOS.Debug.Print_String ("*** WARNING: Thread ");
+               HiRTOS.Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Arg_Value));
+               HiRTOS.Debug.Print_String (" was late by ");
+               HiRTOS.Debug.Print_Number_Decimal (
                   Interfaces.Unsigned_32 (Time_Behind_Us));
-               HiRTOS_Low_Level_Debug_Interface.Print_String (" us" & ASCII.LF);
-               HiRTOS.Exit_Cpu_Privileged_Mode;
+               HiRTOS.Debug.Print_String (" us" & ASCII.LF);
                HiRTOS.Mutex.Release (My_Cpu_Data.Mutex_Id);
 
                --  Catch up
@@ -149,7 +151,7 @@ package body App_Threads is
       end loop;
    end Hello_Thread_Proc;
 
-   procedure Heat_Beat_Timer_Callback (Timer_Id : HiRTOS.Valid_Timer_Id_Type;
+   procedure Heart_Beat_Timer_Callback (Timer_Id : HiRTOS.Valid_Timer_Id_Type;
                                        Callback_Arg : Integer_Address) is
       use type System.Address;
       use type HiRTOS.Timer_Id_Type;
@@ -158,15 +160,15 @@ package body App_Threads is
    begin
       pragma Assert (My_Cpu_Data'Address = To_Address (Callback_Arg));
       pragma Assert (Timer_Id = My_Cpu_Data.Heart_Beat_Timer_Id);
-      pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
+      pragma Assert (HiRTOS.Cpu_In_Privileged_Mode);
 
       if My_Cpu_Data.Turn_LED_On then
          My_Cpu_Data.Turn_LED_On := False;
-         HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
+         HiRTOS.Debug.Set_Led (True);
       else
          My_Cpu_Data.Turn_LED_On := True;
-         HiRTOS_Low_Level_Debug_Interface.Set_Led (False);
+         HiRTOS.Debug.Set_Led (False);
       end if;
-   end Heat_Beat_Timer_Callback;
+   end Heart_Beat_Timer_Callback;
 
 end App_Threads;

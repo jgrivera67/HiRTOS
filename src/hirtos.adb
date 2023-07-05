@@ -13,6 +13,7 @@ with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
 with HiRTOS_Platform_Parameters;
+with HiRTOS_Low_Level_Debug_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
@@ -93,6 +94,10 @@ is
       HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
       Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
+      --
+      --  Per-cpu initializations:
+      --
+      HiRTOS_Low_Level_Debug_Interface.Initialize;
       HiRTOS.Memory_Protection_Private.Initialize;
       HiRTOS.Interrupt_Handling_Private.Initialize;
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
@@ -310,9 +315,6 @@ is
          end if;
       end;
    end Exit_Cpu_Privileged_Mode;
-
-   function Running_In_Privileged_Mode return Boolean renames
-     HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
    procedure Idle_Thread_Proc (Arg : System.Address) is
    begin

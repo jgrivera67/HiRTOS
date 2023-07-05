@@ -88,7 +88,14 @@ is
    --
    --  Tell if we are running in CPU privileged mode
    --
-   function Running_In_Privileged_Mode return Boolean;
+   function Cpu_In_Privileged_Mode return Boolean renames
+     HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
+
+   --
+   --  Tell if we are running with CPU interrupts disabled
+   --
+   function Cpu_Interrupting_Disabled return Boolean renames
+      HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
    --
    --  Get current time in microseconds since boot

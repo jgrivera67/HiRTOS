@@ -59,6 +59,7 @@ project HiRTOS is
                               "HiRTOS.RTOS_Private",
                               "HiRTOS.Memory_Protection",
                               "HiRTOS.Interrupt_Handling",
+                              "HiRTOS.Debug",
                               "HiRTOS.Thread",
                               "HiRTOS.Timer",
                               "HiRTOS.Mutex",

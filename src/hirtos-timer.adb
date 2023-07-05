@@ -10,6 +10,7 @@ with HiRTOS.Timer_Private;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with HiRTOS_Config_Parameters;
+with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
 
 package body HiRTOS.Timer is
    use HiRTOS.RTOS_Private;
@@ -113,6 +114,15 @@ package body HiRTOS.Timer is
       HiRTOS.Restore_Atomic_Level (Old_Atomic_Level);
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Stop_Timer;
+
+   function Get_Timestamp_Us return Absolute_Time_Us_Type is
+      Timestamp : Absolute_Time_Us_Type;
+   begin
+      Enter_Cpu_Privileged_Mode;
+      Timestamp := HiRTOS_Cpu_Arch_Interface.Tick_Timer.Get_Timer_Timestamp_Us;
+      Exit_Cpu_Privileged_Mode;
+      return Timestamp;
+   end Get_Timestamp_Us;
 
    -----------------------------------------------------------------------------
    --  Private Subprograms

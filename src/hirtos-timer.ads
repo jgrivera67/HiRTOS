@@ -45,4 +45,6 @@ package HiRTOS.Timer is
    procedure Stop_Timer (Timer_Id : Valid_Timer_Id_Type)
       with Post => not Timer_Running (Timer_Id);
 
+   function Get_Timestamp_Us return Absolute_Time_Us_Type;
+
 end HiRTOS.Timer;
