@@ -27,17 +27,17 @@ is
       use type HiRTOS_Config_Parameters.Global_Data_Default_Access_Type;
       Region_Size_In_Bytes : constant Integer_Address :=
          Integer_Address (Size_In_Bits / System.Storage_Unit);
-      End_Address : constant System.Address := System.Storage_Elements.To_Address (
-         System.Storage_Elements.To_Integer (Start_Address) + Region_Size_In_Bytes);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       Old_Data_Range.Range_Region_Role := Invalid_Region_Role;
-      if HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
+      if Valid_Stack_Address (Start_Address)
          or else
-         (Address_Range_In_Global_Data_Region (Start_Address, End_Address)
+         (Valid_Global_Data_Address (Start_Address)
           and then
-          HiRTOS_Config_Parameters.Global_Data_Default_Access =
-            HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Access)
+          (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
+           or else
+           HiRTOS_Config_Parameters.Global_Data_Default_Access =
+             HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Access))
       then
          return;
       end if;
@@ -97,12 +97,10 @@ is
       use type HiRTOS_Config_Parameters.Global_Mmio_Default_Access_Type;
       Region_Size_In_Bytes : constant Integer_Address :=
          Integer_Address (Size_In_Bits / System.Storage_Unit);
-      End_Address : constant System.Address := System.Storage_Elements.To_Address (
-         System.Storage_Elements.To_Integer (Start_Address) + Region_Size_In_Bytes);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       Old_Mmio_Range.Range_Region_Role := Invalid_Region_Role;
-      if Address_Range_In_Global_Mmio_Region (Start_Address, End_Address)
+      if Valid_Global_Mmio_Address (Start_Address)
          and then
          (HiRTOS_Config_Parameters.Global_Mmio_Default_Access =
             HiRTOS_Config_Parameters.Global_Mmio_Privileged_Unprivileged_Access

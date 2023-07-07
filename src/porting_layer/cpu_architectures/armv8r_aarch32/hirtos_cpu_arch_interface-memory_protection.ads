@@ -88,8 +88,7 @@ is
                      HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
                   Size_In_Bytes > 0 and then
                   Size_In_Bytes mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  not Is_Memory_Region_Enabled (Region_Id),
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0,
             Post => Is_Memory_Region_Enabled (Region_Id);
 
    procedure Configure_Memory_Region (
