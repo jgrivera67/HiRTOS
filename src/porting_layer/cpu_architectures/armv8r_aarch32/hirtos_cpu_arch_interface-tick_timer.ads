@@ -40,6 +40,14 @@ is
    procedure Stop_Timer
       with Pre => Cpu_In_Privileged_Mode;
 
+   type Timer_Context_Type is limited private;
+
+   procedure Save_Timer_Context (Timer_Context : out Timer_Context_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
+   procedure Restore_Timer_Context (Timer_Context : Timer_Context_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
 private
 
    function Get_Timer_Timestamp_Us return HiRTOS.Absolute_Time_Us_Type is
@@ -166,5 +174,10 @@ private
 
    function Get_CNTPCTSS return CNTPCT_Type
       with Inline_Always;
+
+   type Timer_Context_Type is record
+      CNTP_CTL_Value : Tick_Timer.CNTP_CTL_Type;
+      CNTP_TVAL_Value : Tick_Timer.CNTP_TVAL_Type;
+   end record;
 
 end HiRTOS_Cpu_Arch_Interface.Tick_Timer;

@@ -36,6 +36,12 @@ function run_fvp {
    $ARMFVP_BIN_PATH/FVP_BaseR_AEMv8R \
            -C bp.pl011_uart0.uart_enable=1 \
            -C bp.pl011_uart0.baud_rate=460800 \
+           -C bp.pl011_uart1.uart_enable=1 \
+           -C bp.pl011_uart1.baud_rate=460800 \
+           -C bp.pl011_uart2.uart_enable=1 \
+           -C bp.pl011_uart2.baud_rate=460800 \
+           -C bp.pl011_uart3.uart_enable=1 \
+           -C bp.pl011_uart3.baud_rate=460800 \
            -C cluster0.gicv3.SRE-EL2-enable-RAO=1 \
            -C cluster0.gicv3.cpuintf-mmap-access-level=2 \
            -C bp.refcounter.non_arch_start_at_default=1 \

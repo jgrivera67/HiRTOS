@@ -10,7 +10,9 @@ with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface.Partition_Context;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor;
 with HiRTOS.Separation_Kernel.SK_Private;
+with HiRTOS.Separation_Kernel.Interrupt_Handling;
 with HiRTOS.Separation_Kernel.Memory_Protection_Private;
 with System.Storage_Elements;
 
@@ -35,6 +37,8 @@ package body HiRTOS.Separation_Kernel is
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
       HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor.Initialize;
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor.Register_Hypervisor_Trap_Callback (
+         HiRTOS.Separation_Kernel.Interrupt_Handling.Hypervisor_Trap_Handler'Access);
 
       Separation_Kernel_Cpu_Instance.Cpu_Id := Cpu_Id;
       Separation_Kernel_Cpu_Instance.Interrupt_Stack_Base_Address :=
@@ -43,17 +47,18 @@ package body HiRTOS.Separation_Kernel is
          System.Storage_Elements.To_Address (
             System.Storage_Elements.To_Integer (ISR_Stack_Info.Base_Address) +
             ISR_Stack_Info.Size_In_Bytes);
+
+      Partition_Queue_Package.List_Init (Separation_Kernel_Cpu_Instance.Runnable_Partitions_Queue,
+                                         Cpu_Id);
    end Initialize;
 
    procedure Start_Partition_Scheduler is
       Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
          HiRTOS.Separation_Kernel.SK_Private.Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
    begin
       pragma Assert (Separation_Kernel_Cpu_Instance.Partition_Scheduler_State = Partition_Scheduler_Stopped);
       pragma Assert (Separation_Kernel_Cpu_Instance.Current_Partition_Id = Invalid_Partition_Id);
 
-      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor.Start_Timer (
          HiRTOS_Separation_Kernel_Config_Parameters.Tick_Timer_Period_Us);
 

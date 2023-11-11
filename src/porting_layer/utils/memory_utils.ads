@@ -13,6 +13,7 @@ package Memory_Utils with
 is
    use Interfaces;
    use System.Storage_Elements;
+   use type System.Address;
 
    type Words_Array_Type is array (Integer_Address range <>) of Unsigned_32;
 
@@ -42,12 +43,26 @@ is
    --
    --  Tell if two address ranges overaap
    --
-   (if To_Integer (Block1_Start_Addr) < To_Integer (Block2_Start_Addr) then
+   (if Block1_Start_Addr < Block2_Start_Addr then
        To_Integer (Block1_Start_Addr) + Block1_Size >=
        To_Integer (Block2_Start_Addr)
-    elsif To_Integer (Block1_Start_Addr) > To_Integer (Block2_Start_Addr) then
+    elsif Block1_Start_Addr > Block2_Start_Addr then
        To_Integer (Block2_Start_Addr) + Block2_Size >=
        To_Integer (Block1_Start_Addr)
+    else
+       True);
+
+   function Address_Overlap (Block1_Start_Addr : System.Address;
+                             Block1_End_Addr : System.Address;
+                             Block2_Start_Addr : System.Address;
+                             Block2_End_Addr : System.Address) return Boolean is
+   --
+   --  Tell if two address ranges overaap
+   --
+   (if Block1_Start_Addr < Block2_Start_Addr then
+       Block1_End_Addr >= Block2_Start_Addr
+    elsif Block1_Start_Addr > Block2_Start_Addr then
+       Block2_End_Addr >= Block1_Start_Addr
     else
        True);
 

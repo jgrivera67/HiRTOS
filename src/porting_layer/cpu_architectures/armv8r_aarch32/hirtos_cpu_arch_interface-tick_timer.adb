@@ -61,6 +61,8 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
    begin
       pragma Assert (CNTP_TVAL_Value >= CNTP_TVAL_Type (Expiration_Time_Us));
 
+      Set_CNTP_TVAL (CNTP_TVAL_Value);
+
       --
       --  Enable tick timer interrupt in the generic timer peipheral:
       --
@@ -78,8 +80,6 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_CTL_Value.ENABLE := Timer_Enabled;
       CNTP_CTL_Value.IMASK := Timer_Interrupt_Not_Masked;
       Set_CNTP_CTL (CNTP_CTL_Value);
-
-      Set_CNTP_TVAL (CNTP_TVAL_Value);
 
       --  Configure generic physical timer interrupt in the GIC:
       Interrupt_Controller.Configure_Internal_Interrupt (
@@ -107,6 +107,18 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
       CNTP_CTL_Value.IMASK := Timer_Interrupt_Masked;
       Set_CNTP_CTL (CNTP_CTL_Value);
    end Stop_Timer;
+
+   procedure Save_Timer_Context (Timer_Context : out Timer_Context_Type) is
+   begin
+      Timer_Context.CNTP_CTL_Value := Get_CNTP_CTL;
+      Timer_Context.CNTP_TVAL_Value := Get_CNTP_TVAL;
+   end Save_Timer_Context;
+
+   procedure Restore_Timer_Context (Timer_Context : Timer_Context_Type) is
+   begin
+      Set_CNTP_CTL (Timer_Context.CNTP_CTL_Value);
+      Set_CNTP_TVAL (Timer_Context.CNTP_TVAL_Value);
+   end Restore_Timer_Context;
 
    ----------------------------------------------------------------------------
    --  Private Subprograms

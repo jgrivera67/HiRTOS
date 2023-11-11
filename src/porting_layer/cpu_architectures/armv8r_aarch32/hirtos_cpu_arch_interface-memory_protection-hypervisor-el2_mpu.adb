@@ -730,7 +730,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.EL2_MPU with
    procedure Set_HPRENR (HPRENR_Value : HPRENR_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 4, %0, c6, c2, 1",
+         "mcr p15, 4, %0, c6, c1, 1",
          Inputs => HPRENR_Type'Asm_Input ("r", HPRENR_Value), --  %0
          Volatile => True);
    end Set_HPRENR;

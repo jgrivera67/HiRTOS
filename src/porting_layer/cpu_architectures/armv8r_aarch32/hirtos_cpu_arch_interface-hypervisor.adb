@@ -25,6 +25,9 @@ is
       --  Route FIQ interrupts to EL2
       HCR_Value.FMO := HCR_FIQ_Mask_Override_Enabled;
 
+      --  trap WFI instruction to EL2
+      --??? HCR_Value.TWI := HCR_Trap_WFI_Enabled;
+
       Set_HCR (HCR_Value);
    end Initialize;
 

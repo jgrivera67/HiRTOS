@@ -1,5 +1,5 @@
 name = "hello_partitions"
-description = "Separation kernel hello partititions demo"
+description = "Separation kernel hello partitions demo"
 version = "0.1.0-dev"
 
 authors = ["J. German Rivera"]
@@ -9,16 +9,20 @@ maintainers-logins = ["jgrivera67"]
 executables = ["hello_partitions"]
 
 [[depends-on]]
-hirtos = "*"
+hirtos_separation_kernel = "*"
 portable_minimal_ada_rts = "*"
-partitions = "*"
+hello_partition1 = "*"
+hello_partition2 = "*"
 
 [[pins]]
-hirtos = { path='../..' }
+hirtos_separation_kernel = { path='../../hirtos_separation_kernel' }
 portable_minimal_ada_rts = { path='../../third_party/portable_minimal_ada_rts' }
-partitions = { path='./partitions' }
+hello_partition1 = { path='./hello_partition1' }
+hello_partition2 = { path='./hello_partition2' }
 
 [build-profiles]
-hirtos = "development"
+hirtos_separation_kernel = "development"
 portable_minimal_ada_rts = "development"
-partitions = "development"
+hello_partition1 = "development"
+hello_partition2 = "development"
+

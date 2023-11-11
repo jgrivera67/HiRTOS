@@ -10,8 +10,8 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface;
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
 with System.Storage_Elements;
+with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 
 private package HiRTOS.Separation_Kernel.Memory_Protection_Private
    with SPARK_Mode => On
@@ -92,61 +92,26 @@ is
       Tcm_Region_Id : Memory_Region_Id_Type;
       Mmio_Region_Id : Memory_Region_Id_Type;
       Reserved1_Region_Id : Memory_Region_Id_Type;
-      Hypervisor_Enabled_Regions_Bit_Mask :
-          HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.
-             Memory_Regions_Enabled_Bit_Mask_Type;
    end record;
 
    Partition_Hypervisor_Regions_Config_Array : constant
       array (Valid_Partition_Id_Type) of Partition_Hypervisor_Regions_Config_Type :=
       [0 => (Sram_Region_Id => Partition0_Sram_Region'Enum_Rep,
-              Tcm_Region_Id => Partition0_Tcm_Region'Enum_Rep,
-              Mmio_Region_Id => Partition0_Mmio_Region'Enum_Rep,
-              Reserved1_Region_Id => Partition0_Reserved1_Region'Enum_Rep,
-              Hypervisor_Enabled_Regions_Bit_Mask =>
-               (As_Word => False,
-                Bits_Array =>
-                  [Partition0_Sram_Region'Enum_Rep => True,
-                   Partition0_Tcm_Region'Enum_Rep => True,
-                   Partition0_Mmio_Region'Enum_Rep => True,
-                   Partition0_Reserved1_Region'Enum_Rep => True,
-                   others => False])),
+             Tcm_Region_Id => Partition0_Tcm_Region'Enum_Rep,
+             Mmio_Region_Id => Partition0_Mmio_Region'Enum_Rep,
+             Reserved1_Region_Id => Partition0_Reserved1_Region'Enum_Rep),
        1 => (Sram_Region_Id => Partition1_Sram_Region'Enum_Rep,
-              Tcm_Region_Id => Partition1_Tcm_Region'Enum_Rep,
-              Mmio_Region_Id => Partition1_Mmio_Region'Enum_Rep,
-              Reserved1_Region_Id => Partition1_Reserved1_Region'Enum_Rep,
-              Hypervisor_Enabled_Regions_Bit_Mask =>
-               (As_Word => False,
-                Bits_Array =>
-                  [Partition1_Sram_Region'Enum_Rep => True,
-                   Partition1_Tcm_Region'Enum_Rep => True,
-                   Partition1_Mmio_Region'Enum_Rep => True,
-                   Partition1_Reserved1_Region'Enum_Rep => True,
-                   others => False])),
+             Tcm_Region_Id => Partition1_Tcm_Region'Enum_Rep,
+             Mmio_Region_Id => Partition1_Mmio_Region'Enum_Rep,
+             Reserved1_Region_Id => Partition1_Reserved1_Region'Enum_Rep),
        2 => (Sram_Region_Id => Partition2_Sram_Region'Enum_Rep,
-              Tcm_Region_Id => Partition2_Tcm_Region'Enum_Rep,
-              Mmio_Region_Id => Partition2_Mmio_Region'Enum_Rep,
-              Reserved1_Region_Id => Partition2_Reserved1_Region'Enum_Rep,
-              Hypervisor_Enabled_Regions_Bit_Mask =>
-               (As_Word => False,
-                Bits_Array =>
-                  [Partition2_Sram_Region'Enum_Rep => True,
-                   Partition2_Tcm_Region'Enum_Rep => True,
-                   Partition2_Mmio_Region'Enum_Rep => True,
-                   Partition2_Reserved1_Region'Enum_Rep => True,
-                   others => False])),
+             Tcm_Region_Id => Partition2_Tcm_Region'Enum_Rep,
+             Mmio_Region_Id => Partition2_Mmio_Region'Enum_Rep,
+             Reserved1_Region_Id => Partition2_Reserved1_Region'Enum_Rep),
        3 => (Sram_Region_Id => Partition3_Sram_Region'Enum_Rep,
-              Tcm_Region_Id => Partition3_Tcm_Region'Enum_Rep,
-              Mmio_Region_Id => Partition3_Mmio_Region'Enum_Rep,
-              Reserved1_Region_Id => Partition3_Reserved1_Region'Enum_Rep,
-              Hypervisor_Enabled_Regions_Bit_Mask =>
-               (As_Word => False,
-                Bits_Array =>
-                  [Partition3_Sram_Region'Enum_Rep => True,
-                   Partition3_Tcm_Region'Enum_Rep => True,
-                   Partition3_Mmio_Region'Enum_Rep => True,
-                   Partition3_Reserved1_Region'Enum_Rep => True,
-                   others => False]))
+             Tcm_Region_Id => Partition3_Tcm_Region'Enum_Rep,
+             Mmio_Region_Id => Partition3_Mmio_Region'Enum_Rep,
+             Reserved1_Region_Id => Partition3_Reserved1_Region'Enum_Rep)
       ];
 
    --
@@ -167,7 +132,8 @@ is
       SRAM_Size_In_Bytes : System.Storage_Elements.Integer_Address;
       MMIO_Base_Address : System.Address;
       MMIO_Size_In_Bytes : System.Storage_Elements.Integer_Address;
-      Partition_Internal_Memory_Regions : out Partition_Internal_Memory_Regions_Type);
+      Partition_Internal_Memory_Regions : out Partition_Internal_Memory_Regions_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
 
    --
    --  Restore a partition's memory protection regions

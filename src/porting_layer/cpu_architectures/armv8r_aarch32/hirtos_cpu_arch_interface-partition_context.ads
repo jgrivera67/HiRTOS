@@ -20,13 +20,14 @@ package HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
    --  Initialize a partition's CPU context
    --
    procedure Initialize_Partition_Cpu_Context (Partition_Cpu_Context : out Cpu_Context_Type;
-                                               Entry_Point_Address : Cpu_Register_Type);
+                                               Entry_Point_Address : Cpu_Register_Type;
+                                               Interrupt_Stack_End_Address : System.Address);
 
    --
    --  Perform the first partittion context switch
    --
    procedure First_Partition_Context_Switch
-      with Pre => Cpu_In_Hypervisor_Mode and then Cpu_Interrupting_Disabled,
+      with Pre => Cpu_In_Hypervisor_Mode,
            No_Return;
 
    --
@@ -37,6 +38,8 @@ package HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
    function  Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address;
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
+
+   function Get_Interrupt_Stack_End_Address (Cpu_Context : Cpu_Context_Type) return System.Address;
 
    type Extended_Cpu_Context_Type is limited private;
 
@@ -50,7 +53,7 @@ package HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
 
    procedure Initialize_Interrupt_Handling_Context (Interrupt_Vector_Table_Address : System.Address;
                                                     Interrupt_Handling_Context : out Interrupt_Handling_Context_Type)
-      with Pre => Cpu_In_Hypervisor_Mode and then Cpu_Interrupting_Disabled;
+      with Pre => Cpu_In_Hypervisor_Mode;
 
    procedure Save_Interrupt_Handling_Context (Interrupt_Handling_Context : out Interrupt_Handling_Context_Type)
       with Pre => Cpu_In_Hypervisor_Mode and then Cpu_Interrupting_Disabled;
@@ -171,13 +174,15 @@ private
    --  @field Integer_Registers Saved CPU integer registers
    --
    type Cpu_Context_Type is limited record
+      Interrupt_Stack_End_Address : System.Address;
       Floating_Point_Registers : Floating_Point_Registers_Type;
       Integer_Registers : Integer_Registers_Type;
    end record;
 
    for Cpu_Context_Type use record
-      Floating_Point_Registers at 0 range 0 .. (136 * 8) - 1;
-      Integer_Registers at 136 range 0 .. (64 * 8) - 1;
+      Interrupt_Stack_End_Address at 0 range 0 .. 31;
+      Floating_Point_Registers at 4 range 0 .. (((16 * 8) + (2 * 4)) * 8) - 1;
+      Integer_Registers at 140 range 0 .. (16 * 4 * 8) - 1;
    end record;
 
    type Interrupt_Handling_Context_Type is limited record
@@ -192,5 +197,8 @@ private
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
       (Cpu_Context.Integer_Registers.SPSR_HYP);
+
+   function Get_Interrupt_Stack_End_Address (Cpu_Context : Cpu_Context_Type) return System.Address is
+      (Cpu_Context.Interrupt_Stack_End_Address);
 
 end HiRTOS_Cpu_Arch_Interface.Partition_Context;

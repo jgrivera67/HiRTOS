@@ -25,4 +25,8 @@ is
    CPSR_Undefined_Mode      : constant := 2#1_1011#; --  EL1
    CPSR_System_Mode         : constant := 2#1_1111#; --  EL1
 
+   CPSR_F_Bit_Mask          : constant := 2#100_0000#; --  EL1
+   CPSR_I_Bit_Mask          : constant := 2#1000_0000#; --  EL1
+   CPSR_A_Bit_Mask          : constant := 2#1_0000_0000#; --  EL1
+
 end HiRTOS_Cpu_Arch_Interface_Private;

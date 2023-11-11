@@ -15,6 +15,7 @@ with HiRTOS.Memory_Protection;
 with HiRTOS.Separation_Kernel;
 with HiRTOS_Platform_Parameters;
 with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
@@ -33,11 +34,6 @@ is
    use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
    use type System.Address;
-
-   HiRTOS_Global_Vars_Elaborated_Flag : Atomic_Counter_Type
-      with Import,
-           Convention => C,
-           External_Name => "hirtos_global_vars_elaborated_flag";
 
    Idle_Thread_Stacks :
       array (Valid_Cpu_Core_Id_Type) of Small_Thread_Stack_Package.Execution_Stack_Type with
@@ -66,7 +62,7 @@ is
    begin
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          HiRTOSinit;
-         Atomic_Store (HiRTOS_Global_Vars_Elaborated_Flag, 1);
+         Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          Memory_Utils.Flush_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
@@ -74,7 +70,7 @@ is
       else
          loop
             HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
-            exit when Atomic_Load (HiRTOS_Global_Vars_Elaborated_Flag) = 1;
+            exit when Atomic_Load (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag) = 1;
          end loop;
          Memory_Utils.Invalidate_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,

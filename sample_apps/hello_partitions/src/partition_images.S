@@ -9,10 +9,11 @@
  * Partition 1
  */
         .section .bindata, "ax"
-        .align 5
+        .align 6
         .global hello_partition1_image_start
 hello_partition1_image_start:
-        .incbin "../../partitions/bin/hello_partition1.bin"
+        .incbin "../../hello_partition1/bin/hello_partition1.bin"
+        .align 6
         .global hello_partition1_image_end
 hello_partition1_image_end:
 
@@ -24,7 +25,7 @@ hello_partition1_image_addr:
 
         .global hello_partition1_load_addr
 hello_partition1_load_addr:
-        .word 0x08080000
+        .word 0x08100000
 
         .global hello_partition1_size
 hello_partition1_size:
@@ -34,10 +35,11 @@ hello_partition1_size:
  * Partition 2
  */
         .section .bindata, "ax"
-        .align 5
+        .align 6
         .global hello_partition2_image_start
  hello_partition2_image_start:
-        .incbin "../../partitions/bin/hello_partition2.bin"
+        .incbin "../../hello_partition2/bin/hello_partition2.bin"
+        .align 6
         .global hello_partition2_image_end
  hello_partition2_image_end:
 
@@ -49,9 +51,8 @@ hello_partition2_image_addr:
 
         .global hello_partition2_load_addr
 hello_partition2_load_addr:
-        .word 0x08100000
+        .word 0x08180000
 
         .global hello_partition2_size
 hello_partition2_size:
         .word hello_partition2_image_end - hello_partition2_image_start
-

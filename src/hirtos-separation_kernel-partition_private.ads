@@ -9,6 +9,9 @@ with HiRTOS_Separation_Kernel_Config_Parameters;
 with HiRTOS.Separation_Kernel.Partition;
 with HiRTOS.Separation_Kernel.Memory_Protection_Private;
 with HiRTOS_Cpu_Arch_Interface.Partition_Context;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor;
+with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
+with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
 
 private package HiRTOS.Separation_Kernel.Partition_Private with
   SPARK_Mode => On
@@ -31,6 +34,9 @@ is
    --  partition crashes.
    --  @field State: current state of the partition
    --  @field Time_Slice_Left_Us: partition's current time slice left in microseconds.
+   --  @field Executed_WFI Flag indicating that the partition has executed a WFI instruction
+   --  @field Hypervisor_Enabled_Regions_Bit_Mask: partition's hypervisor-controlled
+   --         enabled regions.
    --  @field Cpu_Context : partition's saved CPU context.
    --  @field Extended_Cpu_Context : partition's saved extended CPU context.
    --  @field Interrupt_Handling_Context : partition's saved interrupt handling context.
@@ -44,12 +50,17 @@ is
       Failover_Partition_Id : Partition_Id_Type := Invalid_Partition_Id;
       State : Partition_State_Type := Partition_Not_Created;
       Time_Slice_Left_Us : Relative_Time_Us_Type := Partition_Time_Slice_Us;
+      Executed_WFI : Boolean := False;
+      Hypervisor_Enabled_Regions_Bit_Mask :
+         HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.Memory_Regions_Enabled_Bit_Mask_Type;
       Cpu_Context :
          HiRTOS_Cpu_Arch_Interface.Partition_Context.Cpu_Context_Type;
       Extended_Cpu_Context :
          HiRTOS_Cpu_Arch_Interface.Partition_Context.Extended_Cpu_Context_Type;
       Interrupt_Handling_Context :
          HiRTOS_Cpu_Arch_Interface.Partition_Context.Interrupt_Handling_Context_Type;
+      Timer_Context :
+         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Timer_Context_Type;
       Internal_Memory_Regions :
          HiRTOS.Separation_Kernel.Memory_Protection_Private.Partition_Internal_Memory_Regions_Type;
       Stats : Partition_Stats_Type;

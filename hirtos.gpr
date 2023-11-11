@@ -47,6 +47,7 @@ project HiRTOS is
 
    for Library_Standalone use "standard";
    for Library_Interface use ("Hirtos",
+                              "HiRTOS_Config",
                               "HiRTOS_Config_Parameters",
                               "HiRTOS_Separation_Kernel_Config_Parameters",
                               "Generic_Execution_Stack",

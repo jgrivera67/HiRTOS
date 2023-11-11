@@ -306,6 +306,10 @@ hirtos_global_vars_elaborated_flag:
    .word 0
    .space CACHE_LINE_SIZE - 4
 
+   .global hirtos_booted_as_partition
+hirtos_booted_as_partition:
+   .byte 0
+
 /**
  * System Reset handler entry point
  */
@@ -316,7 +320,7 @@ hirtos_global_vars_elaborated_flag:
 reset_handler:
         INIT_CPU_REGS
 
-#if 0 // Not needed ???
+#if defined(ARM_FVP_SIMULATOR)
         /*
          * Enable use of generic timer for ARM FVP platform:
          */
@@ -335,6 +339,9 @@ reset_handler:
         mrs     r0, cpsr
         and     r0, r0, #CPSR_MODE_MASK
         cmp     r0, #CPSR_HYPERVISOR_MODE
+        ldrne  r0, =hirtos_booted_as_partition
+        movne  r1, #1
+        strbne r1, [r0]
         bne     reset_handler_el1
 
         /*
@@ -350,7 +357,7 @@ reset_handler:
         INIT_CPU_BANKED_REGS_FROM_EL2
                                 // CPU in HYP mode (EL2)
 
-#if defined(UNSUPERVISED_RTOS)
+#if !defined(HIRTOS_SEPARATION_KERNEL)
         /*
          * Set HACTLR to allow EL1 access to system registers
          */

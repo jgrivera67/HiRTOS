@@ -1,0 +1,26 @@
+name = "hello_partition1"
+description = "Hello partition1"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["hello_partition1"]
+
+[[depends-on]]
+hirtos_separation_kernel = "*"
+portable_minimal_ada_rts = "*"
+
+[[pins]]
+hirtos_separation_kernel = { path='../../../hirtos_separation_kernel' }
+portable_minimal_ada_rts = { path='../../../third_party/portable_minimal_ada_rts' }
+
+[build-profiles]
+hirtos_separation_kernel = "development"
+portable_minimal_ada_rts = "development"
+
+[[actions]]
+type = "post-build"
+command = ["arm-none-eabi-objcopy", "-O", "binary", "-S", "bin/hello_partition1.elf",
+           "bin/hello_partition1.bin"]

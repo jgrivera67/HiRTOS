@@ -1,0 +1,117 @@
+--
+--  Copyright (c) 2022, German Rivera
+--  All rights reserved.
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
+
+--
+--  NOTE: Before building for the first time, make sure the path of
+--  corresponding cross compiler toolchain is in $PATH. (After running
+--  running `alr toolchain --select`, the cross compiler will be installed
+--  at `~/.config/alire/cache/dependencies/gnat_arm_elf_<xxxx>/bin`.
+--
+with "config/hirtos_separation_kernel_config.gpr";
+with "../hirtos_compiler_flags.gpr";
+
+project HiRTOS_Separation_Kernel is
+   case HiRTOS_Compiler_Flags.Mode is
+      when "gnatprove" =>
+         null;
+      when others =>
+         for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
+   end case;
+
+   for Runtime ("Ada") use "../third_party/portable_minimal_ada_rts";
+   for Languages use ("Ada", "C", "Asm_Cpp");
+
+   for Library_Name use "HiRTOS";
+   for Library_Version use Project'Library_Name & ".a." & Hirtos_Separation_Kernel_Config.Crate_Version;
+
+   for Source_Dirs use ("../src",
+                        "../src/porting_layer/utils",
+                        "../src/porting_layer/cpu_architectures",
+                        "../src/porting_layer/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch,
+                        "../src/porting_layer/platforms",
+                        "../src/porting_layer/platforms/" & HiRTOS_Compiler_Flags.Platform,
+                        "config");
+
+   for Object_Dir use "obj/" & HiRTOS_Separation_Kernel_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("HIRTOS_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   for Library_Standalone use "standard";
+   for Library_Interface use ("Hirtos",
+                              "HiRTOS_Separation_Kernel_Config",
+                              "HiRTOS_Config_Parameters",
+                              "HiRTOS_Separation_Kernel_Config_Parameters",
+                              "Generic_Execution_Stack",
+                              "Generic_Linked_List",
+                              "HiRTOS.Interrupt_Handling_Private",
+                              "HiRTOS.Memory_Protection_Private",
+                              "HiRTOS.Thread_Private",
+                              "HiRTOS.Mutex_Private",
+                              "HiRTOS.Condvar_Private",
+                              "HiRTOS.Timer_Private",
+                              "HiRTOS.RTOS_Private",
+                              "HiRTOS.Memory_Protection",
+                              "HiRTOS.Interrupt_Handling",
+                              "HiRTOS.Debug",
+                              "HiRTOS.Thread",
+                              "HiRTOS.Timer",
+                              "HiRTOS.Mutex",
+                              "HiRTOS.Condvar",
+                              "HiRTOS.Separation_Kernel",
+                              "HiRTOS.Separation_Kernel.SK_Private",
+                              "HiRTOS.Separation_Kernel.Partition",
+                              "HiRTOS.Separation_Kernel.Partition_Private",
+                              "HiRTOS.Separation_Kernel.Memory_Protection_Private",
+                              "HiRTOS.Separation_Kernel.Interrupt_Handling",
+                              "HiRTOS_Cpu_Arch_Parameters",
+                              "HiRTOS_Platform_Parameters",
+                              "HiRTOS_Cpu_Arch_Interface",
+                              "HiRTOS_Cpu_Arch_Interface.Thread_Context",
+                              "HiRTOS_Cpu_Arch_Interface.Partition_Context",
+                              "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling",
+                              "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor",
+                              "HiRTOS_Cpu_Arch_Interface.Memory_Protection",
+                              "HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor",
+                              "HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU",
+                              "HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.EL2_MPU",
+                              "HiRTOS_Cpu_Arch_Interface.Hypervisor",
+                              "HiRTOS_Cpu_Arch_Interface.System_Registers",
+                              "HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor",
+                              "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller",
+                              "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Hypervisor",
+                              "HiRTOS_Cpu_Arch_Interface.Interrupts",
+                              "HiRTOS_Cpu_Arch_Interface.Tick_Timer",
+                              "HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor",
+                              "HiRTOS_Cpu_Arch_Interface_Private",
+                              "HiRTOS_Cpu_Multi_Core_Interface",
+                              "HiRTOS_Cpu_Startup_Interface",
+                              "HiRTOS_Low_Level_Debug_Interface",
+                              "Bit_Sized_Integer_Types",
+                              "Memory_Utils",
+                              "Uart_Driver");
+
+   for Library_Auto_Init use "False";
+
+   package Compiler is
+      for Default_Switches ("Ada") use HiRTOS_Separation_Kernel_Config.Ada_Compiler_Switches &
+                                       HiRTOS_Compiler_Flags.Compiler.ADAFLAGS;
+
+      for Default_Switches ("C") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS;
+
+      for Default_Switches ("Asm_Cpp") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS &
+                                           "-DHIRTOS_SEPARATION_KERNEL";
+   end Compiler;
+
+   --package Builder is
+   --   for Global_Compilation_Switches ("Ada") use ("-gnateT=target.atp");
+   --end Builder;
+end HiRTOS_Separation_Kernel;

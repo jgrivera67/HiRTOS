@@ -15,4 +15,11 @@ is
    procedure Interrupt_Handler_Epilog
       with Inline_Always, No_Return;
 
+   type Hypervisor_Traps_Type is (WFI_Instruction_Executed,
+                                  HVC_Instruction_Executed);
+
+   type Hypervisor_Trap_Callback_Type is access procedure (Hypervisor_Trap : Hypervisor_Traps_Type);
+
+   procedure Register_Hypervisor_Trap_Callback (Hypervisor_Trap_Callback : Hypervisor_Trap_Callback_Type);
+
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor;

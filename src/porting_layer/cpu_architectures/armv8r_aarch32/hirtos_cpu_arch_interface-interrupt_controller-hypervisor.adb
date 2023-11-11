@@ -16,7 +16,9 @@ is
    procedure Initialize_Interrupts_Enabled_Bitmap (
       Interrupts_Enabled_Bitmap : out Interrupts_Enabled_Bitmap_Type) is
    begin
-      Interrupts_Enabled_Bitmap := [others => (As_Word => True, Value => 0)];
+      Interrupts_Enabled_Bitmap := [0 => (As_Word => False,
+                                          Bits_Array => [26 => 1, others => 0]), --????
+                                    others => (As_Word => True, Value => 0)];
    end Initialize_Interrupts_Enabled_Bitmap;
 
    procedure Save_Interrupts_Enabled_Bitmap (
@@ -36,7 +38,7 @@ is
       --
       for I in GICD.GICD_ISENABLER_Array'Range loop
          GIC_ISENABLER_Value := GICD.GICD_ISENABLER_Array (I);
-         Interrupts_Enabled_Bitmap (I + 1).Bits_Array := GIC_Interrupt_Bit_Mask_Type (GIC_ISENABLER_Value);
+         Interrupts_Enabled_Bitmap (I).Bits_Array := GIC_Interrupt_Bit_Mask_Type (GIC_ISENABLER_Value);
       end loop;
 
    end Save_Interrupts_Enabled_Bitmap;
@@ -63,9 +65,9 @@ is
       --  Restore SPIs enabled/disabled:
       --
       for I in GICD.GICD_ISENABLER_Array'Range loop
-         GIC_ISENABLER_Value := GIC_ISENABLER_Type (Interrupts_Enabled_Bitmap (I + 1).Bits_Array);
+         GIC_ISENABLER_Value := GIC_ISENABLER_Type (Interrupts_Enabled_Bitmap (I).Bits_Array);
          GICD.GICD_ISENABLER_Array (I) := GIC_ISENABLER_Value;
-         Negated_Bit_Mask.Value := not Interrupts_Enabled_Bitmap (I + 1).Value;
+         Negated_Bit_Mask.Value := not Interrupts_Enabled_Bitmap (I).Value;
          GIC_ICENABLER_Value := GIC_ICENABLER_Type (Negated_Bit_Mask.Bits_Array);
          GICD.GICD_ICENABLER_Array (I) := GIC_ICENABLER_Value;
       end loop;

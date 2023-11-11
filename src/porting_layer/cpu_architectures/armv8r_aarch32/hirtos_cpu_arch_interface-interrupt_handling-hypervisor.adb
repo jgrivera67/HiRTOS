@@ -21,6 +21,15 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    use HiRTOS_Cpu_Arch_Interface_Private;
    use HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor;
 
+   Per_Cpu_Hypervisor_Trap_Callback_Array :
+      array (Valid_Cpu_Core_Id_Type) of Hypervisor_Trap_Callback_Type := [others => null];
+
+   procedure Register_Hypervisor_Trap_Callback (Hypervisor_Trap_Callback : Hypervisor_Trap_Callback_Type)
+   is
+   begin
+      Per_Cpu_Hypervisor_Trap_Callback_Array (Get_Cpu_Id) := Hypervisor_Trap_Callback;
+   end Register_Hypervisor_Trap_Callback;
+
    --
    --  Entry point of the EL2 undefined instruction exception handler
    --
@@ -93,6 +102,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          --
          --  NOTE: The interrupted context's register r13 (sp) does not need to
          --  be saved here, as it is saved in the partition's extended CPU context.
+         --  sp points to the end of the current partition's CPU_Context.
          --
          "push    {r0-r12, r14}" & LF &
 
@@ -115,16 +125,12 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          "vmrs r1, fpscr" & LF &
          "push {r1}" & LF &
          "vpush {d0-d15}" & LF &
+         "sub sp, sp, #4" & LF &
 
          --
-         --  Call HiRTOS.Separation_Kernel.Enter_Interrupt_Context (sp)
+         --  sp points to the current partition's CPU_Context.
          --
-         "mov r0, sp" & LF &
-         "bl hirtos_separation_kernel_enter_interrupt_context" & LF &
-         "mov sp, r0" & LF &
-         --
-         --  sp_hyp points to the bottom of the hypervisor's ISR stack
-         --
+         "ldr sp, [sp]" & LF &
 
          --
          --  Set frame pointer to be the same as stack pointer:
@@ -155,10 +161,11 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    begin
       System.Machine_Code.Asm (
          --
-         --  Call sp = HiRTOS.Separation_Kernel.Interrupt_Handling.Exit_Interrupt_Context
+         --  Set sp to value returned by HiRTOS.Separation_Kernel.Interrupt_Handling.Exit_Interrupt_Context,
+         --  which is the address of the new current partitions' CPU_Context.
          --
          "bl hirtos_separation_kernel_exit_interrupt_context" & LF &
-         "mov sp, r0" & LF &
+         "add sp, r0, #4" & LF & -- skip Interrupt_Stack_End_Address field
 
          --
          --  Restore floating-point registers from the stack:
@@ -222,11 +229,18 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
 
       declare
          HSR_Value : constant HSR_Type := Get_HSR;
+         Hypervisor_Trap_Callback : constant Hypervisor_Trap_Callback_Type :=
+            Per_Cpu_Hypervisor_Trap_Callback_Array (Get_Cpu_Id);
       begin
          case HSR_Value.EC is
+            when HSR_Exception_From_WFI_WFE =>
+               if Hypervisor_Trap_Callback /= null then
+                  Hypervisor_Trap_Callback.all (WFI_Instruction_Executed);
+               end if;
             when HSR_Exception_From_HVC_Executed =>
-               --  TODO
-               null;
+               if Hypervisor_Trap_Callback /= null then
+                  Hypervisor_Trap_Callback.all (HVC_Instruction_Executed);
+               end if;
             when HSR_Exception_From_Prefetch_Abort_Routed_To_EL2 |
                  HSR_Exception_From_Prefetch_Abort_At_EL2 =>
                Memory_Protection.Hypervisor.Handle_Prefetch_Abort_Exception;

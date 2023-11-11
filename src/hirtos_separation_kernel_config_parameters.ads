@@ -21,11 +21,15 @@ is
    --
    --  Separation kernel's tick timer period in microseconds
    --
-   Tick_Timer_Period_Us : constant := 500;
+   Tick_Timer_Period_Us : constant := 10_000; --??? 1000
 
    --
    --  Partition time slice in timer ticks
    --
    Partition_Time_Slice_Ticks : constant := 1;
+
+   Partitions_Share_Tick_Timer : constant Boolean := True;
+
+   Separation_Kernel_Debug_Tracing_On : constant Boolean := False;
 
 end HiRTOS_Separation_Kernel_Config_Parameters;

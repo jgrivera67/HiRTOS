@@ -67,7 +67,8 @@ package body HiRTOS.Separation_Kernel.Partition is
                               Suspended);
 
          Initialize_Partition_Cpu_Context (Partition_Obj.Cpu_Context,
-                                           Cpu_Register_Type (To_Integer (Reset_Handler_Address)));
+                                           Cpu_Register_Type (To_Integer (Reset_Handler_Address)),
+                                           Separation_Kernel_Cpu_Instance.Interrupt_Stack_End_Address);
       end;
 
       if not Suspended then

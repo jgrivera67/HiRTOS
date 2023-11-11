@@ -6,7 +6,6 @@
 --
 with HiRTOS.Separation_Kernel.SK_Private;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Cpu_Arch_Interface;
 
 package body HiRTOS.Separation_Kernel.Partition_Private is
    use HiRTOS.Separation_Kernel.SK_Private;
@@ -80,6 +79,7 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
       Old_Partition_Id := Separation_Kernel_Cpu_Instance.Current_Partition_Id;
       if Old_Partition_Id /= Invalid_Partition_Id then
          Reschedule_Partition (Old_Partition_Id);
+         Separation_Kernel_Cpu_Instance.Current_Partition_Id := Invalid_Partition_Id;
       end if;
 
       Dequeue_Runnable_Partition (Separation_Kernel_Cpu_Instance.Current_Partition_Id);
@@ -106,9 +106,10 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
          Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
       Partition_Obj : Partition_Type renames Separation_Kernel_Cpu_Instance.Partition_Instances (Partition_Id);
    begin
-      if Partition_Obj.Time_Slice_Left_Us = 0 then
+      if Partition_Obj.Time_Slice_Left_Us = 0 or else Partition_Obj.Executed_WFI then
          Partition_Obj.Stats.Times_Time_Slice_Consumed := @ + 1;
          Partition_Obj.Time_Slice_Left_Us := Partition_Time_Slice_Us;
+         Partition_Obj.Executed_WFI := False;
          Enqueue_Runnable_Partition (Partition_Obj.Id);
       else
          pragma Assert (Partition_Obj.Time_Slice_Left_Us <= Partition_Time_Slice_Us);
@@ -122,6 +123,10 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
          Partition_Obj.Extended_Cpu_Context);
       HiRTOS_Cpu_Arch_Interface.Partition_Context.Save_Interrupt_Handling_Context (
          Partition_Obj.Interrupt_Handling_Context);
+      if HiRTOS_Separation_Kernel_Config_Parameters.Partitions_Share_Tick_Timer then
+         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Save_Timer_Context (Partition_Obj.Timer_Context);
+      end if;
+
       HiRTOS.Separation_Kernel.Memory_Protection_Private.Save_Partition_Memory_Regions (
          Partition_Obj.Id, Partition_Obj.Internal_Memory_Regions);
    end Save_Partition_Extended_Context;
@@ -132,6 +137,10 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
          Partition_Obj.Extended_Cpu_Context);
       HiRTOS_Cpu_Arch_Interface.Partition_Context.Restore_Interrupt_Handling_Context (
          Partition_Obj.Interrupt_Handling_Context);
+      if HiRTOS_Separation_Kernel_Config_Parameters.Partitions_Share_Tick_Timer then
+         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Restore_Timer_Context (Partition_Obj.Timer_Context);
+      end if;
+
       HiRTOS.Separation_Kernel.Memory_Protection_Private.Restore_Partition_Memory_Regions (
          Partition_Obj.Id, Partition_Obj.Internal_Memory_Regions);
    end Restore_Partition_Extended_Context;

@@ -55,6 +55,8 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => 
    begin
       pragma Assert (CNTP_TVAL_Value >= CNTP_TVAL_Type (Expiration_Time_Us));
 
+      Set_CNTHP_TVAL (CNTP_TVAL_Value);
+
       --
       --  Enable tick timer interrupt in the generic timer peipheral:
       --
@@ -72,8 +74,6 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => 
       CNTP_CTL_Value.ENABLE := Timer_Enabled;
       CNTP_CTL_Value.IMASK := Timer_Interrupt_Not_Masked;
       Set_CNTHP_CTL (CNTP_CTL_Value);
-
-      Set_CNTHP_TVAL (CNTP_TVAL_Value);
 
       --  Configure generic hypervisor timer interrupt in the GIC:
       Interrupt_Controller.Configure_Internal_Interrupt (
