@@ -8,7 +8,7 @@ abstract project Hirtos_Config is
 
    Alire_Host_Arch := "x86_64";
 
-   Alire_Host_Distro := "fedora";
+   Alire_Host_Distro := "ubuntu";
    Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Ada_Compiler_Switches := Ada_Compiler_Switches &
           (
@@ -43,6 +43,8 @@ abstract project Hirtos_Config is
            ,"-gnatyu" -- Check unnecessary blank lines
            ,"-gnatyx" -- Check extra parentheses
           );
+
+   Separation_Kernel_Debug_Tracing_On := "False";
 
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := "development";

@@ -23,7 +23,56 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
 
-   procedure Handle_Undefined_Instruction_Exception;
+   --
+   --  Entry point of the EL1 undefined instruction exception handler
+   --
+   procedure EL1_Undefined_Instruction_Exception_Handler
+      with Export,
+           External_Name => "el1_undefined_instruction_exception_handler";
+   pragma Machine_Attribute (EL1_Undefined_Instruction_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the EL1 supervisor call exception handler
+   --
+   procedure EL1_Supervisor_Call_Exception_Handler
+      with Export,
+           External_Name => "el1_supervisor_call_exception_handler";
+   pragma Machine_Attribute (EL1_Supervisor_Call_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the EL1 prefetch abort exception handler
+   --
+   procedure EL1_Prefetch_Abort_Exception_Handler
+      with Export,
+           External_Name => "el1_prefetch_abort_exception_handler";
+   pragma Machine_Attribute (EL1_Prefetch_Abort_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the EL1 data abort exception handler
+   --
+   procedure EL1_Data_Abort_Exception_Handler
+      with Export,
+           External_Name => "el1_data_abort_exception_handler";
+   pragma Machine_Attribute (EL1_Data_Abort_Exception_Handler, "naked");
+
+   --
+   --  Entry point of the EL1 IRQ interrupt handler
+   --
+   procedure EL1_Irq_Interrupt_Handler
+      with Export,
+           External_Name => "el1_irq_interrupt_handler";
+   pragma Machine_Attribute (EL1_Irq_Interrupt_Handler, "naked");
+
+   --
+   --  Entry point of the EL1 FIQ interrupt handler
+   --
+   procedure EL1_Fiq_Interrupt_Handler
+      with Export,
+           External_Name => "el1_fiq_interrupt_handler";
+   pragma Machine_Attribute (EL1_Fiq_Interrupt_Handler, "naked");
+
+   procedure Interrupt_Handler_Prolog
+      with Inline_Always;
 
    procedure Do_Synchronous_Context_Switch
       with Export,
@@ -78,7 +127,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    end Valid_ISR_Stack_Pointer;
 
    --
-   --  Inline subprogram to be invoked at the beginning of top-level interrupt handlers from
+   --  Inline subprogram to be invoked at the beginning of top-level EL1 interrupt handlers from
    --  which the RTOS scheduler can be called upon exit.
    --
    --  This subprogram first switches the CPU mode to system mode, so that the SYS/USR
@@ -153,15 +202,14 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    end Interrupt_Handler_Prolog;
 
    --
-   --  Inline subprogram to be invoked at the end of top-level interrupt handlers from
-   --  which the RTOS scheduler can be called upon exit.
+   --  Inline subprogram to be invoked at the end of top-level EL1 interrupt
+   --  handlers from which the RTOS scheduler can be called upon exit.
    --
    --  It restores the CPU state that was saved by a previous invocation to
    --  Interrupt_Handler_Prolog, and then executes an 'rfeia' instruction.
    --
    --  @pre  interrupts are disabled at the CPU
    --  @pre  CPU is in SYS mode
-   --  @pre  g_interrupt_nesting_level > 0
    --  @post PC = return address from interrupt (next instruction to execute in
    --        interrupted code)
    --  @post current CPU privilege = privilege level of interrupted code
@@ -197,7 +245,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          "pop     {r0-r12, r14}" & LF &
 
          --
-         --  Return from exception popping PC and CPSR that were saved on the stack:
+         --  Return from EL1 exception, popping PC and CPSR that were saved on the stack:
          --
          "rfeia   sp!",
          Inputs =>
@@ -215,12 +263,12 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --  Interrupt and Exception Handlers
    ----------------------------------------------------------------------------
 
-   procedure Undefined_Instruction_Exception_Handler is
+   procedure EL1_Undefined_Instruction_Exception_Handler is
    begin
       Interrupt_Handler_Prolog;
       Handle_Undefined_Instruction_Exception;
       Interrupt_Handler_Epilog;
-   end Undefined_Instruction_Exception_Handler;
+   end EL1_Undefined_Instruction_Exception_Handler;
 
    procedure Handle_Undefined_Instruction_Exception is
       use type System.Storage_Elements.Integer_Address;
@@ -245,7 +293,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --  CAUTION: This subprogram cannot use any stack space as we
    --  do not define a stack for SVC mode.
    --
-   procedure Supervisor_Call_Exception_Handler is
+   procedure EL1_Supervisor_Call_Exception_Handler is
    begin
       System.Machine_Code.Asm (
          --  TODO: Change to get the SVC instruction immediate operand
@@ -258,11 +306,11 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          "b handle_invalid_svc_exception",
          Clobber => "r0",
          Volatile => True);
-   end Supervisor_Call_Exception_Handler;
+   end EL1_Supervisor_Call_Exception_Handler;
 
    --
    --  CAUTION: This subprogram cannot use any stack space, before
-   --  it calls Interrupt_Hanlder_Prolog, as we do not define a stack
+   --  it calls Interrupt_Handler_Prolog, as we do not define a stack
    --  for SVC mode.
    --
    procedure Do_Synchronous_Context_Switch is
@@ -303,21 +351,21 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       raise Program_Error;
    end Handle_Invalid_SVC_Exception;
 
-   procedure Prefetch_Abort_Exception_Handler is
+   procedure EL1_Prefetch_Abort_Exception_Handler is
    begin
       Interrupt_Handler_Prolog;
       Memory_Protection.Handle_Prefetch_Abort_Exception;
       Interrupt_Handler_Epilog;
-   end Prefetch_Abort_Exception_Handler;
+   end EL1_Prefetch_Abort_Exception_Handler;
 
-   procedure Data_Abort_Exception_Handler is
+   procedure EL1_Data_Abort_Exception_Handler is
    begin
       Interrupt_Handler_Prolog;
       Memory_Protection.Handle_Data_Abort_Exception;
       Interrupt_Handler_Epilog;
-   end Data_Abort_Exception_Handler;
+   end EL1_Data_Abort_Exception_Handler;
 
-   procedure Irq_Interrupt_Handler is
+   procedure EL1_Irq_Interrupt_Handler is
    begin
       --
       --  Adjust lr to point to the instruction we need to return to after
@@ -339,9 +387,9 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       --  Run the thread scheduler to select next thread to run and
       --  resume execution of the newly selected thread
       Interrupt_Handler_Epilog;
-   end Irq_Interrupt_Handler;
+   end EL1_Irq_Interrupt_Handler;
 
-   procedure Fiq_Interrupt_Handler is
+   procedure EL1_Fiq_Interrupt_Handler is
    begin
       --
       --  Adjust lr to point to the instruction we need to return to after
@@ -363,6 +411,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       --  Run the thread scheduler to select next thread to run and
       --  resume execution of the newly selected thread
       Interrupt_Handler_Epilog;
-   end Fiq_Interrupt_Handler;
+   end EL1_Fiq_Interrupt_Handler;
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;

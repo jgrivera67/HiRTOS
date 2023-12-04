@@ -9,6 +9,9 @@
     "editor.fontSize": 12,
     "editor.formatOnType": false,
     "editor.defaultFormatter": null,
-    "editor.detectIndentation": false
+   "editor.detectIndentation": false,
+   "[ada]": {
+      "editor.defaultFormatter": "AdaCore.ada"
+   }
   }
 }

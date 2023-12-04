@@ -47,6 +47,7 @@ project HiRTOS is
 
    for Library_Standalone use "standard";
    for Library_Interface use ("Hirtos",
+                              "HiRTOS_Config",
                               "HiRTOS_Config_Parameters",
                               "Generic_Execution_Stack",
                               "Generic_Linked_List",
@@ -70,6 +71,7 @@ project HiRTOS is
                               "HiRTOS_Cpu_Arch_Interface.Thread_Context",
                               "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling",
                               "HiRTOS_Cpu_Arch_Interface.Memory_Protection",
+                              "HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU",
                               "HiRTOS_Cpu_Arch_Interface.System_Registers",
                               "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller",
                               "HiRTOS_Cpu_Arch_Interface.Interrupts",

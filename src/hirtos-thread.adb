@@ -206,6 +206,61 @@ package body HiRTOS.Thread is
       return Current_Time_Us;
    end Thread_Delay_Until;
 
+   procedure Suspend_Current_Thread is
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
+         Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
+            RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
+         Current_Atomic_Level : constant Atomic_Level_Type := Get_Current_Atomic_Level;
+         Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+      begin
+         pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
+                        and then
+                        Current_Atomic_Level = Atomic_Level_None);
+         pragma Assert (Mutex_List_Package.List_Is_Empty (Current_Thread_Obj.Owned_Mutexes_List));
+
+         Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+         Current_Thread_Obj.State := Thread_Suspended;
+         HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
+         HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+         pragma Assert (Get_Current_Atomic_Level = Current_Atomic_Level);
+      end;
+
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+   end Suspend_Current_Thread;
+
+   procedure Resume_Thread (Suspended_Thread_Id : Valid_Thread_Id_Type) is
+   begin
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
+            RTOS_Cpu_Instance.Thread_Instances (Suspended_Thread_Id);
+         Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+      begin
+         pragma Assert (Thread_Obj.State = Thread_Suspended);
+
+         Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+         Schedule_Awaken_Thread (Thread_Obj);
+         if not Current_Execution_Context_Is_Interrupt then
+            --
+            --  Trigger synchronous context switch to run the thread scheduler
+            --
+            HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
+         end if;
+
+         HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+      end;
+
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+   end Resume_Thread;
+
    -----------------------------------------------------------------------------
    --  Private Subprograms
    -----------------------------------------------------------------------------

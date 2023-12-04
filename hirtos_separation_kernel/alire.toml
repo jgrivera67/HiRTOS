@@ -1,0 +1,22 @@
+#
+# NOTE: Before building for the first time with `alr build`, select the
+# corresponding cross compiler toolchain by running `alr toolchain --select`
+#
+name = "hirtos_separation_kernel"
+description = "High-Integrity RTOS Separation Kernel"
+version = "0.0.0"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+[[depends-on]]
+portable_minimal_ada_rts = "*"
+gnatprove = "^12.1.1"
+
+[[pins]]
+portable_minimal_ada_rts = { path='../third_party/portable_minimal_ada_rts' }
+
+[build-profiles]
+portable_minimal_ada_rts = "development"
+

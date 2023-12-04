@@ -48,20 +48,45 @@ is
    --  if that core is running in thread context, or the Id of the last thread
    --  prempted by an interrupt handler, if running in interrupt context.
    --
-   function Get_Current_Thread_Id return Thread_Id_Type;
+   function Get_Current_Thread_Id return Thread_Id_Type
+      with Export,
+           Convention => C,
+           External_Name => "hirtos_get_current_thread_id";
 
    --
    --  Return the priority of the current thread executing on the current CPU core,
    --  if that core is running in thread context, or the priority of the last thread
    --  prempted by an interrupt handler, if running in interrupt context.
    --
-   function Get_Current_Thread_Priority return Thread_Priority_Type;
+   function Get_Current_Thread_Priority return Thread_Priority_Type
+      with Export,
+           Convention => C,
+           External_Name => "hirtos_get_current_thread_priority";
 
    --
    --  Put the calling thread to sleep until the current time matches
    --  the specified wakeup time.
    --
    function Thread_Delay_Until (Wakeup_Time_Us : Absolute_Time_Us_Type) return Absolute_Time_Us_Type
-      with Pre => Wakeup_Time_Us mod HiRTOS_Config_Parameters.Tick_Timer_Period_Us = 0;
+      with Pre => Wakeup_Time_Us mod HiRTOS_Config_Parameters.Tick_Timer_Period_Us = 0,
+           Export,
+           Convention => C,
+           External_Name => "hirtos_thread_delay_until";
+
+   --
+   --  Suspend Calling Thread
+   --
+   procedure Suspend_Current_Thread
+      with Export,
+           Convention => C,
+           External_Name => "hirtos_suspend_current_thread";
+
+   --
+   --  Resume a suspended Thread
+   --
+   procedure Resume_Thread (Suspended_Thread_Id : Valid_Thread_Id_Type)
+      with Export,
+           Convention => C,
+           External_Name => "hirtos_resume_thread";
 
 end HiRTOS.Thread;

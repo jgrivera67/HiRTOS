@@ -2,6 +2,7 @@
 *.o
 *.elf
 *.bin
+*.map
 
 # Ada Library Information
 *.ali
@@ -11,4 +12,3 @@
 /obj/
 /lib/
 /alire/
-/config/

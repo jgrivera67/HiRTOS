@@ -14,6 +14,7 @@ with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
 with HiRTOS_Platform_Parameters;
 with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
@@ -33,11 +34,6 @@ is
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
    use type System.Address;
 
-   HiRTOS_Global_Vars_Elaborated_Flag : Atomic_Counter_Type
-      with Import,
-           Convention => C,
-           External_Name => "hirtos_global_vars_elaborated_flag";
-
    Idle_Thread_Stacks :
       array (Valid_Cpu_Core_Id_Type) of Small_Thread_Stack_Package.Execution_Stack_Type with
       Linker_Section => ".thread_stacks",
@@ -52,20 +48,20 @@ is
      Convention => C,
      No_Return;
 
-   procedure Initialize_HiRTOS_Lib with SPARK_Mode => Off
+   procedure Initialize with SPARK_Mode => Off
    is
       use type HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
 
       --  Compiler-generated Ada elaboration code:
-      procedure HiRTOSinit with
+      procedure HiRTOS_Lib_Elaboration with
          Import,
          Convention => C,
          External_Name => "HiRTOSinit";
 
    begin
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
-         HiRTOSinit;
-         Atomic_Store (HiRTOS_Global_Vars_Elaborated_Flag, 1);
+         HiRTOS_Lib_Elaboration;
+         Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          Memory_Utils.Flush_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
@@ -73,15 +69,17 @@ is
       else
          loop
             HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
-            exit when Atomic_Load (HiRTOS_Global_Vars_Elaborated_Flag) = 1;
+            exit when Atomic_Load (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag) = 1;
          end loop;
          Memory_Utils.Invalidate_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
       end if;
 
+      pragma Assert(not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode);
+
       Initialize_RTOS;
-   end Initialize_HiRTOS_Lib;
+   end Initialize;
 
    procedure Initialize_RTOS with
    SPARK_Mode => Off
@@ -132,6 +130,63 @@ is
 
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_RTOS;
+
+   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
+      procedure Privileged_Last_Chance_Handler (Msg : System.Address; Line : Integer)
+         with No_Return
+      is
+         Msg_Text : String (1 .. 128) with Address => Msg;
+         Msg_Length : Natural := 0;
+         Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+           HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
+      begin
+         HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
+         --
+         --  Calculate length of the null-terminated 'Msg' string:
+         --
+         for Msg_Char of Msg_Text loop
+            Msg_Length := Msg_Length + 1;
+            exit when Msg_Char = ASCII.NUL;
+         end loop;
+
+         if RTOS_Cpu_Instance.Last_Chance_Handler_Running then
+            HiRTOS_Low_Level_Debug_Interface.Print_String (
+               "*** Recursive call to Last_Chance_Handler: " &
+               Msg_Text (1 .. Msg_Length) & "' at line ");
+            HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
+                                                                  End_Line => True);
+            loop
+               HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
+            end loop;
+         end if;
+
+         RTOS_Cpu_Instance.Last_Chance_Handler_Running := True;
+
+         --
+         --  Print exception message to UART:
+         --
+         if Line /= 0 then
+            HiRTOS_Low_Level_Debug_Interface.Print_String (
+               ASCII.LF & "*** Exception: '" & Msg_Text (1 .. Msg_Length) &
+               "' at line ");
+            HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
+                                                                  End_Line => True);
+         else
+            HiRTOS_Low_Level_Debug_Interface.Print_String (
+               ASCII.LF &
+               "*** Exception: '" & Msg_Text (1 .. Msg_Length) & "'" & ASCII.LF);
+         end if;
+
+         loop
+            HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
+         end loop;
+      end Privileged_Last_Chance_Handler;
+
+   begin
+      Enter_Cpu_Privileged_Mode;
+      Privileged_Last_Chance_Handler (Msg, Line);
+   end Last_Chance_Handler;
 
    function Get_Current_Cpu_Id return Cpu_Id_Type is
       Cpu_Id : Cpu_Id_Type;

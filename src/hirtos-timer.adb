@@ -93,7 +93,7 @@ package body HiRTOS.Timer is
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
       Old_Atomic_Level := HiRTOS.Raise_Atomic_Level (
-         HiRTOS.Atomic_Level_Type (Interrupts.Interrupt_Priorities (Interrupts.Generic_Timer_Interrupt_Id)));
+         HiRTOS.Atomic_Level_Type (Interrupts.Interrupt_Priorities (Interrupts.Generic_Physical_Timer_Interrupt_Id)));
 
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames

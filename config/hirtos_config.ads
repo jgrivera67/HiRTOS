@@ -12,7 +12,9 @@ package Hirtos_Config is
 
    Alire_Host_Arch : constant String := "x86_64";
 
-   Alire_Host_Distro : constant String := "fedora";
+   Alire_Host_Distro : constant String := "ubuntu";
+
+   Separation_Kernel_Debug_Tracing_On : constant Boolean := False;
 
    type Build_Profile_Kind is (release, validation, development);
    Build_Profile : constant Build_Profile_Kind := development;

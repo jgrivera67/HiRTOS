@@ -7,7 +7,7 @@
 
 --
 --  @summary RTOS to target platform interface - Interrupt controller driver
---  for ARMv8-R MPU
+--  for ARMv8-R
 --
 
 with HiRTOS_Cpu_Multi_Core_Interface;
@@ -127,7 +127,7 @@ is
      Pre =>
       Per_Cpu_Initialized and then
       Cpu_In_Privileged_Mode and then
-      not Cpu_Interrupting_Disabled;
+      Cpu_Interrupting_Disabled;
 
    procedure Trigger_Software_Generated_Interrupt (Soft_Gen_Interrupt_Id : Soft_Gen_Interrupt_Id_Type;
                                                    Cpu_Id : HiRTOS_Cpu_Multi_Core_Interface.Cpu_Core_Id_Type);
@@ -277,12 +277,12 @@ private
    type GIC_Interrupt_Bit_Type is mod 2**1 with
      Size => 1;
 
-   type GIC_Interrupt_Bits_Register_Type is
+   type GIC_Interrupt_Bit_Mask_Type is
      array (0 .. 31) of GIC_Interrupt_Bit_Type with
-     Size => 32, Component_Size => 1, Volatile_Full_Access;
+     Size => 32, Component_Size => 1;
 
    --  Interrupt set-enable register for 32 interrupts
-   type GIC_ISENABLER_Type is new GIC_Interrupt_Bits_Register_Type;
+   type GIC_ISENABLER_Type is new GIC_Interrupt_Bit_Mask_Type with Volatile_Full_Access;
 
    --
    --  The GICD_ISENABLER1-30 registers enable forwarding of the corresponding
@@ -294,7 +294,7 @@ private
    type GICD_ISENABLER_Array_Type is array (1 .. 30) of GIC_ISENABLER_Type;
 
    --  Interrupt clear-enable register for 32 interrupts
-   type GIC_ICENABLER_Type is new GIC_Interrupt_Bits_Register_Type;
+   type GIC_ICENABLER_Type is new GIC_Interrupt_Bit_Mask_Type with Volatile_Full_Access;
 
    --
    --  The GICD_ICENABLER1-30 registers disable forwarding of the corresponding
@@ -306,7 +306,7 @@ private
    type GICD_ICENABLER_Array_Type is array (1 .. 30) of GIC_ICENABLER_Type;
 
    --  Interrupt set-pending register for 32 interrupts
-   type GIC_ISPENDR_Type is new GIC_Interrupt_Bits_Register_Type;
+   type GIC_ISPENDR_Type is new GIC_Interrupt_Bit_Mask_Type with Volatile_Full_Access;
 
    --
    --  The GICD_ISPENDR1-30 registers set the pending bit for the corresponding
@@ -317,7 +317,7 @@ private
    type GICD_ISPENDR_Array_Type is array (1 .. 30) of GIC_ISPENDR_Type;
 
    --  Interrupt clear-pending register for 32 interrupts
-   type GIC_ICPENDR_Type is new GIC_Interrupt_Bits_Register_Type;
+   type GIC_ICPENDR_Type is new GIC_Interrupt_Bit_Mask_Type with Volatile_Full_Access;
 
    --
    --  The GICD_ICPENDR1-30 registers clear the pending bit for the corresponding
@@ -328,7 +328,7 @@ private
    type GICD_ICPENDR_Array_Type is array (1 .. 30) of GIC_ICPENDR_Type;
 
    --  Interrupt set-active register for 32 interrupts
-   type GIC_ISACTIVER_Type is new GIC_Interrupt_Bits_Register_Type;
+   type GIC_ISACTIVER_Type is new GIC_Interrupt_Bit_Mask_Type with Volatile_Full_Access;
 
    --
    --  The GICD_ISACTIVER1-30 registers set the active bit for the corresponding
@@ -339,7 +339,7 @@ private
    type GICD_ISACTIVER_Array_Type is array (1 .. 30) of GIC_ISACTIVER_Type;
 
    --  Interrupt clear-active register for 32 interrupts
-   type GIC_ICACTIVER_Type is new GIC_Interrupt_Bits_Register_Type;
+   type GIC_ICACTIVER_Type is new GIC_Interrupt_Bit_Mask_Type with Volatile_Full_Access;
 
    --
    --  The GICD_ICACTIVER1-30 registers clear the active bit for the corresponding

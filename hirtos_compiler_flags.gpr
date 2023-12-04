@@ -47,6 +47,7 @@ abstract project Hirtos_Compiler_Flags is
                                "-mlittle-endian",
                                "-mfloat-abi=softfp",
                                "-mfpu=vfpv3xd",
+                             --"-mfpu=fpv5-sp-d16",
                                "-fno-omit-frame-pointer",
                                "-funwind-tables");
 
@@ -59,7 +60,7 @@ abstract project Hirtos_Compiler_Flags is
                                     "-mlittle-endian",
                                   --"-mfloat-abi=softfp",
                                     "-mhard-float",
-                                    "-mfpu=fpv5-sp-d16",
+                                    "-mfpu=fp-armv8",
                                     "-fno-omit-frame-pointer");
 
       when "riscv32" =>

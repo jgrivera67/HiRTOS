@@ -11,6 +11,7 @@
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Multi_Core_Interface;
+with HiRTOS_Cpu_Arch_Interface.System_Registers;
 
 package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -19,6 +20,7 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
    procedure Initialize is
       use type HiRTOS_Config_Parameters.Global_Data_Default_Access_Type;
       use type HiRTOS_Config_Parameters.Global_Mmio_Default_Access_Type;
+      use type System.Address;
       Cpu_Id : constant Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type := Get_ISR_Stack_Info (Cpu_Id);
    begin
@@ -55,6 +57,19 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                Region_Attributes =>
                                  --  Only reads need to be cached
                                  Normal_Memory_Write_Through_Cacheable);
+
+      --
+      --  Set NULL pointer de-reference guard region:
+      --
+      if HiRTOS_Cpu_Arch_Interface.System_Registers.Get_VBAR /= System.Null_Address then
+         Configure_Memory_Region (Memory_Region_Id_Type (Null_Pointer_Dereference_Guard'Enum_Rep),
+                                 System.Null_Address,
+                                 HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment,
+                                 Unprivileged_Permissions => None,
+                                 --  NOTE: PERM_NONE not supported for privileged mode
+                                 Privileged_Permissions => Read_Only,
+                                 Region_Attributes => Normal_Memory_Non_Cacheable);
+      end if;
 
       --
       --  Configure explicit global data region, if both privileged/unprivileged
@@ -98,6 +113,18 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                            Unprivileged_Permissions => Read_Write,
                                            Privileged_Permissions => Read_Write,
                                            Region_Attributes => Normal_Memory_Write_Back_Cacheable);
+
+      --
+      --  Set region to detect ISR stack overflows:
+      --
+      Configure_Memory_Region (Memory_Region_Id_Type (Global_Interrupt_Stack_Overflow_Guard'Enum_Rep),
+                               To_Address (To_Integer (ISR_Stack_Info.Base_Address) -
+                                           HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment),
+                               HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment,
+                               Unprivileged_Permissions => None,
+                               --  NOTE: PERM_NONE not supported for privileged mode
+                               Privileged_Permissions => Read_Only,
+                               Region_Attributes => Normal_Memory_Non_Cacheable);
 
       if HiRTOS_Config_Parameters.Global_Data_Default_Access =
             HiRTOS_Config_Parameters.Global_Data_Privileged_Access_Unprivileged_No_Access

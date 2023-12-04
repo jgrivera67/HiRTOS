@@ -28,60 +28,10 @@ is
    function Valid_ISR_Stack_Pointer (Cpu_Id : Cpu_Core_Id_Type; Stack_Pointer : System.Address)
       return Boolean;
 
-   procedure Interrupt_Handler_Prolog
-      with Inline_Always;
-
    procedure Interrupt_Handler_Epilog
       with Inline_Always, No_Return;
 
-private
-
-   --
-   --  Entry point of the undefined instruction exception handler
-   --
-   procedure Undefined_Instruction_Exception_Handler
-      with Export,
-           External_Name => "undefined_instruction_exception_handler";
-   pragma Machine_Attribute (Undefined_Instruction_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the supervisor call exception handler
-   --
-   procedure Supervisor_Call_Exception_Handler
-      with Export,
-           External_Name => "supervisor_call_exception_handler";
-   pragma Machine_Attribute (Supervisor_Call_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the prefetch abort exception handler
-   --
-   procedure Prefetch_Abort_Exception_Handler
-      with Export,
-           External_Name => "prefetch_abort_exception_handler";
-   pragma Machine_Attribute (Prefetch_Abort_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the data abort exception handler
-   --
-   procedure Data_Abort_Exception_Handler
-      with Export,
-           External_Name => "data_abort_exception_handler";
-   pragma Machine_Attribute (Data_Abort_Exception_Handler, "naked");
-
-   --
-   --  Entry point of the IRQ interrupt handler
-   --
-   procedure Irq_Interrupt_Handler
-      with Export,
-           External_Name => "irq_interrupt_handler";
-   pragma Machine_Attribute (Irq_Interrupt_Handler, "naked");
-
-   --
-   --  Entry point of the FIQ interrupt handler
-   --
-   procedure Fiq_Interrupt_Handler
-      with Export,
-           External_Name => "fiq_interrupt_handler";
-   pragma Machine_Attribute (Fiq_Interrupt_Handler, "naked");
+   procedure Handle_Undefined_Instruction_Exception
+      with Pre => Cpu_In_Privileged_Mode;
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;

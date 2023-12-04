@@ -12,24 +12,16 @@
 
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU;
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU;
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
-with HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor;
 with HiRTOS_Low_Level_Debug_Interface;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
    use HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU;
-   use HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL2_MPU;
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
-   use HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor;
 
    function Get_Num_Regions_Supported return Mpu_Regions_Count_Type is
    begin
-      if Cpu_In_Hypervisor_Mode then
-         return Get_HMPUIR.REGION;
-      else
-         return Get_MPUIR.DREGION;
-      end if;
+      return Get_MPUIR.DREGION;
    end Get_Num_Regions_Supported;
 
    function Is_Memory_Region_Enabled (Region_Id : Memory_Region_Id_Type) return Boolean is
@@ -39,83 +31,34 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       MAIR_Pair : MAIR_Pair_Type;
    begin
       MAIR_Pair.Attr_Array := Memory_Attributes_Lookup_Table;
-      if Cpu_In_Hypervisor_Mode then
-         Set_HMAIR_Pair (MAIR_Pair);
-      else
-         Set_MAIR_Pair (MAIR_Pair);
-      end if;
+      Set_MAIR_Pair (MAIR_Pair);
    end Load_Memory_Attributes_Lookup_Table;
 
    procedure Enable_Memory_Protection (Enable_Background_Region : Boolean) is
-      procedure Enable_EL1_Mpu (Enable_Background_Region : Boolean) is
-         SCTLR_Value : SCTLR_Type;
-      begin
-         SCTLR_Value := Get_SCTLR;
-         SCTLR_Value.M := Mpu_Enabled;
-         SCTLR_Value.A := Alignment_Check_Disabled; -- To allow unaligned accesses
-         --  ???SCTLR_Value.C := Cacheable; --TODO
-         --  ???SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
-         if Enable_Background_Region then
-            SCTLR_Value.BR := Background_Region_Enabled;
-         else
-            SCTLR_Value.BR := Background_Region_Disabled;
-         end if;
-
-         Set_SCTLR (SCTLR_Value);
-      end Enable_EL1_Mpu;
-
-      procedure Enable_EL2_Mpu (Enable_Background_Region : Boolean) is
-         HSCTLR_Value : HSCTLR_Type;
-      begin
-         HSCTLR_Value := Get_HSCTLR;
-         HSCTLR_Value.M := Mpu_Enabled;
-         HSCTLR_Value.A := Alignment_Check_Disabled; -- To allow unaligned accesses
-         --  ???SCTLR_Value.C := Cacheable; --TODO
-         --  ???SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
-         if Enable_Background_Region then
-            HSCTLR_Value.BR := Background_Region_Enabled;
-         else
-            HSCTLR_Value.BR := Background_Region_Disabled;
-         end if;
-
-         Set_HSCTLR (HSCTLR_Value);
-      end Enable_EL2_Mpu;
-
+      SCTLR_Value : SCTLR_Type;
    begin
       Memory_Barrier;
-      if Cpu_In_Hypervisor_Mode then
-         Enable_EL2_Mpu (Enable_Background_Region);
+      SCTLR_Value := Get_SCTLR;
+      SCTLR_Value.M := Mpu_Enabled;
+      SCTLR_Value.A := Alignment_Check_Disabled; -- To allow unaligned accesses
+      --  ???SCTLR_Value.C := Cacheable; --TODO
+      --  ???SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
+      if Enable_Background_Region then
+         SCTLR_Value.BR := Background_Region_Enabled;
       else
-         Enable_EL1_Mpu (Enable_Background_Region);
+         SCTLR_Value.BR := Background_Region_Disabled;
       end if;
+
+      Set_SCTLR (SCTLR_Value);
    end Enable_Memory_Protection;
 
    procedure Disable_Memory_Protection is
-      procedure Disable_EL1_Mpu is
-         SCTLR_Value : SCTLR_Type;
-      begin
-         SCTLR_Value := Get_SCTLR;
-         SCTLR_Value.M := Mpu_Disabled;
-         SCTLR_Value.BR := Background_Region_Disabled;
-         Set_SCTLR (SCTLR_Value);
-      end Disable_EL1_Mpu;
-
-      procedure Disable_EL2_Mpu is
-         HSCTLR_Value : HSCTLR_Type;
-      begin
-         HSCTLR_Value := Get_HSCTLR;
-         HSCTLR_Value.M := Mpu_Disabled;
-         HSCTLR_Value.BR := Background_Region_Disabled;
-         Set_HSCTLR (HSCTLR_Value);
-      end Disable_EL2_Mpu;
-
+      SCTLR_Value : SCTLR_Type;
    begin
-      if Cpu_In_Hypervisor_Mode then
-         Disable_EL2_Mpu;
-      else
-         Disable_EL1_Mpu;
-      end if;
-
+      SCTLR_Value := Get_SCTLR;
+      SCTLR_Value.M := Mpu_Disabled;
+      SCTLR_Value.BR := Background_Region_Disabled;
+      Set_SCTLR (SCTLR_Value);
       Memory_Barrier;
    end Disable_Memory_Protection;
 
@@ -222,6 +165,10 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
                pragma Assert (Unprivileged_Permissions = None);
                PRBAR_Value.AP := EL1_Read_Only_EL0_No_Access; --  same as EL2_Read_Only_EL1_EL0_No_Access
             end if;
+         when Read_Write_Execute =>
+            pragma Assert (Unprivileged_Permissions = Read_Write_Execute);
+            PRBAR_Value.XN := Executable;
+            PRBAR_Value.AP := EL1_and_EL0_Read_Write; --  same as EL2_Read_Write_EL1_EL0_No_Access
          when others =>
             pragma Assert (False);
       end case;
@@ -244,15 +191,9 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       --
       --  NOTE: Before changing the PRBAR/PRLAR pair, we need to disable the region:
       --
-      if Cpu_In_Hypervisor_Mode then
-         Set_HPRLAR (Region_Id, Region_Disabled_Value);
-         Set_HPRBAR (Region_Id, Region_Descriptor.PRBAR_Value);
-         Set_HPRLAR (Region_Id, Region_Descriptor.PRLAR_Value);
-      else
-         Set_PRLAR (Region_Id, Region_Disabled_Value);
-         Set_PRBAR (Region_Id, Region_Descriptor.PRBAR_Value);
-         Set_PRLAR (Region_Id, Region_Descriptor.PRLAR_Value);
-      end if;
+      Set_PRLAR (Region_Id, Region_Disabled_Value);
+      Set_PRBAR (Region_Id, Region_Descriptor.PRBAR_Value);
+      Set_PRLAR (Region_Id, Region_Descriptor.PRLAR_Value);
 
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
    end Restore_Memory_Region_Descriptor;
@@ -267,13 +208,8 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Region_Id : Memory_Region_Id_Type;
       Region_Descriptor : out Memory_Region_Descriptor_Type) is
    begin
-      if Cpu_In_Hypervisor_Mode then
-         Region_Descriptor.PRBAR_Value := Get_HPRBAR (Region_Id);
-         Region_Descriptor.PRLAR_Value := Get_HPRLAR (Region_Id);
-      else
-         Region_Descriptor.PRBAR_Value := Get_PRBAR (Region_Id);
-         Region_Descriptor.PRLAR_Value := Get_PRLAR (Region_Id);
-      end if;
+      Region_Descriptor.PRBAR_Value := Get_PRBAR (Region_Id);
+      Region_Descriptor.PRLAR_Value := Get_PRLAR (Region_Id);
    end Save_Memory_Region_Descriptor;
 
    procedure Disable_Memory_Region (Region_Id : Memory_Region_Id_Type)
@@ -281,31 +217,18 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       PRLAR_Value : PRLAR_Type;
    begin
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
-      if Cpu_In_Hypervisor_Mode then
-         PRLAR_Value := Get_HPRLAR (Region_Id);
-         PRLAR_Value.EN := Region_Disabled;
-         Set_HPRLAR (Region_Id, PRLAR_Value);
-      else
-         PRLAR_Value := Get_PRLAR (Region_Id);
-         PRLAR_Value.EN := Region_Disabled;
-         Set_PRLAR (Region_Id, PRLAR_Value);
-      end if;
+      PRLAR_Value := Get_PRLAR (Region_Id);
+      PRLAR_Value.EN := Region_Disabled;
+      Set_PRLAR (Region_Id, PRLAR_Value);
    end Disable_Memory_Region;
 
    procedure Enable_Memory_Region (Region_Id : Memory_Region_Id_Type)
    is
       PRLAR_Value : PRLAR_Type;
    begin
-      if Cpu_In_Hypervisor_Mode then
-         PRLAR_Value := Get_HPRLAR (Region_Id);
-         PRLAR_Value.EN := Region_Enabled;
-         Set_HPRLAR (Region_Id, PRLAR_Value);
-      else
-         PRLAR_Value := Get_PRLAR (Region_Id);
-         PRLAR_Value.EN := Region_Enabled;
-         Set_PRLAR (Region_Id, PRLAR_Value);
-      end if;
-
+      PRLAR_Value := Get_PRLAR (Region_Id);
+      PRLAR_Value.EN := Region_Enabled;
+      Set_PRLAR (Region_Id, PRLAR_Value);
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
    end Enable_Memory_Region;
 
@@ -313,16 +236,11 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       IFSR_Value : IFSR_Type;
       IFAR_Value : IFAR_Type;
    begin
-      if Cpu_In_Hypervisor_Mode then
-         IFSR_Value := Get_HIFSR;
-         IFAR_Value := Get_HIFAR;
-      else
-         IFSR_Value := Get_IFSR;
-         IFAR_Value := Get_IFAR;
-      end if;
+      IFSR_Value := Get_IFSR;
+      IFAR_Value := Get_IFAR;
 
       HiRTOS_Low_Level_Debug_Interface.Print_String (
-         "*** Prefetch abort: " & Fault_Name_Pointer_Array (IFSR_Value.Status).all & "  (faulting PC: ");
+         "*** EL1 Prefetch abort: " & Fault_Name_Pointer_Array (IFSR_Value.Status).all & "  (faulting PC: ");
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (IFAR_Value));
       HiRTOS_Low_Level_Debug_Interface.Print_String (")" & ASCII.LF);
 
@@ -335,16 +253,10 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Faulting_PC : constant Integer_Address :=
          To_Integer (HiRTOS.Interrupt_Handling.Get_Interrupted_PC) - 8;
    begin
-      if Cpu_In_Hypervisor_Mode then
-         DFSR_Value := Get_HDFSR;
-         DFAR_Value := Get_HDFAR;
-      else
-         DFSR_Value := Get_DFSR;
-         DFAR_Value := Get_DFAR;
-      end if;
-
+      DFSR_Value := Get_DFSR;
+      DFAR_Value := Get_DFAR;
       HiRTOS_Low_Level_Debug_Interface.Print_String (
-         "*** Data abort: " & Fault_Name_Pointer_Array (DFSR_Value.Status).all & "  (faulting PC: ");
+         "*** EL1 Data abort: " & Fault_Name_Pointer_Array (DFSR_Value.Status).all & "  (faulting PC: ");
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Faulting_PC));
       HiRTOS_Low_Level_Debug_Interface.Print_String (", fault data address: ");
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (DFAR_Value));

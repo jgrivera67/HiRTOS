@@ -1,5 +1,5 @@
 ALIRE_DIR=/opt/alire
-export PATH=$ALIRE_DIR/bin:~/my-projects/third-party/gnat_arm_elf_12.1.2_89ba9262/bin:~/my-projects/third-party/gnatprove_12.1.1_e1e1ce47/bin:/opt/tkdiff:/opt/fuzz/bin:/opt/arm-gnu-toolchain/bin:$PATH
+export PATH=$ALIRE_DIR/bin:~/my-projects/third-party/gnat_arm_elf_12.1.2_89ba9262/bin:~/my-projects/third-party/gnatprove_12.1.1_e1e1ce47/bin:/opt/tkdiff:/opt/fuzz/bin:/opt/arm-gnu-toolchain/bin:/opt/gnatstudio:$PATH
 #export PATH=$PATH:/Users/josegrivera/.config/alire/cache/dependencies/gnat_arm_elf_11.2.4_839811c8/bin::~/my-projects/third-party/gnatprove_11.2.3_454d37ad/bin:~/my-projects/third-party/gnatcov_22.0.1_a69a9af4/bin
 
 #export OS=macOS
@@ -36,6 +36,12 @@ function run_fvp {
    $ARMFVP_BIN_PATH/FVP_BaseR_AEMv8R \
            -C bp.pl011_uart0.uart_enable=1 \
            -C bp.pl011_uart0.baud_rate=460800 \
+           -C bp.pl011_uart1.uart_enable=1 \
+           -C bp.pl011_uart1.baud_rate=460800 \
+           -C bp.pl011_uart2.uart_enable=1 \
+           -C bp.pl011_uart2.baud_rate=460800 \
+           -C bp.pl011_uart3.uart_enable=1 \
+           -C bp.pl011_uart3.baud_rate=460800 \
            -C cluster0.gicv3.SRE-EL2-enable-RAO=1 \
            -C cluster0.gicv3.cpuintf-mmap-access-level=2 \
            -C bp.refcounter.non_arch_start_at_default=1 \
@@ -57,8 +63,6 @@ function run_fvp_with_trace {
    fi
 
    elf_file=$1
-
-
    $ARMFVP_BIN_PATH/FVP_BaseR_AEMv8R \
 	   --plugin=$ARMFVP_DIR//plugins/Linux64_GCC-9.3/TarmacTrace.so \
 	   --parameter TRACE.TarmacTrace.trace-file="STDERR" \

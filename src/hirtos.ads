@@ -51,11 +51,11 @@ is
    --
    --  Initialize HiRTOS library
    --
-   procedure Initialize_HiRTOS_Lib with
+   procedure Initialize with
      Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
-     External_Name => "initialize_hirtos_lib";
+     External_Name => "hirtos_initialize";
 
    --
    --  Start RTOS tick timer and RTOS thread scheduler for the calling CPU
@@ -226,7 +226,7 @@ is
      Size => Interfaces.Unsigned_8'Size;
 
    --
-   --  Lowest thread priority is 0 and highest thread proirity is Num_Thread_Priorities - 1
+   --  Lowest thread priority is 0 and highest thread priority is Num_Thread_Priorities - 1
    --
    subtype Valid_Thread_Priority_Type is
      Thread_Priority_Type range Thread_Priority_Type'First ..
@@ -378,7 +378,17 @@ private
    procedure Initialize_RTOS with
      Pre => Current_Execution_Context_Is_Interrupt
             and then
+            HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
+            and then
             HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
-     Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
+     Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
+             and then
+             HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
+
+   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer)
+     with No_Return,
+          Export,
+          Convention => C,
+          External_Name => "__gnat_last_chance_handler";
 
 end HiRTOS;

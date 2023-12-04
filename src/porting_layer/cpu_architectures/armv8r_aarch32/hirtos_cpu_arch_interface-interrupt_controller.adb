@@ -10,6 +10,8 @@
 --
 
 with System.Machine_Code;
+with HiRTOS_Cpu_Startup_Interface;
+with HiRTOS_Low_Level_Debug_Interface;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with
   SPARK_Mode => Off
@@ -40,6 +42,7 @@ is
          GICD_CTLR_Value.EnableGrp0 := Group_Interrupts_Disabled;
          GICD_CTLR_Value.EnableGrp1 := Group_Interrupts_Disabled;
          GICD.GICD_CTLR             := GICD_CTLR_Value;
+         HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
          loop
             GICD_CTLR_Value := GICD.GICD_CTLR;
             exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
@@ -66,6 +69,7 @@ is
             GICD.GICD_ICACTIVER_Array (I) := [others => 2#1#];
          end loop;
 
+         HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
          loop
             GICD_CTLR_Value := GICD.GICD_CTLR;
             exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
@@ -78,6 +82,7 @@ is
          GICD_CTLR_Value.ARE        := Affinity_Routing_Enabled;
          GICD.GICD_CTLR             := GICD_CTLR_Value;
 
+         HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
          loop
             GICD_CTLR_Value := GICD.GICD_CTLR;
             exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
@@ -124,6 +129,7 @@ is
             GICR_WAKER_Value.Processor_Sleep  :=
               Target_Not_In_Processor_Sleep_State;
             GICR.GICR_Control_Page.GICR_WAKER := GICR_WAKER_Value;
+            HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
             loop
                GICR_WAKER_Value := GICR.GICR_Control_Page.GICR_WAKER;
                exit when GICR_WAKER_Value.Children_Asleep =
@@ -199,21 +205,25 @@ is
         (Interrupt_Controller_Obj'Address, Interrupt_Controller_Obj'Size,
          Old_Data_Range);
 
-      Old_Cpu_Interrupting_State := Disable_Cpu_Interrupting;
+      if Cpu_In_Hypervisor_Mode or else not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
+         Old_Cpu_Interrupting_State := Disable_Cpu_Interrupting;
 
-      if Cpu_Id = Valid_Cpu_Core_Id_Type'First then
-         pragma Assert (not Per_Cpu_Initialized);
-         Initialize_GIC_Distributor;
+         if Cpu_Id = Valid_Cpu_Core_Id_Type'First then
+            pragma Assert (not Per_Cpu_Initialized);
+            Initialize_GIC_Distributor;
+         else
+            while not Interrupt_Controller_Obj.GIC_Distributor_Initialized loop
+               HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
+            end loop;
+         end if;
+
+         Initialize_GIC_Redistributor (Cpu_Id);
+         Initialize_GIC_Cpu_Interface;
+
+         Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
       else
-         while not Interrupt_Controller_Obj.GIC_Distributor_Initialized loop
-            HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
-         end loop;
+         Interrupt_Controller_Obj.GIC_Distributor_Initialized := True;
       end if;
-
-      Initialize_GIC_Redistributor (Cpu_Id);
-      Initialize_GIC_Cpu_Interface;
-
-      Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
 
       Old_Flags := Atomic_Fetch_Or (Interrupt_Controller_Obj.Per_Cpu_Initialized_Flags,
                                     Bit_Mask (Bit_Index_Type (Cpu_Id)));
@@ -507,10 +517,10 @@ is
    procedure GIC_Interrupt_Handler
      (Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type)
    is
+      use type Interfaces.Unsigned_16;
       ICC_IAR_Value              : constant ICC_IAR_Type            :=
         Get_ICC_IAR (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line));
-      Interrupt_Id               : constant Valid_Interrupt_Id_Type :=
-        Valid_Interrupt_Id_Type (ICC_IAR_Value.INTID);
+      Interrupt_Id               : constant Interfaces.Unsigned_16 := Interfaces.Unsigned_16 (ICC_IAR_Value.INTID);
       Cpu_Id : constant Valid_Cpu_Core_Id_Type  := Get_Cpu_Id;
       Old_Cpu_Interrupting_State : Cpu_Register_Type with
         Unreferenced;
@@ -520,22 +530,34 @@ is
       HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
 
       --  Invoke the IRQ-specific interrupt handler:
-      if Interrupt_Id in Internal_Interrupt_Id_Type then
+      if Interrupt_Id <= Interfaces.Unsigned_16 (Internal_Interrupt_Id_Type'Last) then
          declare
+            Internal_Interrupt_Id : constant Internal_Interrupt_Id_Type := Internal_Interrupt_Id_Type (Interrupt_Id);
             Interrupt_Handler : Interrupt_Handler_Type renames
-               Interrupt_Controller_Obj.Internal_Interrupt_Handlers (Cpu_Id, Interrupt_Id);
+               Interrupt_Controller_Obj.Internal_Interrupt_Handlers (Cpu_Id, Internal_Interrupt_Id);
+         begin
+            pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
+            Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
+         end;
+      elsif Interrupt_Id <= Interfaces.Unsigned_16 (External_Interrupt_Id_Type'Last) then
+         declare
+            External_Interrupt_Id : constant External_Interrupt_Id_Type := External_Interrupt_Id_Type (Interrupt_Id);
+            Interrupt_Handler : Interrupt_Handler_Type renames
+               Interrupt_Controller_Obj.External_Interrupt_Handlers (External_Interrupt_Id);
          begin
             pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
             Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
          end;
       else
-         declare
-            Interrupt_Handler : Interrupt_Handler_Type renames
-               Interrupt_Controller_Obj.External_Interrupt_Handlers (Interrupt_Id);
-         begin
-            pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
-            Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
-         end;
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("*** Special " &
+            (if Cpu_Interrupt_Line = Cpu_Interrupt_Fiq then "FIQ" else "IRQ") & " interrupt Id received at " &
+            (if Cpu_In_Hypervisor_Mode then "EL2" else "EL1") & ": ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Interrupt_Id),
+                                                                End_Line => True);
+         --
+         --  NOTE: These INTIDs do not require an end of interrupt or deactivation.
+         --
+         return;
       end if;
 
       --  Disable interrupts at the CPU before returning:
@@ -547,7 +569,7 @@ is
       --  received by the calling CPU core has been completed, so that another
       --  interrupt of the same priority or lower can be received by this CPU core:
       --
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
       ICC_EOIR_Value.INTID := INTID_Type (Interrupt_Id);
       Set_ICC_EOIR (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line), ICC_EOIR_Value);
    end GIC_Interrupt_Handler;

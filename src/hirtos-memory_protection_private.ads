@@ -25,7 +25,6 @@ is
    --
    type Memory_Region_Role_Type is
      (Global_Interrupt_Stack_Region,
-      Global_Interrupt_Stack_Underflow_Guard,
       Global_Interrupt_Stack_Overflow_Guard,
       Null_Pointer_Dereference_Guard,
       Global_Code_Region,
@@ -34,7 +33,6 @@ is
       Global_Data_Region,
       Global_Mmio_Region,
       Thread_Stack_Data_Region,
-      Thread_Stack_Underflow_Guard,
       Thread_Stack_Overflow_Guard,
       Thread_Private_Data_Region,
       Thread_Private_Mmio_Region,
@@ -45,20 +43,18 @@ is
 
    for Memory_Region_Role_Type use
      (Global_Interrupt_Stack_Region => 0,
-      Global_Interrupt_Stack_Underflow_Guard => 1,
-      Global_Interrupt_Stack_Overflow_Guard => 2,
-      Null_Pointer_Dereference_Guard => 3,
-      Global_Code_Region => 4,
-      Global_Privileged_Code_Region => 5,
-      Global_Rodata_Region => 6,
-      Global_Data_Region => 7,
-      Global_Mmio_Region => 8,
-      Thread_Stack_Data_Region => 9,
-      Thread_Stack_Underflow_Guard => 10,
-      Thread_Stack_Overflow_Guard => 11,
-      Thread_Private_Data_Region => 12,
-      Thread_Private_Mmio_Region => 13,
-      Thread_Private_Code_Region => 14,
+      Global_Interrupt_Stack_Overflow_Guard => 1,
+      Null_Pointer_Dereference_Guard => 2,
+      Global_Code_Region => 3,
+      Global_Privileged_Code_Region => 4,
+      Global_Rodata_Region => 5,
+      Global_Data_Region => 6,
+      Global_Mmio_Region => 7,
+      Thread_Stack_Data_Region => 8,
+      Thread_Stack_Overflow_Guard => 9,
+      Thread_Private_Data_Region => 10,
+      Thread_Private_Mmio_Region => 11,
+      Thread_Private_Code_Region => 12,
 
       --  Valid region roles must be added before this entry:
       Invalid_Region_Role => HiRTOS_Cpu_Arch_Interface.Memory_Protection.Max_Num_Memory_Regions);
@@ -103,18 +99,10 @@ private
    --  @field Private_Data_Region current memory region for the writable global data
    --  for the thread, when global data region is read-only by default. This region is
    --  also used by the thread to access hidden data.
-   --  @field Overlapped_Global_Data_Region saved global data region descriptor (in case
-   --  the global data region is overlapped by the private data region).
-   --  @field Overlapped_Global_Data_Region_After_Hole : saved "global data region after
-   --  hole" region descriptor (in case the  global data region is overlapped by the
-   --  private data region).
    --  @field Mmio_Region current memory region for the accessible MMIO range
    --  for the thread, when global mmio region is no-access or read-only by default.
    --  @field Overlapped_Global_Mmio_Region saved global mmio region descriptor (in case
    --  the global mmio region is overlapped by the private mmio region).
-   --  @field Overlapped_Global_Mmio_Region_After_Hole : saved "global mmio region after
-   --  hole" region descriptor (in case the  global mmio region is overlapped by the
-   --  private mmio region).
    --  @field Code_Region memory region to access hidden code from the thread.
    --
    type Thread_Memory_Regions_Type is limited record

@@ -85,7 +85,6 @@ package body HiRTOS.Condvar is
 
    procedure Wait (Condvar_Id : Valid_Condvar_Id_Type;
                    Timeout_Ms : Time_Ms_Type := Time_Ms_Type'Last) is
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
 
@@ -96,6 +95,7 @@ package body HiRTOS.Condvar is
          Current_Thread_Obj : HiRTOS.Thread_Private.Thread_Type renames
             RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
          Current_Atomic_Level : constant Atomic_Level_Type := Get_Current_Atomic_Level;
+         Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
       begin
          Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
          Current_Thread_Obj.Atomic_Level := Current_Atomic_Level;
@@ -109,52 +109,62 @@ package body HiRTOS.Condvar is
    end Wait;
 
    procedure Signal (Condvar_Id : Valid_Condvar_Id_Type) is
-      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-      Condvar_Obj : Condvar_Type renames RTOS_Cpu_Instance.Condvar_Instances (Condvar_Id);
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
-      Thread_Awaken : Boolean := False;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      if not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiting_Threads_Queue) then
-         Wakeup_One_Thread (Condvar_Obj);
-         Thread_Awaken := True;
-      end if;
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Condvar_Obj : Condvar_Type renames RTOS_Cpu_Instance.Condvar_Instances (Condvar_Id);
+         Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+         Thread_Awaken : Boolean := False;
+      begin
+         Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      if not Current_Execution_Context_Is_Interrupt and then Thread_Awaken then
-         --
-         --  Trigger synchronous context switch to run the thread scheduler
-         --
-         HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
-      end if;
+         if not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiting_Threads_Queue) then
+            Wakeup_One_Thread (Condvar_Obj);
+            Thread_Awaken := True;
+         end if;
 
-      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+         if not Current_Execution_Context_Is_Interrupt and then Thread_Awaken then
+            --
+            --  Trigger synchronous context switch to run the thread scheduler
+            --
+            HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
+         end if;
+
+         HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+      end;
+
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Signal;
 
    procedure Broadcast (Condvar_Id : Valid_Condvar_Id_Type) is
-      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-      Condvar_Obj : Condvar_Type renames RTOS_Cpu_Instance.Condvar_Instances (Condvar_Id);
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
-      Thread_Awaken : Boolean := False;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      while not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiting_Threads_Queue) loop
-         Wakeup_One_Thread (Condvar_Obj);
-         Thread_Awaken := True;
-      end loop;
+      declare
+         RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+         Condvar_Obj : Condvar_Type renames RTOS_Cpu_Instance.Condvar_Instances (Condvar_Id);
+         Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+         Thread_Awaken : Boolean := False;
+      begin
+         Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      if not Current_Execution_Context_Is_Interrupt and then Thread_Awaken then
-         --
-         --  Trigger synchronous context switch to run the thread scheduler
-         --
-         HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
-      end if;
+         while not Thread_Priority_Queue_Is_Empty (Condvar_Obj.Waiting_Threads_Queue) loop
+            Wakeup_One_Thread (Condvar_Obj);
+            Thread_Awaken := True;
+         end loop;
 
-      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+         if not Current_Execution_Context_Is_Interrupt and then Thread_Awaken then
+            --
+            --  Trigger synchronous context switch to run the thread scheduler
+            --
+            HiRTOS_Cpu_Arch_Interface.Thread_Context.Synchronous_Thread_Context_Switch;
+         end if;
+
+         HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+      end;
+
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Broadcast;
 
