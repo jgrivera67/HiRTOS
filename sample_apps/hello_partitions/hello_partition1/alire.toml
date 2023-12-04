@@ -9,15 +9,15 @@ maintainers-logins = ["jgrivera67"]
 executables = ["hello_partition1"]
 
 [[depends-on]]
-hirtos_separation_kernel = "*"
+hirtos = "*"
 portable_minimal_ada_rts = "*"
 
 [[pins]]
-hirtos_separation_kernel = { path='../../../hirtos_separation_kernel' }
+hirtos = { path='../../..' }
 portable_minimal_ada_rts = { path='../../../third_party/portable_minimal_ada_rts' }
 
 [build-profiles]
-hirtos_separation_kernel = "development"
+hirtos = "development"
 portable_minimal_ada_rts = "development"
 
 [[actions]]

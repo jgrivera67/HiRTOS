@@ -30,7 +30,7 @@ procedure Fvp_Armv8r_Aarch32_Hello is
    end Print_Console_Greeting;
 
 begin -- Main
-   HiRTOS.Initialize_HiRTOS_Lib;
+   HiRTOS.Initialize;
    Print_Console_Greeting;
 
    App_Threads.Initialize;

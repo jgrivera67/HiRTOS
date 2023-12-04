@@ -78,12 +78,6 @@
 	.extern el1_data_abort_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 	.extern el1_irq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 	.extern el1_fiq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern el2_undefined_instruction_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern el2_prefetch_abort_exception_handler        /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern el2_data_abort_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern el2_irq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern el2_fiq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern el2_hypervisor_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
 /**
  * Cortex-R52 EL1 interrupt vector table
@@ -100,6 +94,14 @@ el1_interrupt_vector_table:
 	b el1_undefined_instruction_exception_handler /* Hypervisor Exception */
 	b el1_irq_interrupt_handler                   /* IRQ */
    b el1_fiq_interrupt_handler                   /* FIQ */
+
+#if defined(HIRTOS_SEPARATION_KERNEL)
+   .extern el2_undefined_instruction_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_prefetch_abort_exception_handler        /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_data_abort_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_irq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_fiq_interrupt_handler                   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern el2_hypervisor_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
 /**
  * Cortex-R52 EL2 interrupt vector table
@@ -119,6 +121,7 @@ el2_interrupt_vector_table:
 	b el2_hypervisor_exception_handler            /* Hypervisor exceptions */
 	b el2_irq_interrupt_handler                   /* IRQ */
    b el2_fiq_interrupt_handler                   /* FIQ */
+#endif // defined(HIRTOS_SEPARATION_KERNEL)
 
 /**
  * Get sctlr
@@ -351,13 +354,14 @@ reset_handler:
         ldr r0, =#SYSTEM_CLOCK_FREQUENCY_HZ
         mcr p15, 0, r0, c14, c0, 0
 
-        SET_HVBAR el2_interrupt_vector_table
-
                                 // CPU in HYP mode (EL2)
         INIT_CPU_BANKED_REGS_FROM_EL2
                                 // CPU in HYP mode (EL2)
 
-#if !defined(HIRTOS_SEPARATION_KERNEL)
+#if defined(HIRTOS_SEPARATION_KERNEL)
+        SET_HVBAR el2_interrupt_vector_table
+        b reset_handler_common
+#else
         /*
          * Set HACTLR to allow EL1 access to system registers
          */
@@ -373,9 +377,7 @@ reset_handler:
         ldr r0, =reset_handler_el1
         msr elr_hyp, r0
         eret
-#else
-        b reset_handler_common
-#endif // defined(UNSUPERVISED_RTOS)
+#endif // defined(HIRTOS_SEPARATION_KERNEL)
 
 reset_handler_el1:
         SET_VBAR el1_interrupt_vector_table

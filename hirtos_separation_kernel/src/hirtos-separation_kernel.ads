@@ -16,8 +16,14 @@ package HiRTOS.Separation_Kernel with
 is
    use HiRTOS_Separation_Kernel_Config_Parameters;
 
+   --
+   --  Initialize HiRTOS separation kernel library
+   --
    procedure Initialize with
-     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode,
+     Export,
+     Convention => C,
+     External_Name => "hirtos_separation_kernel_initialize";
 
    procedure Start_Partition_Scheduler with
      Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
@@ -65,5 +71,8 @@ private
       Null_List_Id    => HiRTOS_Cpu_Multi_Core_Interface.Invalid_Cpu_Core_Id,
       Element_Id_Type => Partition_Id_Type,
       Null_Element_Id => Invalid_Partition_Id);
+
+   procedure Initialize_Separation_Kernel with
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
 
 end HiRTOS.Separation_Kernel;

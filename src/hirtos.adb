@@ -12,7 +12,6 @@ with HiRTOS.Timer_Private;
 with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS.Memory_Protection;
-with HiRTOS.Separation_Kernel;
 with HiRTOS_Platform_Parameters;
 with HiRTOS_Low_Level_Debug_Interface;
 with HiRTOS_Cpu_Startup_Interface;
@@ -49,19 +48,19 @@ is
      Convention => C,
      No_Return;
 
-   procedure Initialize_HiRTOS_Lib with SPARK_Mode => Off
+   procedure Initialize with SPARK_Mode => Off
    is
       use type HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
 
       --  Compiler-generated Ada elaboration code:
-      procedure HiRTOSinit with
+      procedure HiRTOS_Lib_Elaboration with
          Import,
          Convention => C,
          External_Name => "HiRTOSinit";
 
    begin
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
-         HiRTOSinit;
+         HiRTOS_Lib_Elaboration;
          Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          Memory_Utils.Flush_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
@@ -77,12 +76,10 @@ is
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
       end if;
 
-      if HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode then
-         HiRTOS.Separation_Kernel.Initialize;
-      else
-         Initialize_RTOS;
-      end if;
-   end Initialize_HiRTOS_Lib;
+      pragma Assert(not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode);
+
+      Initialize_RTOS;
+   end Initialize;
 
    procedure Initialize_RTOS with
    SPARK_Mode => Off

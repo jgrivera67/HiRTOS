@@ -11,18 +11,16 @@ executables = ["hello_partitions"]
 [[depends-on]]
 hirtos_separation_kernel = "*"
 portable_minimal_ada_rts = "*"
-hello_partition1 = "*"
-hello_partition2 = "*"
 
 [[pins]]
 hirtos_separation_kernel = { path='../../hirtos_separation_kernel' }
 portable_minimal_ada_rts = { path='../../third_party/portable_minimal_ada_rts' }
-hello_partition1 = { path='./hello_partition1' }
-hello_partition2 = { path='./hello_partition2' }
 
 [build-profiles]
 hirtos_separation_kernel = "development"
 portable_minimal_ada_rts = "development"
-hello_partition1 = "development"
-hello_partition2 = "development"
+
+[[actions]]
+type = "pre-build"
+command = ["./build_partitions.sh"]
 

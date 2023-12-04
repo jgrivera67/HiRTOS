@@ -7,7 +7,6 @@
 
 with App_Partitions;
 with HiRTOS_Cpu_Startup_Interface;
-with HiRTOS;
 with HiRTOS.Debug;
 with HiRTOS.Separation_Kernel;
 with Interfaces;
@@ -31,7 +30,7 @@ procedure Hello_Partitions is
    end Print_Console_Greeting;
 
 begin -- Main
-   HiRTOS.Initialize_HiRTOS_Lib;
+   HiRTOS.Separation_Kernel.Initialize;
    Print_Console_Greeting;
 
    App_Partitions.Initialize;

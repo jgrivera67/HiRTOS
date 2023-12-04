@@ -30,7 +30,7 @@ procedure Hello_Partition2 is
    end Print_Console_Greeting;
 
 begin -- Main
-   HiRTOS.Initialize_HiRTOS_Lib;
+   HiRTOS.Initialize;
    Print_Console_Greeting;
 
    Partition2_App_Threads.Initialize;

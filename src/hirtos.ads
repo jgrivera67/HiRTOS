@@ -51,11 +51,11 @@ is
    --
    --  Initialize HiRTOS library
    --
-   procedure Initialize_HiRTOS_Lib with
+   procedure Initialize with
      Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
-     External_Name => "initialize_hirtos_lib";
+     External_Name => "hirtos_initialize";
 
    --
    --  Start RTOS tick timer and RTOS thread scheduler for the calling CPU

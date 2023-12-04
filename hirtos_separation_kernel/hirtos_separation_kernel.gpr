@@ -25,10 +25,13 @@ project HiRTOS_Separation_Kernel is
    for Runtime ("Ada") use "../third_party/portable_minimal_ada_rts";
    for Languages use ("Ada", "C", "Asm_Cpp");
 
-   for Library_Name use "HiRTOS";
+   for Library_Name use "HiRTOS_Separation_Kernel";
    for Library_Version use Project'Library_Name & ".a." & Hirtos_Separation_Kernel_Config.Crate_Version;
 
-   for Source_Dirs use ("../src",
+   for Source_Dirs use ("src",
+                        "src/porting_layer/cpu_architectures",
+                        "src/porting_layer/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch,
+                        "../src",
                         "../src/porting_layer/utils",
                         "../src/porting_layer/cpu_architectures",
                         "../src/porting_layer/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch,
