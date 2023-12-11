@@ -49,7 +49,6 @@ is
    --  @field Id: timer Id
    --  @Timer Timer_Wheel_Revolutions: Total number of timer wheel revolutions before
    --  the timer expires.
-   --  before timer expiration.
    --  @Timer Timer_Wheel_Revolutions_Left: Number of timer wheel revolutions left
    --  before timer expiration.
    --  @Expiration_Callback: Poinrer to timer expiration callback
@@ -69,6 +68,7 @@ is
       Wheel_Spoke_Index : Timer_Wheel_Spoke_Index_Type := Invalid_Timer_Wheel_Spoke_Index;
    end record with
      Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+    --  Type_Invariant => Timer_Wheel_Revolutions_Left <= Timer_Wheel_Revolutions;
 
    type Timer_Array_Type is array (Valid_Timer_Id_Type) of Timer_Type;
 

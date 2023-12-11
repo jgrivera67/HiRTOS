@@ -9,7 +9,6 @@ with HiRTOS_Separation_Kernel_Config_Parameters;
 with HiRTOS.Separation_Kernel.Partition;
 with HiRTOS.Separation_Kernel.Memory_Protection_Private;
 with HiRTOS_Cpu_Arch_Interface.Partition_Context;
-with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
 
@@ -40,6 +39,8 @@ is
    --  @field Cpu_Context : partition's saved CPU context.
    --  @field Extended_Cpu_Context : partition's saved extended CPU context.
    --  @field Interrupt_Handling_Context : partition's saved interrupt handling context.
+   --  @field Timer_Context : partition's saved shared timer context (if timer peripheral shared
+   --         among partitions)
    --  @field Internal_Memory_Regions : MPU region descriptors for the partition's
    --  internal memory protection regions.
    --  @field Stats: Per-partition stats
