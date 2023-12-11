@@ -178,7 +178,7 @@ a FreeRTOS skin and and a CMSIS RTOS2 skin. Both skins are implemented on top of
 The native C skin is just a thin C wrapper that consists of a C header file containing the C
 functions prototypes of the corresponding Ada subprograms of the SPARK Ada native interface of HiRTOS.
 
-In addition to the C/C++ interface, HiRTOS should also provide an Ada runtime library (RTS) skin,
+In addition to the Ada native and  C/C++ interfaces, HiRTOS could also provide an Ada runtime library (RTS) skin,
 as shown on figure \ref{HiRTOSAchitecture2}, so that baremetal Ada applications that use Ada tasking
 features can run on top of HiRTOS. This can be especially useful, given the limited number of
 microcontroller platforms for which there is a bare-metal Ada runtime library available with the
@@ -456,7 +456,6 @@ Below are the primitive types used in HiRTOS:
 \begin{zed}
     ThreadQueueType == \iseq ValidThreadIdType \\
     MutexListType == \iseq ValidMutexIdType \\
-    TimerListType == \iseq ValidTimerIdType \\
     TimerWheelSpokeIndexType == \\
     \t1 0 \upto numTimerWheelSpokes \\
     invalidTimerWheelSpokeIndex == \\
@@ -464,6 +463,8 @@ Below are the primitive types used in HiRTOS:
     ValidTimerWheelSpokeIndexType == \\
     \t1 TimerWheelSpokeIndexType ~\setminus \\
     \t1 \{~ invalidTimerWheelSpokeIndex ~\} \\
+    TimerKindType ::= periodicTimer | oneShotTimer \\
+    TimerStateType ::= timerStopped | timerRunning \\
 \end{zed}
 
 For interrupts, lower priority values represent higher priorities. For threads, lower priority
@@ -616,7 +617,7 @@ are described below:
     \t1 InterruptNestingCounterType \\
     zCpuId: ValidCpuIdType
 \where
-   \forall x: ActiveInterruptNestingCounterType @ \\
+   \forall x: \dom interruptNestingLevels @ \\
 \t1   (interruptNestingLevels(x)).interruptNestingCounter = x \\
 \t1   \land \\
 \t1   (interruptNestingLevels(x)).savedStackPointer \in \\
@@ -639,16 +640,25 @@ are described below:
 
 \begin{schema}{TimerWheelType}
    wheelSpokesHashTable: \\
-   \t1 ValidTimerWheelSpokeIndexType \fun \finset TimerIdType \\
+   \t1 ValidTimerWheelSpokeIndexType \fun \finset ValidTimerIdType \\
    currentWheelSpokeIndex: ValidTimerWheelSpokeIndexType
 \where
-    \bigcap~\{~ i: ValidTimerWheelSpokeIndexType @ \\
-    \t1 wheelSpokesHashTable(i) ~\} = \emptyset
+    \forall i, j: ValidTimerWheelSpokeIndexType | i \neq j @ \\
+    \t1 wheelSpokesHashTable(i) \cap wheelSpokesHashTable(j) = \emptyset
 \end{schema}
 
 \begin{schema}{TimerType}
-   id : TimerIdType
-%\where
+   id : TimerIdType \\
+   timerKind : TimerKindType \\
+   timerState : TimerStateType \\
+   timerWheelRevolutions : \nat \\
+   timerWheelRevolutionsLeft : \nat \\
+   expirationCallbackAddr : MemoryAddressType \\
+   wheelSpokeIndex : TimerWheelSpokeIndexType
+\where
+   timerWheelRevolutionsLeft \leq timerWheelRevolutions
+\also
+   timerState = timerRunning \implies expirationCallbackAddr \neq nullAddress
 \end{schema}
 
 \begin{schema}{ThreadType}
@@ -694,8 +704,12 @@ are described below:
 \end{schema}
 
 \begin{schema}{CondvarType}
-   id : CondvarIdType
-%\where
+   id : CondvarIdType \\
+   wakeupAtomicLevel : AtomicLevelType \\
+   wakeupMutexId : MutexIdType \\
+   waitingThreadsQueue : ThreadPriorityQueueType
+\where
+   wakeupAtomicLevel \neq atomicLevelNone \implies wakeupMutexId = invalidMutexId
 \end{schema}
 
 \begin{schema}{MutexType}
@@ -716,21 +730,61 @@ are described below:
 
 \section{HiRTOS Boot-time Initialization}
 
-\subsection{HiRTOS Elaboration-time Initialization}
+When \verb`HiRTOS.Initialize` is called for each CPU core, the idle thread
+and the tick timer thread for that CPU are created, but the thread
+scheduler is not started yet:
 
-On boot, before the \verb`HiRTOS.Initialize` \emph{HiRTOS} API is called on any CPU core,
-the global state of \emph{HiRTOS} is as follows:
-
-\begin{schema}{HiRtosInitialState}
-    HiRtos' \\
-    HiRtosCpuInstanceInitialState
+\begin{schema}{HiRtosInitialize}
+   HiRtos' \\
+   HiRtosCpuInstanceInitialize \\
+   cpuId? : CpuIdType \\
 \where
-    \forall i : \dom rtosCpuInstances' @ \\
-\t1    \theta HiRtosCpuInstanceType' = rtosCpuInstances'(i)
+   cpuId' = cpuId?
+\also
+   \theta HiRtosCpuInstanceType' = rtosCpuInstances'(cpuId?)
+\also
+   interruptNestingLevelStack'.zCpuId = cpuId?
 \end{schema}
 
-\begin{schema}{HiRtosCpuInstanceInitialState}
-    HiRtosCpuInstanceType'
+\begin{schema}{HiRtosCpuInstanceInitialize}
+   HiRtosCpuInstanceElaboration
+\where
+    idleThreadId' \neq invalidThreadId
+\also
+    tickTimerThreadId' \neq invalidThreadId
+\also
+    tickTimerThreadId' \neq idleThreadId'
+\also
+    \dom threads' = \{~ idleThreadId', tickTimerThreadId' ~\}
+\also
+    \dom condvars' = \\
+   \{~ (threads'(idleThreadId')).builtinCondvarId, \\
+      (threads'(tickTimerThreadId')).builtinCondvarId ~\}
+\also
+    \dom timers' = \\
+   \{~ (threads'(idleThreadId')).builtinTimerId, \\
+       (threads'(tickTimerThreadId')).builtinTimerId ~\}
+\also
+    zCpuInterruptMaskingState' = cpuInterruptsEnabled
+\also
+    zCpuPrivilege' = cpuUnprivileged
+\also
+    zMemoryProtectionState' = memoryProtectionOn
+\also
+    runnableThreadsQueue'.threadQueues(min~ ValidThreadPriorityType) \\
+    \t1 = \langle idleThreadId' \rangle
+\also
+    runnableThreadsQueue'.threadQueues(max~ ValidThreadPriorityType) \\
+    \t1 = \langle tickTimerThreadId' \rangle
+\also
+   \forall p : ValidThreadPriorityType \setminus \\
+   \t2   \{~ min~ ValidThreadPriorityType, max~ ValidThreadPriorityType ~\} @ \\
+   \t1 runnableThreadsQueue'.threadQueues(p) = \emptyset
+\end{schema}
+
+\begin{schema}{HiRtosCpuInstanceElaboration}
+    HiRtosCpuInstanceType' \\
+    InterruptNestingLevelStackElaboration
 \where
     threadSchedulerState' = threadSchedulerStopped
 \also
@@ -751,18 +805,19 @@ the global state of \emph{HiRTOS} is as follows:
     timers' = \emptyset
 \also
     timerTicksSinceBoot' = 0
-\also
-    \forall p : ValidThreadPriorityType @ \\
-	runnableThreadsQueue'.threadQueues(p) = \emptyset
 \end{schema}
 
-\begin{schema}{InterruptNestingLevelStackInitialState}
-   InterruptNestingLevelStackType'
+\begin{schema}{InterruptNestingLevelStackElaboration}
+   InterruptNestingLevelStackType' \\
+   InterruptNestingLevelElaboration
 \where
    currentInterruptNestingCounter' = 1 \\
+\also
+   \forall x: ActiveInterruptNestingCounterType @ \\
+\t1   interruptNestingLevels'(x) = \theta InterruptNestingLevelType' \\
 \end{schema}
 
-\begin{schema}{InterruptNestingLevelInitialState}
+\begin{schema}{InterruptNestingLevelElaboration}
    InterruptNestingLevelType'
 \where
    interruptId' = invalidInterruptId
@@ -774,7 +829,7 @@ the global state of \emph{HiRTOS} is as follows:
    atomicLevel' = atomicLevelNone
 \end{schema}
 
-\begin{schema}{TimerWheelInitialState}
+\begin{schema}{TimerWheelElaboration}
    TimerWheelType'
 \where
    \ran wheelSpokesHashTable' = \{~ \emptyset ~\}
@@ -783,104 +838,72 @@ the global state of \emph{HiRTOS} is as follows:
    \t1 min~ValidTimerWheelSpokeIndexType
 \end{schema}
 
-%\begin{schema}{TimerTypeInitialState}
-%\where
-%\end{schema}
-
-\begin{schema}{ThreadTypeInitialState}
-   ThreadType'
-\where
-   id' = invalidThreadId
-\also
-   builtinTimerId' = invalidTimerId
-\also
-   builtinCondvarId' = invalidCondvarId
-\also
-   state' = threadNotCreated
-\also
-   atomicLevel' = atomicLevelNone
-\end{schema}
-
-%\begin{schema}{CondvarTypeInitialState}
-%\where
-%\end{schema}
-
-\begin{schema}{MutexTypeInitialState}
-   MutexType'
-\where
-  id' = invalidMutexId
-\also
-  ownerThreadId' = invalidThreadId
-\also
-  recursiveCount' = 0
-\also
-  ceilingPriority' = invalidThreadPriority
-\also
-   \forall p: ValidThreadPriorityType @ \\
-\t1      waitingThreadsQueue'.threadQueues(p) = \emptyset
-\end{schema}
-
-\subsection{HiRTOS Runtime Initialization}
-When \verb`HiRTOS.Initialize` is called for each CPU core, the idle thread
-and the tick timer thread for that CPU are created, but the thread
-scheduler is not started yet:
-
-\begin{schema}{HiRtosInitialize}
-   \Delta HiRtos \\
-   \Delta HiRtosCpuInstanceType \\
-   cpuId? : CpuIdType \\
-\where
-   \theta HiRtosCpuInstanceType = rtosCpuInstances(cpuId?)
-\also
-   \theta HiRtosCpuInstanceType' = rtosCpuInstances'(cpuId?)
-\also
-   (rtosCpuInstances'(cpuId?)).cpuId = cpuId?
-\also
-    idleThreadId' \neq invalidThreadId
-\also
-    tickTimerThreadId' \neq invalidThreadId
-\also
-    tickTimerThreadId' \neq idleThreadId'
-\also
-    \dom threads' = \{~ idleThreadId', tickTimerThreadId' ~\}
-\also
-    \dom condvars' = \\
-   \{~ (threads'(idleThreadId')).builtinCondvarId, \\
-      (threads'(tickTimerThreadId')).builtinCondvarId ~\}
-\also
-    \dom timers' = \\
-   \{~ (threads'(idleThreadId')).builtinTimerId, \\
-       (threads'(tickTimerThreadId')).builtinTimerId ~\}
-\also
-   interruptNestingLevelStack'.zCpuId = cpuId'
-\also
-    zCpuInterruptMaskingState' = cpuInterruptsEnabled
-\also
-    zCpuPrivilege' = cpuUnprivileged
-\also
-    zMemoryProtectionState' = memoryProtectionOn
-\also
-    runnableThreadsQueue'.threadQueues(min~ ValidThreadPriorityType) \\
-    \t1 = \langle idleThreadId' \rangle
-\also
-    runnableThreadsQueue'.threadQueues(max~ ValidThreadPriorityType) \\
-    \t1 = \langle tickTimerThreadId' \rangle
-\end{schema}
-
 \section{HiRTOS Callable Services}
 
 \subsection{\emph{HiRTOS} Threads Operations}
 
 \subsubsection{Create a new thread}
 
-A thread can be created by calling \verb`HiRTOS.Thread.Create`. Threads are allocated from the pool of
+A thread can be created by calling \verb`HiRTOS.Thread.Create_Thread`. Threads are allocated from the pool of
 thread objects of the calling CPU:
 
 \begin{schema}{CreateThread}
    \Delta HiRtosCpuInstanceType \\
-   %InitializeNewMutex \\
-   cpuId? : CpuIdType \\
-%\where
+   InitializeNewThread \\
+   priority? : ValidThreadPriorityType
+\where
+   threadId! \notin \dom threads
+\also
+   condvarId! \notin \dom condvars
+\also
+   timerId! \notin \dom timers
+\also
+   threadId! \in \dom threads'
+\also
+   condvarId! \in \dom condvars'
+\also
+   timerId! \in \dom timers'
+\also
+   threads'(threadId!) = \theta ThreadType'
+\also
+    runnableThreadsQueue'.threadQueues(priority?) = \\
+    \t1 runnableThreadsQueue.threadQueues(priority?) \cat \langle threadId! \rangle
+\end{schema}
+
+\begin{schema}{InitializeNewThread}
+   ThreadType' \\
+   condvarId! : ValidCondvarIdType \\
+   timerId! : ValidTimerIdType \\
+   threadId! : ValidThreadIdType
+\where
+   threadId! \neq invalidThreadId
+\also
+   id' = threadId!
+\also
+   builtinTimerId' = timerId!
+\also
+   builtinCondvarId' = condvarId!
+\also
+   state' = threadRunnable
+\also
+   atomicLevel' = atomicLevelNone
+\end{schema}
+
+\begin{schema}{ThreadPriorityQueueInitialize}
+   ThreadPriorityQueueType'
+\where
+   \forall p: ValidThreadPriorityType @ \\
+\t1     threadQueues'(p) = \emptyset
+\end{schema}
+
+\begin{schema}{DequeueHighestPriorityThread}
+   \Delta ThreadPriorityQueueType \\
+   highestPriorityThreadId! : ValidThreadIdType
+\where
+   (\LET highestPrio == \\
+   \t1 max~ (\dom (threadQueues \nrres \emptyset)) @ \\
+   \t1 highestPriorityThreadId! = head~ (threadQueues(highestPrio)) \land \\
+   \t1 threadQueues'(highestPrio) = tail~ (threadQueues(highestPrio)))
 \end{schema}
 
 \subsection{\emph{HiRTOS} Mutex Operations}
@@ -902,7 +925,7 @@ mutex objects of the calling CPU:
 \end{schema}
 
 \begin{schema}{InitializeNewMutex}
-   \Delta MutexType \\
+   MutexType' \\
    ceilingPriority? : ThreadPriorityType \\
    mutexId! : ValidMutexIdType
 \where
@@ -910,7 +933,14 @@ mutex objects of the calling CPU:
 \also
    id' = mutexId!
 \also
+   ownerThreadId' = invalidThreadId
+\also
+   recursiveCount' = 0
+\also
    ceilingPriority' = ceilingPriority?
+\also
+   \forall p: ValidThreadPriorityType @ \\
+\t1      waitingThreadsQueue'.threadQueues(p) = \emptyset
 \end{schema}
 
 If $ceilingPriority?$ is $invalidThreadPriority$ that means that the mutex follows the priority
@@ -965,8 +995,13 @@ specified by the $AcquireMutex$ schema:
 \end{schema}
 
 \begin{schema}{WaitOnUnavailableMutex}
-   CreatedMutexMutableOperation
+   CreatedMutexMutableOperation \\
+   DequeueHighestPriorityThread
 \where
+   runnableThreadsQueue = \theta ThreadPriorityQueueType
+\also
+   runnableThreadsQueue' = \theta ThreadPriorityQueueType'
+\also
    ownerThreadId \neq invalidThreadId
 \also
    currentThreadId \neq ownerThreadId
@@ -995,6 +1030,10 @@ ceilingPriority \neq invalidThreadPriority \implies \\
 ((threads(currentThreadId)).currentPriority \leq \\
  \t1 (threads'(ownerThreadId)).currentPriority \land \\
  (threads'(ownerThreadId)).state \in \{threadBlockedOnMutex , threadBlockedOnCondvar\})
+\also
+   currentThreadId' \neq currentThreadId
+\also
+   currentThreadId' = highestPriorityThreadId!
 \end{schema}
 
 \begin{zed}
@@ -1008,11 +1047,241 @@ A thread releases a mutex by calling \verb`HiRTOS.Mutex.Release`, according to t
 specified by the $ReleaseMutex$ schema:
 
 \begin{schema}{ReleaseMutex}
-   CreatedMutexMutableOperation
+   CreatedMutexMutableOperation \\
+   DequeueHighestPriorityThread
 \where
-mutexId? = head~ (threads(currentThreadId)).ownedMutexes
+   waitingThreadsQueue = \theta ThreadPriorityQueueType
 \also
-(threads'(currentThreadId)).ownedMutexes = tail~ (threads(currentThreadId)).ownedMutexes
+   waitingThreadsQueue' = \theta ThreadPriorityQueueType'
+\also
+   mutexId? = head~ (threads(currentThreadId)).ownedMutexes
+\also
+   (threads'(currentThreadId)).ownedMutexes = tail~ (threads(currentThreadId)).ownedMutexes
+\also
+   (\LET p == (threads(highestPriorityThreadId!)).currentPriority @ \\
+   \t1 runnableThreadsQueue'.threadQueues(p) = \\
+   \t2 runnableThreadsQueue.threadQueues(p) \cat \langle highestPriorityThreadId! \rangle)
+\end{schema}
+
+\subsection{\emph{HiRTOS} Condition Variable Operations}
+
+\subsubsection{Create a new condition variable}
+
+A condition variable can be created by calling \verb`HiRTOS.Condvar.Create`. Condvars are allocated
+from the pool of condvar objects of the calling CPU:
+
+\begin{schema}{CreateCondvar}
+   \Delta HiRtosCpuInstanceType \\
+   InitializeNewCondvar \\
+\where
+   condvarId! \notin \dom condvars
+\also
+   condvarId! \in \dom condvars'
+\also
+   condvars'(condvarId!) = \theta CondvarType'
+\end{schema}
+
+\begin{schema}{InitializeNewCondvar}
+   CondvarType' \\
+   ThreadPriorityQueueInitialize \\
+   condvarId! : ValidCondvarIdType
+\where
+   waitingThreadsQueue' = \theta ThreadPriorityQueueType'
+\also
+   condvarId! \neq invalidCondvarId
+\also
+   id' = condvarId!
+\also
+   wakeupAtomicLevel' = atomicLevelNone
+\also
+   wakeupMutexId' = invalidMutexId
+\end{schema}
+
+The $CreatedCondvarMutableOperation$ schema below is used in the specifications of all the mutable
+operations that can be performed on condition variables that were previously created by a call to
+\verb'HiRTOS.Condvar.Create':
+
+\begin{schema}{CreatedCondvarMutableOperation}
+   \Delta HiRtos \\
+   \Delta HiRtosCpuInstanceType \\
+   \Delta CondvarType \\
+   cpuId? : CpuIdType \\
+   condvarId? : ValidCondvarIdType
+\where
+   rtosCpuInstances(cpuId?) = \theta HiRtosCpuInstanceType
+\also
+   rtosCpuInstances'(cpuId?) = \theta HiRtosCpuInstanceType'
+\also
+   condvars(condvarId?) = \theta CondvarType
+\also
+   condvars'(condvarId?) = \theta CondvarType'
+\end{schema}
+
+\subsubsection{Wait on a condition variable}
+
+A thread waits on a condition variable by calling \verb`HiRTOS.Condvar.Wait`, according to the contract
+specified by the $WaitOnCondvar$ schema:
+
+\begin{schema}{WaitOnCondvar}
+   CreatedCondvarMutableOperation \\
+   DequeueHighestPriorityThread \\
+   mutexId? : ValidMutexIdType
+\where
+   runnableThreadsQueue = \theta ThreadPriorityQueueType
+\also
+   runnableThreadsQueue' = \theta ThreadPriorityQueueType'
+\also
+   mutexId? \in \ran (threads(currentThreadId)).ownedMutexes
+\also
+   mutexId? \notin \ran (threads'(currentThreadId)).ownedMutexes
+\also
+   wakeupMutexId' = mutexId?
+\also
+   (\LET p == (threads(currentThreadId)).currentPriority @ \\
+    \t1 waitingThreadsQueue'.threadQueues(p) = \\
+    \t2 waitingThreadsQueue.threadQueues(p) \cat \langle currentThreadId \rangle)
+\also
+   currentThreadId' \neq currentThreadId
+\also
+   currentThreadId' = highestPriorityThreadId!
+\end{schema}
+
+\subsubsection{Signal a condition variable}
+
+A thread signals a condition variable by calling \verb`HiRTOS.Condvar.Signal`, according to the contract
+specified by the $SignalCondvar$ schema.
+Signaling a condition variable wakes up the highest priority thread waiting on the
+condition variable.
+
+\begin{schema}{SignalCondvar}
+   CreatedCondvarMutableOperation \\
+   DequeueHighestPriorityThread
+\where
+   waitingThreadsQueue = \theta ThreadPriorityQueueType
+\also
+   waitingThreadsQueue' = \theta ThreadPriorityQueueType'
+\also
+   wakeupMutexId \in \ran (threads'(highestPriorityThreadId!)).ownedMutexes
+\also
+   (\LET p == (threads(highestPriorityThreadId!)).currentPriority @ \\
+   \t1 runnableThreadsQueue'.threadQueues(p) = \\
+   \t2 runnableThreadsQueue.threadQueues(p) \cat \langle highestPriorityThreadId! \rangle)
+\end{schema}
+
+\subsubsection{Broadcast on a condition variable}
+
+A thread broadcasts on a condition variable by calling \verb`HiRTOS.Condvar.Broadcast`, according to the contract
+specified by the $BroadcastCondvar$ schema.
+Broadcasting on a condition variable wakes up all threads waiting on the condition variable.
+
+\begin{schema}{BroadcastCondvar}
+   CreatedCondvarMutableOperation \\
+\where
+   (\forall p: ValidThreadPriorityType | \\
+   \t1     waitingThreadsQueue.threadQueues(p) \neq \emptyset @ \\
+   \t1     waitingThreadsQueue'.threadQueues(p) = \emptyset \land \\
+   \t1     runnableThreadsQueue'.threadQueues(p) = \\
+   \t2     runnableThreadsQueue.threadQueues(p) \cat \\
+   \t2     waitingThreadsQueue.threadQueues(p))
+\end{schema}
+
+\subsection{\emph{HiRTOS} Software Timer Operations}
+
+\subsubsection{Create a new software timer}
+
+A software timer can be created by calling \verb`HiRTOS.Timer.Create`. Timers are allocated
+from the pool of timer objects of the calling CPU:
+
+\begin{schema}{CreateTimer}
+   \Delta HiRtosCpuInstanceType \\
+   InitializeNewTimer
+\where
+   timerId! \notin \dom timers
+\also
+   timerId! \in \dom timers'
+\also
+   timers'(timerId!) = \theta TimerType'
+\end{schema}
+
+\begin{schema}{InitializeNewTimer}
+   TimerType' \\
+   timerId! : ValidTimerIdType
+\where
+   timerId! \neq invalidTimerId
+\also
+   id' = timerId!
+\also
+   timerKind' = oneShotTimer
+\also
+   timerState' = timerStopped
+\also
+   timerWheelRevolutions' = 0
+\also
+   timerWheelRevolutionsLeft' = 0
+\also
+   expirationCallbackAddr' = nullAddress
+\also
+   wheelSpokeIndex' = invalidTimerWheelSpokeIndex
+\end{schema}
+
+The $CreatedTimerMutableOperation$ schema below is used in the specifications of all the mutable
+operations that can be performed on software timers that were previously created by a call to
+\verb'HiRTOS.Timer.Create':
+
+\begin{schema}{CreatedTimerMutableOperation}
+   \Delta HiRtos \\
+   \Delta HiRtosCpuInstanceType \\
+   \Delta TimerType \\
+   cpuId? : CpuIdType \\
+   timerId? : ValidTimerIdType
+\where
+   rtosCpuInstances(cpuId?) = \theta HiRtosCpuInstanceType
+\also
+   rtosCpuInstances'(cpuId?) = \theta HiRtosCpuInstanceType'
+\also
+   timers(timerId?) = \theta TimerType
+\also
+   timers'(timerId?) = \theta TimerType'
+\end{schema}
+
+\subsubsection{Start a software timer}
+
+A software timer is started by calling \verb`HiRTOS.Timer.Start_Timer`, according to the contract
+specified by the $StartTimer$ schema:
+
+\begin{schema}{StartTimer}
+   CreatedTimerMutableOperation \\
+   expirationTimeUs? : \nat \\
+   expirationCallbackAddr? : MemoryAddressType \\
+   timerKind? : TimerKindType
+\where
+   expirationCallbackAddr? \neq nullAddress
+\also
+   expirationCallbackAddr' = expirationCallbackAddr?
+\also
+   timerKind' = timerKind?
+\also
+   (\LET expirationTimeTicks == expirationTimeUs? \div TickTimerPeriodUs @ \\
+      \t1 wheelSpokeIndex' = \\
+      \t2 (timerWheel.currentWheelSpokeIndex + expirationTimeTicks) \mod numTimerWheelSpokes \land \\
+      \t1 timerWheelRevolutions' = expirationTimeTicks \div numTimerWheelSpokes \land \\
+      \t1 timerWheelRevolutionsLeft' = timerWheelRevolutions' \land \\
+      \t1 timerWheel'.wheelSpokesHashTable(wheelSpokeIndex') = \\
+      \t2    timerWheel.wheelSpokesHashTable(wheelSpokeIndex') \cup \{~ timerId? ~\})
+\end{schema}
+
+\subsubsection{Stop a software timer}
+
+A software timer is stopped by calling \verb`HiRTOS.Timer.Stop_Timer`, according to the contract
+specified by the $StopTimer$ schema:
+
+\begin{schema}{StopTimer}
+   CreatedTimerMutableOperation \\
+\where
+   expirationCallbackAddr' = nullAddress
+\also
+   timerWheel'.wheelSpokesHashTable(wheelSpokeIndex) = \\
+   \t1  timerWheel.wheelSpokesHashTable(wheelSpokeIndex) \setminus \{~ timerId? ~\}
 \end{schema}
 
 \clearpage
@@ -1148,20 +1417,25 @@ are described below:
 
 \subsection{Separation Kernel Boot-time Initialization}
 
-\subsubsection{Separation Kernel Elaboration-time Initialization}
+At boot time, the HiRTOS separation kernel is initialized when the \verb`HiRTOS.Separation_Kernel.Initialize` \emph{HiRTOS} API is
+called on every CPU core:
 
-On boot, before the \verb`HiRTOS.Separation_Kernel.Initialize` \emph{HiRTOS} API is
-called on any CPU core, the global state of \emph{HiRtosSeparationKernel} is as follows:
-
-\begin{schema}{HiRtosSeparationKernelInitialState}
+\begin{schema}{HiRtosSeparationKernelInitialize}
     HiRtosSeparationKernel' \\
-    SeparationKernelCpuInstanceInitialState
+    SeparationKernelCpuInstanceInitialize \\
+    cpuId? : CpuIdType
 \where
-    \forall i : \dom separationKernelCpuInstances' @ \\
-\t1    \theta SeparationKernelCpuInstanceType' = separationKernelCpuInstances'(i)
+   cpuId' = cpuId?
+\also
+    \theta SeparationKernelCpuInstanceType' = separationKernelCpuInstances'(cpuId?)
 \end{schema}
 
-\begin{schema}{SeparationKernelCpuInstanceInitialState}
+\begin{schema}{SeparationKernelCpuInstanceInitialize}
+   SeparationKernelCpuInstanceElaboration
+%\where
+\end{schema}
+
+\begin{schema}{SeparationKernelCpuInstanceElaboration}
    SeparationKernelCpuInstanceType'
 \where
    zAddressRange(interruptStack') \neq \emptyset
@@ -1177,8 +1451,44 @@ called on any CPU core, the global state of \emph{HiRtosSeparationKernel} is as 
    partitions' = \emptyset
 \end{schema}
 
-\subsubsection{Separation Kernel Runtime Initialization}
+\section{Separation Kernel Callable Services}
 
+\subsection{Partition Operations}
+
+\subsubsection{Create a new partition}
+
+A partition can be created by calling \verb`HiRTOS.Separation_Kernel.Partition.Create_Partition`.
+Partitions are allocated from the pool of partition objects of the calling CPU:
+
+\begin{schema}{CreatePartition}
+   \Delta SeparationKernelCpuInstanceType \\
+   InitializeNewPartition \\
+\where
+   partitionId! \notin \dom partitions
+\also
+   partitionId! \in \dom partitions'
+\also
+   partitions'(partitionId!) = partitions'(partitionId!)
+\also
+   runnablePartitionsQueue' = runnablePartitionsQueue \cat \langle partitionId! \rangle
+\end{schema}
+
+\begin{schema}{InitializeNewPartition}
+   PartitionType' \\
+   partitionId! : ValidPartitionIdType
+\where
+   id' = partitionId!
+\also
+   failoverPartitionId' = invalidPartitionId
+\also
+   state' = partitionRunnable
+\also
+   savedHypervisorLevelMpuRegions' \neq \emptyset
+\also
+   savedSupervisorLevelMpuRegions' = \emptyset
+\also
+   savedInterruptsEnabled' = \emptyset
+\end{schema}
 
 \begin{thebibliography}{9}
 
