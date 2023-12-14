@@ -1482,6 +1482,12 @@ Partitions are allocated from the pool of partition objects of the calling CPU:
    failoverPartitionId' = invalidPartitionId
 \also
    state' = partitionRunnable
+\also
+   savedHypervisorLevelMpuRegions' \neq \emptyset
+\also
+   savedSupervisorLevelMpuRegions' = \emptyset
+\also
+   savedInterruptsEnabled' = \emptyset
 \end{schema}
 
 \begin{thebibliography}{9}
