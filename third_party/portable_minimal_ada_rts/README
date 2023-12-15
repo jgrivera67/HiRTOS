@@ -1,9 +1,8 @@
 Minimal platform-independent Ada runtime library.
-Files copied from the host FSF gnat RTS sources
-(e.g., /usr/lib/gcc/arm-linux-gnueabihf/8/adainclude/).
+Files copied from the FSF GNAT RTS sources.
 
-The following declarations have been removed from the original system.ads
-to make it more portable across platforms:
+The following declarations have been removed from the original
+`system.ads` file, to make it more portable across platforms:
 
    Tick                  : constant := 1.0 / 60.0;
 
