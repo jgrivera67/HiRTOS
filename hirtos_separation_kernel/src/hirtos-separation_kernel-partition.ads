@@ -1,8 +1,8 @@
 --
 --  Copyright (c) 2023, German Rivera
---  All rights reserved.
+--  
 --
---  SPDX-License-Identifier: BSD-3-Clause
+--  SPDX-License-Identifier: Apache-2.0
 --
 
 with System.Storage_Elements;
