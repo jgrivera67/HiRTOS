@@ -5,7 +5,7 @@
 name = "hirtos"
 description = "High-Integrity RTOS"
 version = "0.1.0"
-licenses = "Apache 2.0"
+licenses = "Apache-2.0"
 website = "https://github.com/jgrivera67/HiRTOS"
 tags = ["rtos"]
 authors = ["J. German Rivera"]
