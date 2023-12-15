@@ -1,8 +1,8 @@
 --
---  Copyright (c) 2022, German Rivera
---  All rights reserved.
+--  Copyright (c) 2022-2023, German Rivera
 --
---  SPDX-License-Identifier: BSD-3-Clause
+--
+--  SPDX-License-Identifier: Apache-2.0
 --
 with Linked_List_Test_Cases;
 with AUnit.Test_Caller;

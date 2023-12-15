@@ -1,8 +1,8 @@
 --
---  Copyright (c) 2022, German Rivera
---  All rights reserved.
+--  Copyright (c) 2022-2023, German Rivera
 --
---  SPDX-License-Identifier: BSD-3-Clause
+--
+--  SPDX-License-Identifier: Apache-2.0
 --
 
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
@@ -12,8 +12,6 @@ with HiRTOS.Condvar;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS.Memory_Protection_Private;
---  ???with HiRTOS_Low_Level_Debug_Interface;--???
---  ???with GNAT.Source_Info; --???
 
 package body HiRTOS.Thread is
    use System.Storage_Elements;

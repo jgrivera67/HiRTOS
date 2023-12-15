@@ -1,8 +1,8 @@
 --
---  Copyright (c) 2021, German Rivera
---  All rights reserved.
+--  Copyright (c) 2021-2023, German Rivera
 --
---  SPDX-License-Identifier: BSD-3-Clause
+--
+--  SPDX-License-Identifier: Apache-2.0
 --
 
 --

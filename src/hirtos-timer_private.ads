@@ -1,8 +1,8 @@
 --
---  Copyright (c) 2022, German Rivera
---  All rights reserved.
+--  Copyright (c) 2022-2023, German Rivera
 --
---  SPDX-License-Identifier: BSD-3-Clause
+--
+--  SPDX-License-Identifier: Apache-2.0
 --
 
 with HiRTOS.Timer;
@@ -68,7 +68,7 @@ is
       Wheel_Spoke_Index : Timer_Wheel_Spoke_Index_Type := Invalid_Timer_Wheel_Spoke_Index;
    end record with
      Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
-    --  Type_Invariant => Timer_Wheel_Revolutions_Left <= Timer_Wheel_Revolutions;
+     --  Type_Invariant => Timer_Wheel_Revolutions_Left <= Timer_Wheel_Revolutions;
 
    type Timer_Array_Type is array (Valid_Timer_Id_Type) of Timer_Type;
 

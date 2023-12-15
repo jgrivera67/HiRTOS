@@ -1,8 +1,8 @@
 --
 --  Copyright (c) 2016-2022, German Rivera
---  All rights reserved.
 --
---  SPDX-License-Identifier: BSD-3-Clause
+--
+--  SPDX-License-Identifier: Apache-2.0
 --
 
 package body Number_Conversion_Utils is
