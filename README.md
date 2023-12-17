@@ -9,7 +9,7 @@ Yet, most RTOSes are written in C which is an unsafe language. It would be safer
 to use an RTOS written in a safer language, such as Ada or even better SPARK Ada.
 However, integrating Ada code components in bare-metal embedded firmware written
 in other languages, typically C, is not easy in a portable manner, as the available
-baremetal GNAT cross-compilers require the availability of an Ada Runtime for the 
+baremetal GNAT cross-compilers require the availability of an Ada Runtime for the
 target micrcontroller or embedded platform, and such baremetal Ada runtimes are
 available only for a very limited number of platforms. HiRTOS solves this problem
 by being implemented on on top of a minimal platform-independent Ada runtime.
@@ -19,7 +19,7 @@ ARM Cortex-R52 multi-core processor is provided. To port HiRTOS to a new target
 platform, all what it is needed is to implement the porting layer for the new target
 platform.
 
-## HiRTOS Z Formal Specification 
+## HiRTOS Z Formal Specification
 
 HiRTOS is formally specified using the Z notation. The Z specification of HiRTOS can
 be found [here](doc/HiRTOS.pdf).
@@ -59,7 +59,8 @@ alr build
 ```
 
 Once the ARM FVP simulator starts, an xterm for the UART output from each CPU core would be
-displayed. An ARM FVP run would look like this: ![](doc/HiRTOS_Sample_App_Running.png)
+displayed.
+An ARM FVP run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running.png).
 
 ### Build the "Hello World" HiRTOS Separation Kernel Sample Application
 
@@ -78,3 +79,5 @@ alr build
    -C bp.refcounter.non_arch_start_at_default=1 \
 	--application  bin/hello_partitions
 ```
+
+An ARM FVP run for "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
