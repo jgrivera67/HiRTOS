@@ -1,6 +1,6 @@
 --
 --  Copyright (c) 2022-2023, German Rivera
---  
+--
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
@@ -129,13 +129,6 @@ package body App_Partitions is
       Source_Image : Image_Type with Import, Address => Image_Address;
       Dest_Image : Image_Type with Import, Address => Load_Address;
    begin
-      HiRTOS.Debug.Print_String ("Image_Address " ); --???
-      HiRTOS.Debug.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (To_Integer (Image_Address)), End_Line => True);  --???
-      HiRTOS.Debug.Print_String ("Image_Size " ); --???
-      HiRTOS.Debug.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Image_Size_Bytes), End_Line => True);  --???
-      HiRTOS.Debug.Print_String ("Load_Address " ); --???
-      HiRTOS.Debug.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (To_Integer (Load_Address)), End_Line => True);  --???
-
       Dest_Image := Source_Image;
    end Load_Partition;
 

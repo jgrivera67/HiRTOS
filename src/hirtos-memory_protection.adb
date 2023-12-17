@@ -1,6 +1,6 @@
 --
 --  Copyright (c) 2022-2023, German Rivera
---  
+--
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
@@ -8,8 +8,6 @@
 --
 --  @summary HiRTOS Memory protection services
 --
-
---  ???with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS.Memory_Protection with
   SPARK_Mode => On

@@ -1,6 +1,6 @@
 --
 --  Copyright (c) 2016-2022, German Rivera
---  
+--
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
