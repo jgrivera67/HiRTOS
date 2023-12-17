@@ -33,7 +33,7 @@ be found [here](doc/HiRTOS.pdf).
 * Install the [ARM Fixed Virtual Platform (FVP) Simulator](https://developer.arm.com/downloads/-/arm-ecosystem-models)
   for ARMv8-R (scroll down to Armv8-R AEM FVP)
 
-### Build the "Hello World" HiRTOS Sample Application 
+### Build the "Hello World" HiRTOS Sample Application
 
 ```
 cd sample_apps/fvp_armv8r_aarch32_hello
@@ -77,7 +77,7 @@ alr build
    -C cluster0.gicv3.SRE-EL2-enable-RAO=1 \
    -C cluster0.gicv3.cpuintf-mmap-access-level=2 \
    -C bp.refcounter.non_arch_start_at_default=1 \
-	--application  bin/hello_partitions
+	--application  bin/hello_partitions.elf
 ```
 
-An ARM FVP run for "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
+An ARM FVP run for the "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
