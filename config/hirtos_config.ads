@@ -5,7 +5,7 @@ pragma Style_Checks (Off);
 package Hirtos_Config is
    pragma Pure;
 
-   Crate_Version : constant String := "0.1.0";
+   Crate_Version : constant String := "1.0.0";
    Crate_Name : constant String := "hirtos";
 
    Alire_Host_OS : constant String := "linux";

@@ -13,7 +13,7 @@ maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
 maintainers-logins = ["jgrivera67"]
 
 [[depends-on]]
-portable_minimal_ada_rts = "*"
+portable_minimal_ada_rts = "0.1.0"
 gnatprove = "^12.1.1"
 
 [[pins]]

@@ -2,7 +2,7 @@
 #ifndef HIRTOS_CONFIG_H
 #define HIRTOS_CONFIG_H
 
-#define CRATE_VERSION "0.1.0"
+#define CRATE_VERSION "1.0.0"
 #define CRATE_NAME "hirtos"
 
 #define ALIRE_HOST_OS "linux"
