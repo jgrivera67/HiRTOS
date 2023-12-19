@@ -16,11 +16,5 @@ maintainers-logins = ["jgrivera67"]
 portable_minimal_ada_rts = "1.0.0"
 gnatprove = "^12.1.1"
 
-[[pins]]
-portable_minimal_ada_rts = { path='third_party/portable_minimal_ada_rts' }
-
-[build-profiles]
-portable_minimal_ada_rts = "development"
-
 [configuration.variables]
 Separation_Kernel_Debug_Tracing_On = {type = "Boolean", default = false}
