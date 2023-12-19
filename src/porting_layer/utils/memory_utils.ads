@@ -8,8 +8,7 @@ with HiRTOS_Cpu_Arch_Parameters;
 with Interfaces.C;
 with System.Storage_Elements;
 
-package Memory_Utils with
-   No_Elaboration_Code_All
+package Memory_Utils
 is
    use Interfaces;
    use System.Storage_Elements;

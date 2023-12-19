@@ -15,7 +15,7 @@ with HiRTOS_Cpu_Arch_Parameters;
 generic
    Stack_Size_In_Bytes : Positive;
 package Generic_Execution_Stack with
-  SPARK_Mode => On, No_Elaboration_Code_All
+  SPARK_Mode => On
 is
 
    type Stack_Overflow_Guard_Type is

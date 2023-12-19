@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1992-2018, AdaCore                     --
+--                     Copyright (C) 1992-2022, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,7 +31,30 @@
 
 --  This is the parent package for a library of useful units provided with GNAT
 
+--  Note: this unit is used during bootstrap, see ADA_GENERATED_FILES in
+--  gcc-interface/Make-lang.in for details on the constraints.
+
 package GNAT is
    pragma Pure;
+
+   --  The following type denotes the range of buckets for various hashed
+   --  data structures in the GNAT unit hierarchy.
+
+   type Bucket_Range_Type is mod 2 ** 32;
+
+   --  The following exception is raised whenever an attempt is made to mutate
+   --  the state of a data structure that is being iterated on.
+
+   Iterated : exception;
+
+   --  The following exception is raised when an iterator is exhausted and
+   --  further attempts are made to advance it.
+
+   Iterator_Exhausted : exception;
+
+   --  The following exception is raised whenever an attempt is made to mutate
+   --  the state of a data structure that has not been created yet.
+
+   Not_Created : exception;
 
 end GNAT;

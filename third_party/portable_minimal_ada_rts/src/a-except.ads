@@ -3,10 +3,11 @@
 --                         GNAT RUN-TIME COMPONENTS                         --
 --                                                                          --
 --                       A D A . E X C E P T I O N S                        --
+--       (Version for No Exception Handlers/No_Exception_Propagation)       --
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2018, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2022, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -33,29 +34,28 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This version of Ada.Exceptions fully supports Ada 95 and later language
---  versions.  It is used in all situations except for the build of the
---  compiler and other basic tools. For these latter builds, we use an
---  Ada 95-only version.
-
---  The reason for this splitting off of a separate version is to support
---  older bootstrap compilers that do not support Ada 2005 features, and
---  Ada.Exceptions is part of the compiler sources.
+--  Version is for use when there are no handlers in the partition (i.e. either
+--  of Restriction No_Exception_Handlers or No_Exception_Propagation is set).
 
 with System;
 
-package Ada.Exceptions with No_Elaboration_Code_All is
+package Ada.Exceptions is
    pragma Preelaborate;
-   --  In accordance with Ada 2005 AI-362.
+   --  In accordance with Ada 2005 AI-362
 
    type Exception_Id is private;
    pragma Preelaborable_Initialization (Exception_Id);
 
    Null_Id : constant Exception_Id;
 
-   procedure Raise_Exception (E : Exception_Id; Message : String := "")
-      with No_Return, Inline_Always;
-   --  Note: In accordance with AI-466, CE is raised if E = Null_Id
+   procedure Raise_Exception (E : Exception_Id; Message : String := "");
+   pragma No_Return (Raise_Exception);
+   --  Unconditionally call __gnat_last_chance_handler.
+   --  Note that the exception is still raised even if E is the null exception
+   --  id. This is a deliberate simplification for this profile (the use of
+   --  Raise_Exception with a null id is very rare in any case, and this way
+   --  we avoid introducing Raise_Exception_Always and we also avoid the if
+   --  test in Raise_Exception).
 
 private
 
@@ -64,7 +64,8 @@ private
    ------------------
 
    type Exception_Id is access all System.Address;
-
    Null_Id : constant Exception_Id := null;
+
+   pragma Inline_Always (Raise_Exception);
 
 end Ada.Exceptions;

@@ -12,8 +12,7 @@
 with System.Storage_Elements;
 
 package HiRTOS_Cpu_Arch_Interface.System_Registers
-   with SPARK_Mode => On,
-        No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
    use type System.Storage_Elements.Integer_Address;
 

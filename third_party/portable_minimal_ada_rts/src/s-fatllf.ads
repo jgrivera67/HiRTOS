@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2018, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2022, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,8 +34,7 @@
 
 with System.Fat_Gen;
 
-package System.Fat_LLF with No_Elaboration_Code_All
-is
+package System.Fat_LLF is
    pragma Pure;
 
    --  Note the only entity from this package that is accessed by Rtsfind
