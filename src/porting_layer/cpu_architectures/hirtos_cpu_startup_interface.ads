@@ -12,7 +12,7 @@
 with HiRTOS_Cpu_Multi_Core_Interface;
 with Interfaces;
 
-package HiRTOS_Cpu_Startup_Interface with No_Elaboration_Code_All
+package HiRTOS_Cpu_Startup_Interface
 is
 
    procedure Ada_Reset_Handler

@@ -14,7 +14,7 @@ with System;
 with Interfaces;
 
 package HiRTOS_Cpu_Arch_Interface with
- SPARK_Mode => On, No_Elaboration_Code_All
+ SPARK_Mode => On
 is
 
    type Cpu_Register_Type is new Interfaces.Unsigned_32;

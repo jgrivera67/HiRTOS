@@ -5,9 +5,9 @@
 --                               S Y S T E M                                --
 --                                                                          --
 --                                 S p e c                                  --
---                        (GNU-Linux/ARM Version)                           --
+--                              (ARM Version)                               --
 --                                                                          --
---          Copyright (C) 1992-2018, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2021, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -52,12 +52,7 @@ pragma Restrictions (No_Finalization);
 pragma Restrictions (No_Tasking);
 --  Tasking is not supported in this run time
 
-pragma Discard_Names;
---  Disable explicitly the generation of names associated with entities in
---  order to reduce the amount of storage used. These names are not used anyway
---  (attributes such as 'Image and 'Value are not supported in this run time).
-
-package System with No_Elaboration_Code_All is
+package System is
    pragma Pure;
    --  Note that we take advantage of the implementation permission to make
    --  this unit Pure instead of Preelaborable; see RM 13.7.1(15). In Ada
@@ -68,19 +63,19 @@ package System with No_Elaboration_Code_All is
 
    --  System-Dependent Named Numbers
 
-   Min_Int               : constant := Long_Long_Integer'First;
-   Max_Int               : constant := Long_Long_Integer'Last;
+   Min_Int             : constant := -2 ** (Standard'Max_Integer_Size - 1);
+   Max_Int             : constant :=  2 ** (Standard'Max_Integer_Size - 1) - 1;
 
-   Max_Binary_Modulus    : constant := 2 ** Long_Long_Integer'Size;
+   Max_Binary_Modulus    : constant := 2 ** Standard'Max_Integer_Size;
    Max_Nonbinary_Modulus : constant := 2 ** Integer'Size - 1;
 
    Max_Base_Digits       : constant := Long_Long_Float'Digits;
    Max_Digits            : constant := Long_Long_Float'Digits;
 
-   Max_Mantissa          : constant := 63;
+   Max_Mantissa          : constant := Standard'Max_Integer_Size - 1;
    Fine_Delta            : constant := 2.0 ** (-Max_Mantissa);
 
-   Tick                  : constant := 0.000_001;
+   Tick                  : constant := 0.0;
 
    --  Storage-related Declarations
 
@@ -90,7 +85,7 @@ package System with No_Elaboration_Code_All is
 
    Storage_Unit : constant := 8;
    Word_Size    : constant := Standard'Word_Size;
-   Memory_Size  : constant := 2 ** Long_Integer'Size;
+   Memory_Size  : constant := 2 ** Word_Size;
 
    --  Address comparison
 
@@ -115,22 +110,14 @@ package System with No_Elaboration_Code_All is
 
    --  Priority-related Declarations (RM D.1)
 
-   --  0 .. 98 corresponds to the system priority range 1 .. 99.
-   --
-   --  If the scheduling policy is SCHED_FIFO or SCHED_RR the runtime makes use
-   --  of the entire range provided by the system.
-   --
-   --  If the scheduling policy is SCHED_OTHER the only valid system priority
-   --  is 1 and other values are simply ignored.
+   Max_Priority           : constant Positive := 30;
+   Max_Interrupt_Priority : constant Positive := 31;
 
-   Max_Priority           : constant Positive := 97;
-   Max_Interrupt_Priority : constant Positive := 98;
+   subtype Any_Priority       is Integer      range  0 .. 31;
+   subtype Priority           is Any_Priority range  0 .. 30;
+   subtype Interrupt_Priority is Any_Priority range 31 .. 31;
 
-   subtype Any_Priority       is Integer      range  0 .. 98;
-   subtype Priority           is Any_Priority range  0 .. 97;
-   subtype Interrupt_Priority is Any_Priority range 98 .. 98;
-
-   Default_Priority : constant Priority := 48;
+   Default_Priority : constant Priority := 15;
 
 private
 
@@ -147,6 +134,7 @@ private
    --  whose source should be consulted for more detailed descriptions
    --  of the individual switch values.
 
+   Atomic_Sync_Default       : constant Boolean := False;
    Backend_Divide_Checks     : constant Boolean := False;
    Backend_Overflow_Checks   : constant Boolean := True;
    Command_Line_Args         : constant Boolean := False;
@@ -164,7 +152,6 @@ private
    Stack_Check_Probes        : constant Boolean := False;
    Stack_Check_Limits        : constant Boolean := False;
    Support_Aggregates        : constant Boolean := True;
-   Support_Atomic_Primitives : constant Boolean := False;
    Support_Composite_Assign  : constant Boolean := True;
    Support_Composite_Compare : constant Boolean := True;
    Support_Long_Shifts       : constant Boolean := True;

@@ -12,8 +12,7 @@
 with HiRTOS_Platform_Parameters;
 
 package HiRTOS_Config_Parameters
-   with SPARK_Mode => On,
-        No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
    --
    --  Maximum number of threads per CPU core

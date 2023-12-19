@@ -16,8 +16,7 @@ private with System;
 with Interfaces;
 
 package HiRTOS_Cpu_Multi_Core_Interface
-   with SPARK_Mode => On,
-        No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
 
    use HiRTOS_Cpu_Arch_Interface;

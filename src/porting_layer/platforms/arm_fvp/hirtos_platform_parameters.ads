@@ -13,8 +13,7 @@ with Interfaces;
 with System;
 
 package HiRTOS_Platform_Parameters
-   with SPARK_Mode => On,
-        No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
    --
    --  Number of CPU cores

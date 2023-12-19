@@ -14,7 +14,6 @@ with Interfaces;
 with System;
 
 package Uart_Driver
-   with No_Elaboration_Code_All
 is
    use HiRTOS_Cpu_Multi_Core_Interface;
 

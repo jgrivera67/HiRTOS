@@ -10,8 +10,7 @@
 --
 
 package HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor
-   with SPARK_Mode => On,
-        No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
    type HCR_VM_Type is
       (HCR_Virtualization_Disabled,

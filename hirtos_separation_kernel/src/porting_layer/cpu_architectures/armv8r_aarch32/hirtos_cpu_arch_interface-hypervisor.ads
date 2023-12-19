@@ -10,8 +10,7 @@
 --
 
 package HiRTOS_Cpu_Arch_Interface.Hypervisor
-   with SPARK_Mode => On,
-        No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
 
    procedure Initialize

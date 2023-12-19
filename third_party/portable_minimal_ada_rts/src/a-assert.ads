@@ -4,7 +4,7 @@
 --                                                                          --
 --                       A D A . A S S E R T I O N S                        --
 --                                                                          --
---            Copyright (C) 2015-2018, Free Software Foundation, Inc.       --
+--            Copyright (C) 2015-2022, Free Software Foundation, Inc.       --
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
@@ -40,7 +40,7 @@
 pragma Assertion_Policy (Pre => Ignore);
 
 package Ada.Assertions with
-  SPARK_Mode, No_Elaboration_Code_All
+  SPARK_Mode, Pure
 is
    Assertion_Error : exception;
 

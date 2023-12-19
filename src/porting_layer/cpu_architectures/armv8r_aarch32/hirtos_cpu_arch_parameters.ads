@@ -12,8 +12,7 @@
 with System;
 
 package HiRTOS_Cpu_Arch_Parameters
-   with SPARK_Mode => On,
-        No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
    --
    --  Width in bits of CPUs interger registers
