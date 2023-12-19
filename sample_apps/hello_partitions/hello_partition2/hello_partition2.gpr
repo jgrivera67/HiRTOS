@@ -1,15 +1,16 @@
 --
 --  Copyright (c) 2023, German Rivera
---  
+--
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
 with "config/hello_partition2_config.gpr";
 with "../../../hirtos_compiler_flags.gpr";
+with "../../third_party/portable_minimal_ada_rts/portable_minimal_ada_rts.gpr";
 
 project Hello_Partition2 is
    for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
-   for Runtime ("Ada") use "../../../third_party/portable_minimal_ada_rts";
+   for Runtime ("Ada") use Portable_Minimal_Ada_Rts'Runtime("Ada");
    for Languages use ("Ada");
 
    for Source_Dirs use ("src/", "config/");

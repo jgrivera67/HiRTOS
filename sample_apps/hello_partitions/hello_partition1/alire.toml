@@ -10,15 +10,12 @@ executables = ["hello_partition1"]
 
 [[depends-on]]
 hirtos = "*"
-portable_minimal_ada_rts = "*"
 
 [[pins]]
 hirtos = { path='../../..' }
-portable_minimal_ada_rts = { path='../../../third_party/portable_minimal_ada_rts' }
 
 [build-profiles]
 hirtos = "development"
-portable_minimal_ada_rts = "development"
 
 [[actions]]
 type = "post-build"
