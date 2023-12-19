@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2022, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2023, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,7 +33,10 @@
 --  operations, and also for machine code statements. See GNAT documentation
 --  for full details.
 
-package System.Machine_Code is
+package System.Machine_Code
+  with SPARK_Mode => Off
+is
+   pragma No_Elaboration_Code_All;
    pragma Pure;
 
    --  All identifiers in this unit are implementation defined

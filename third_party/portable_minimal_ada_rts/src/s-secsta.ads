@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2022, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2023, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -57,9 +57,11 @@ package System.Secondary_Stack is
 
    procedure SS_Allocate
      (Addr         : out System.Address;
-      Storage_Size : SSE.Storage_Count);
-   --  Allocate enough space for a Storage_Size bytes object with Maximum
-   --  alignment. The address of the allocated space is returned in Addr.
+      Storage_Size : SSE.Storage_Count;
+      Alignment    : SSE.Storage_Count := Standard'Maximum_Alignment);
+   --  Allocate enough space for a Storage_Size bytes object with requested
+   --  Alignment. The address of the allocated space is returned in
+   --  Addr.
 
    type Mark_Id is private;
    --  Type used to mark the stack for mark/release processing
@@ -133,7 +135,7 @@ private
    --  assist SS_Init and are defined here so the runtime does not depend on
    --  the binder.
 
-   Binder_SS_Count : Natural;
+   Binder_SS_Count : Natural := 0;
    pragma Export (Ada, Binder_SS_Count, "__gnat_binder_ss_count");
    --  The number of default sized secondary stacks allocated by the binder
 

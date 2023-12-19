@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2022, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2023, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -96,28 +96,79 @@ package body System.Secondary_Stack is
 
    procedure SS_Allocate
      (Addr         : out Address;
-      Storage_Size : SSE.Storage_Count)
+      Storage_Size : SSE.Storage_Count;
+      Alignment    : SSE.Storage_Count := Standard'Maximum_Alignment)
    is
       use type System.Storage_Elements.Storage_Count;
+      use type System.Storage_Elements.Integer_Address;
+
+      function Align_Addr (Addr : Address) return Address;
+      pragma Inline (Align_Addr);
+      --  Align Addr to the next multiple of Alignment
+
+      ----------------
+      -- Align_Addr --
+      ----------------
+
+      function Align_Addr (Addr : Address) return Address is
+         Int_Algn : constant SSE.Integer_Address :=
+           SSE.Integer_Address (Alignment);
+         Int_Addr : constant SSE.Integer_Address := SSE.To_Integer (Addr);
+      begin
+
+         --  L : Alignment
+         --  A : Standard'Maximum_Alignment
+
+         --           Addr
+         --      L     |     L           L
+         --   ...A--A--A--A--A--A--A--A--A--A--A--...
+         --                  |     |
+         --      \----/      |     |
+         --    Addr mod L    |   Addr + L
+         --                  |
+         --                Addr + L - (Addr mod L)
+
+         return SSE.To_Address (Int_Addr + Int_Algn - (Int_Addr mod Int_Algn));
+      end Align_Addr;
 
       Max_Align   : constant SS_Ptr := SS_Ptr (Standard'Maximum_Alignment);
       Mem_Request : SS_Ptr;
 
+      Over_Aligning : constant Boolean :=
+        Alignment > Standard'Maximum_Alignment;
+
+      Padding : SSE.Storage_Count := 0;
+
       Stack : constant SS_Stack_Ptr := Get_Sec_Stack;
    begin
-      --  Round up Storage_Size to the nearest multiple of the max alignment
-      --  value for the target. This ensures efficient stack access. First
-      --  perform a check to ensure that the rounding operation does not
+      --  Alignment must be a power of two and can be:
+
+      --  - lower than or equal to Maximum_Alignement, in which case the result
+      --    will be aligned on Maximum_Alignement;
+      --  - higher than Maximum_Alignement, in which case the result will be
+      --    dynamically realigned.
+
+      if Over_Aligning then
+         Padding := Alignment;
+      end if;
+
+      --  Round up Storage_Size (plus the needed padding in case of
+      --  over-alignment) to the nearest multiple of the max alignment value
+      --  for the target to ensure efficient access and that the next available
+      --  Byte is always aligned on the default alignement value.
+
+      --  First perform a check to ensure that the rounding operation does not
       --  overflow SS_Ptr.
 
       if SSE.Storage_Count (SS_Ptr'Last) - Standard'Maximum_Alignment <
-        Storage_Size
+        (Storage_Size + Padding)
       then
          raise Storage_Error;
       end if;
 
-      Mem_Request := ((SS_Ptr (Storage_Size) + Max_Align - 1) / Max_Align) *
-                       Max_Align;
+      Mem_Request :=
+        ((SS_Ptr (Storage_Size + Padding) + Max_Align - 1)
+         / Max_Align) * Max_Align;
 
       --  Check if max stack usage is increasing
 
@@ -142,6 +193,11 @@ package body System.Secondary_Stack is
       --  Here, there is enough memory to get the whole requested memory
       --  since the available memory was checked in the previous block.
       Addr := Stack.Internal_Chunk (Stack.Top)'Address;
+
+      if Over_Aligning then
+         Addr := Align_Addr (Addr);
+      end if;
+
       Stack.Top := Stack.Top + Mem_Request;
    end SS_Allocate;
 
