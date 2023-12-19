@@ -5,7 +5,9 @@
 name = "hirtos_separation_kernel"
 description = "High-Integrity RTOS Separation Kernel"
 version = "1.0.0"
-
+licenses = "Apache-2.0"
+website = "https://github.com/jgrivera67/HiRTOS"
+tags = ["rtos", "separation kernel", "hypervisor"]
 authors = ["J. German Rivera"]
 maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
 maintainers-logins = ["jgrivera67"]
