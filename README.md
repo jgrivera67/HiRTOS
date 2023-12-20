@@ -33,13 +33,19 @@ be found [here](doc/HiRTOS.pdf).
 * Install the [ARM Fixed Virtual Platform (FVP) Simulator](https://developer.arm.com/downloads/-/arm-ecosystem-models)
   for ARMv8-R (scroll down to Armv8-R AEM FVP)
 
-### Build the "Hello World" HiRTOS Sample Application
+### "Hello World" HiRTOS Sample Application
+
+This sample application the HiRTOS real-time kernel. It launches a set of application threads on
+each core of a Cortex-R52 processor.
+
+To build it, do:
 
 ```
 cd sample_apps/fvp_armv8r_aarch32_hello
 alr build
 ```
-### Run the "Hello World" HiRTOS Sample Application on the ARM FVP Simulator
+
+To run it on the ARM FVP simulator, do:
 
 ```
 #
@@ -62,14 +68,19 @@ Once the ARM FVP simulator starts, an xterm for the UART output from each CPU co
 displayed.
 An ARM FVP run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running.png).
 
-### Build the "Hello World" HiRTOS Separation Kernel Sample Application
+### "Hello World" HiRTOS Separation Kernel Sample Application
 
+This sample application demonstrates the HiRTOS separation kernel. It launches two partitions
+(guest OSes) on each core of a Cortex-R52 processor. Each partition runs a HiRTOS guest, which
+runs a set of application threads.
+
+To build it, do:
 ```
 cd sample_apps/hello_partitions
 alr build
 ```
-### Run the  "Hello World" HiRTOS Separation Kernel Sample Application on the ARM FVP Simulator
 
+To run it on the ARM FVP simulator, do:
 ```
 <ARM FVP install dir>/models/Linux64_GCC-9.3/FVP_BaseR_AEMv8R \
    -C bp.pl011_uart0.uart_enable=1 \
@@ -81,3 +92,6 @@ alr build
 ```
 
 An ARM FVP run for the "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
+
+[![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/hirtos.json)](https://alire.ada.dev/crates/hirtos.html)
+[![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/hirtos_separation_kernel.json)](https://alire.ada.dev/crates/hirtos_separation_kernel.html)
