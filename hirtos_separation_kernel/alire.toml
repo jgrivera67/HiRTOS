@@ -13,6 +13,6 @@ maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
 maintainers-logins = ["jgrivera67"]
 
 [[depends-on]]
-gnat_arm_elf = "^12.2.1"
-gnatprove = "^12.1.1"
+gnat_arm_elf = "^13.2.1"
+gnatprove = "^13.1.1"
 

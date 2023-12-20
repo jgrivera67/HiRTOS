@@ -1,4 +1,5 @@
 ALIRE_DIR=/opt/alire
+export PATH=$ALIRE_DIR/bin:/opt/tkdiff:/opt/fuzz/bin:/opt/arm-gnu-toolchain/bin:/opt/gnatstudio:$PATH
 export PATH=$ALIRE_DIR/bin:~/my-projects/third-party/gnat_arm_elf_12.1.2_89ba9262/bin:~/my-projects/third-party/gnatprove_12.1.1_e1e1ce47/bin:/opt/tkdiff:/opt/fuzz/bin:/opt/arm-gnu-toolchain/bin:/opt/gnatstudio:$PATH
 #export PATH=$PATH:/Users/josegrivera/.config/alire/cache/dependencies/gnat_arm_elf_11.2.4_839811c8/bin::~/my-projects/third-party/gnatprove_11.2.3_454d37ad/bin:~/my-projects/third-party/gnatcov_22.0.1_a69a9af4/bin
 

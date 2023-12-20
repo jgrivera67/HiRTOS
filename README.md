@@ -19,9 +19,9 @@ ARM Cortex-R52 multi-core processor is provided. To port HiRTOS to a new target
 platform, all what it is needed is to implement the porting layer for the new target
 platform.
 
-## HiRTOS Z Formal Specification
+## HiRTOS Z Specification
 
-HiRTOS is formally specified using the Z notation. The Z specification of HiRTOS can
+HiRTOS is formally specified using the Z notation. The HiRTOS Z specification can
 be found [here](doc/HiRTOS.pdf).
 
 ## Building and Running the HiRTOS Multi-core Sample Applications for ARMv8-R

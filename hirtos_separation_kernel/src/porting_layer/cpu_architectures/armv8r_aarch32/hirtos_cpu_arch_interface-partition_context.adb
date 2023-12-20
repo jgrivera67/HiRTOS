@@ -30,7 +30,7 @@ package body HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On i
                                                Interrupt_Stack_End_Address : System.Address) is
    begin
       Partition_Cpu_Context.Interrupt_Stack_End_Address := Interrupt_Stack_End_Address;
-      Partition_Cpu_Context.Floating_Point_Registers := [ others => <> ];
+      Partition_Cpu_Context.Floating_Point_Registers := ( others => <> );
       Partition_Cpu_Context.Integer_Registers :=
          (ELR_HYP => Entry_Point_Address,
           SPSR_HYP => CPSR_Supervisor_Mode or CPSR_I_Bit_Mask,
