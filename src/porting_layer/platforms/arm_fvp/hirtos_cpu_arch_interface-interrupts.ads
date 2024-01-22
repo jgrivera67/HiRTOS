@@ -41,7 +41,7 @@ is
       Interrupt_Controller.Interrupt_Priority_Type :=
       [Generic_Physical_Timer_Interrupt_Id => Interrupt_Controller.Highest_Interrupt_Priority + 1,
        Generic_Virtual_Timer_Interrupt_Id => Interrupt_Controller.Highest_Interrupt_Priority + 1,
-       Generic_Hypervisor_Timer_Interrupt_Id => Interrupt_Controller.Highest_Interrupt_Priority + 1,
+       Generic_Hypervisor_Timer_Interrupt_Id => Interrupt_Controller.Highest_Interrupt_Priority,
        UART0_Interrupt_Id => Interrupt_Controller.Lowest_Interrupt_Priority - 1,
        UART1_Interrupt_Id => Interrupt_Controller.Lowest_Interrupt_Priority - 1,
        UART2_Interrupt_Id => Interrupt_Controller.Lowest_Interrupt_Priority - 1,

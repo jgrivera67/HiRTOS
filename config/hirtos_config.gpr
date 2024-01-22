@@ -43,8 +43,6 @@ abstract project Hirtos_Config is
            ,"-gnatyx" -- Check extra parentheses
           );
 
-   Separation_Kernel_Debug_Tracing_On := "False";
-
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := "development";
 

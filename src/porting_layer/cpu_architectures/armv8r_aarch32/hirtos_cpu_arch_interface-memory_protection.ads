@@ -20,7 +20,6 @@ package HiRTOS_Cpu_Arch_Interface.Memory_Protection
 is
    use System.Storage_Elements;
    use type System.Address;
-   use type System.Storage_Elements.Integer_Address;
 
    type Memory_Region_Descriptor_Type is limited private;
 
@@ -176,6 +175,20 @@ is
 
    procedure Handle_Data_Abort_Exception
       with Pre => Cpu_In_Privileged_Mode;
+
+   type Fault_Status_Registers_Type is limited private;
+
+   procedure Initialize_Fault_Status_Registers (
+      Fault_Status_Registers : out Fault_Status_Registers_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
+   procedure Save_Fault_Status_Registers (
+      Fault_Status_Registers : out Fault_Status_Registers_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
+   procedure Restore_Fault_Status_Registers (
+      Fault_Status_Registers : Fault_Status_Registers_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
 
 private
    use type Interfaces.Unsigned_32;
@@ -513,7 +526,7 @@ private
       (Region_Descriptor.PRLAR_Value.EN = Region_Enabled);
 
    Memory_Attributes_Lookup_Table : constant MAIR_Attr_Array_Type :=
-      [ Device_Memory_Mapped_Io'Enum_Rep =>
+       [Device_Memory_Mapped_Io'Enum_Rep =>
             (Memory_Kind => Device_Memory,
              Device_Memory_Subkind => Device_Memory_nGnRnE),
         Normal_Memory_Non_Cacheable'Enum_Rep =>
@@ -525,7 +538,7 @@ private
         Normal_Memory_Write_Back_Cacheable'Enum_Rep =>
             (Memory_Kind => Normal_Memory_Outer_Write_Back,
              Normal_Memory_Subkind => Normal_Memory_Inner_Write_Back),
-        others => <> ];
+        others => <>];
 
    No_Fault_Str : aliased constant String := "None";
    Translation_Fault_Level0_Str : aliased constant String := "Translation_Fault_Level0";
@@ -552,5 +565,10 @@ private
          Alignment_Fault => Alignment_Fault_Str'Access,
          Debug_Event => Debug_Event_Str'Access,
          Unsupported_Exclusive_Access_Fault => Unsupported_Exclusive_Access_Fault_Str'Access];
+
+   type Fault_Status_Registers_Type is limited record
+      DFSR_Value : DFSR_Type;
+      IFSR_Value : IFSR_Type;
+   end record;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

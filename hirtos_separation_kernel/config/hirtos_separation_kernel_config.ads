@@ -17,4 +17,6 @@ package Hirtos_Separation_Kernel_Config is
    type Build_Profile_Kind is (release, validation, development);
    Build_Profile : constant Build_Profile_Kind := development;
 
+   Separation_Kernel_Debug_Tracing_On : constant Boolean := False;
+
 end Hirtos_Separation_Kernel_Config;

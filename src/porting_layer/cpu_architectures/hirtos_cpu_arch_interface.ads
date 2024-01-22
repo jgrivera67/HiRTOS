@@ -129,4 +129,7 @@ is
    procedure Disable_Caches
       with Pre => Cpu_In_Privileged_Mode;
 
+   procedure Hypercall (Op_Code : Interfaces.Unsigned_8) with
+     Pre => not Cpu_In_Hypervisor_Mode;
+
 end HiRTOS_Cpu_Arch_Interface;

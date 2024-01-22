@@ -76,7 +76,7 @@ is
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
       end if;
 
-      pragma Assert(not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode);
+      pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode);
 
       Initialize_RTOS;
    end Initialize;
@@ -205,7 +205,7 @@ is
          Thread_Queue_Package.List_Init (Thread_Priority_Queue.Thread_Queues_Array (I), I);
       end loop;
 
-      Thread_Priority_Queue.Non_Empty_Thread_Queues_Map := [ others => False ];
+      Thread_Priority_Queue.Non_Empty_Thread_Queues_Map := [others => False];
    end Initialize_Thread_Priority_Queue;
 
    procedure Thread_Priority_Queue_Remove_Head (Thread_Priority_Queue : in out Thread_Priority_Queue_Type;
@@ -474,6 +474,13 @@ is
 
       Exit_Cpu_Privileged_Mode;
       return Current_Time_Us;
-
    end Get_Current_Time_Us;
+
+   procedure Hypercall (Op_Code : Hypercall_Op_Code_Type) is
+   begin
+      Enter_Cpu_Privileged_Mode;
+      HiRTOS_Cpu_Arch_Interface.Hypercall (Interfaces.Unsigned_8 (Op_Code'Enum_Rep));
+      Exit_Cpu_Privileged_Mode;
+   end Hypercall;
+
 end HiRTOS;

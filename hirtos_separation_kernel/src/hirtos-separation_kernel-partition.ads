@@ -60,12 +60,32 @@ is
                       To_Integer (SRAM_Base_Address) ..
                       To_Integer (SRAM_Base_Address) + SRAM_Size_In_Bytes - 1));
 
+   procedure Reboot_Partition (Partition_Id : Valid_Partition_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
+
    --
    --  Tell if a parittion is currently suspended
    --
    function Is_Partition_Suspended (Partition_Id : Valid_Partition_Id_Type) return Boolean
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
 
+   procedure Suspend_Partition (Partition_Id : Valid_Partition_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+                  not Is_Partition_Suspended (Partition_Id),
+           Post => Is_Partition_Suspended (Partition_Id);
+
+   procedure Resume_Partition (Partition_Id : Valid_Partition_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+                  Is_Partition_Suspended (Partition_Id),
+           Post => not Is_Partition_Suspended (Partition_Id);
+
+   procedure Stop_Partition (Partition_Id : Valid_Partition_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+                  not Is_Partition_Suspended (Partition_Id),
+           Post => Is_Partition_Suspended (Partition_Id);
+
+   procedure Trace_Partition (Partition_Id : Valid_Partition_Id_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
    --
    --  Set the "fail-over to" parittion for a given partition
    --

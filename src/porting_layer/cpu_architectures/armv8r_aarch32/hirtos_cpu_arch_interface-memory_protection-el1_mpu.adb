@@ -738,6 +738,14 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU with SPARK_Mode
       return DFSR_Value;
    end Get_DFSR;
 
+   procedure Set_DFSR (DFSR_Value : DFSR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c5, c0, 0",
+         Inputs => DFSR_Type'Asm_Input ("r", DFSR_Value), --  %0
+         Volatile => True);
+   end Set_DFSR;
+
    function Get_IFAR return IFAR_Type is
       IFAR_Value : IFAR_Type;
    begin
@@ -759,5 +767,13 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU with SPARK_Mode
 
       return IFSR_Value;
    end Get_IFSR;
+
+   procedure Set_IFSR (IFSR_Value : IFSR_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcr p15, 0, %0, c5, c0, 1",
+         Inputs => IFSR_Type'Asm_Input ("r", IFSR_Value), --  %0
+         Volatile => True);
+   end Set_IFSR;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU;

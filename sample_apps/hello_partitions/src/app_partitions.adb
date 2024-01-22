@@ -10,7 +10,6 @@ with HiRTOS_Platform_Parameters;
 with HiRTOS_Cpu_Arch_Parameters;
 with System.Storage_Elements;
 with Interfaces;
-with HiRTOS.Debug; --???
 
 package body App_Partitions is
    use System.Storage_Elements;

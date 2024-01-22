@@ -492,9 +492,9 @@ private
 
    UART_Periph_Pointers : constant
       array (Valid_Cpu_Core_Id_Type) of access UART_Peripheral :=
-      [ Valid_Cpu_Core_Id_Type'First => UART0_Periph'Access,
+        [Valid_Cpu_Core_Id_Type'First => UART0_Periph'Access,
          Valid_Cpu_Core_Id_Type'First + 1 => UART1_Periph'Access,
          Valid_Cpu_Core_Id_Type'First + 2 => UART2_Periph'Access,
-         Valid_Cpu_Core_Id_Type'First + 3 => UART3_Periph'Access ];
+         Valid_Cpu_Core_Id_Type'First + 3 => UART3_Periph'Access];
 
 end Uart_Driver;

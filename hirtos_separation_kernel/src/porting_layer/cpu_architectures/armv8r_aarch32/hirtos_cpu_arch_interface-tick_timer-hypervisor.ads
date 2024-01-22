@@ -23,6 +23,17 @@ is
    procedure Stop_Timer
       with Pre => Cpu_In_Hypervisor_Mode;
 
+   type Timer_Context_Type is limited private;
+
+   procedure Initialize_Timer_Context (Timer_Context : out Timer_Context_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
+   procedure Save_Timer_Context (Timer_Context : out Timer_Context_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
+   procedure Restore_Timer_Context (Timer_Context : Timer_Context_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
 private
 
    function Get_CNTHP_CTL return CNTP_CTL_Type
@@ -36,5 +47,19 @@ private
 
    procedure Set_CNTHP_TVAL (CNTP_TVAL_Value : CNTP_TVAL_Type)
       with Inline_Always;
+
+   subtype CNTVOFF_Type is CNTPCT_Type;
+
+   function Get_CNTVOFF return CNTVOFF_Type
+      with Inline_Always;
+
+   procedure Set_CNTVOFF (CNTVOFF_Value : CNTVOFF_Type)
+      with Inline_Always;
+
+   type Timer_Context_Type is record
+      CNTV_CTL_Value : CNTV_CTL_Type;
+      CNTV_TVAL_Value : CNTV_TVAL_Type;
+      CNTVCT_Value : CNTVCT_Type;
+   end record;
 
 end HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor;

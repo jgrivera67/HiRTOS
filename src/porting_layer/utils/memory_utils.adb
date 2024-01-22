@@ -10,8 +10,6 @@ with HiRTOS_Cpu_Arch_Interface.System_Registers;
 
 package body Memory_Utils is
 
-   use type System.Storage_Elements.Integer_Address;
-
    procedure Clear_Address_Range (Start_Address : System.Address; End_Address : System.Address) is
       --  Size in 32-bit words of the address range
       Num_Words : constant Integer_Address :=

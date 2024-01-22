@@ -265,4 +265,26 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       raise Program_Error;
    end Handle_Data_Abort_Exception;
 
+   procedure Initialize_Fault_Status_Registers (
+      Fault_Status_Registers : out Fault_Status_Registers_Type)
+   is
+   begin
+      Fault_Status_Registers.DFSR_Value := (others => <>);
+      Fault_Status_Registers.IFSR_Value := (others => <>);
+   end Initialize_Fault_Status_Registers;
+
+   procedure Save_Fault_Status_Registers (
+      Fault_Status_Registers : out Fault_Status_Registers_Type) is
+   begin
+      Fault_Status_Registers.DFSR_Value := Get_DFSR;
+      Fault_Status_Registers.IFSR_Value := Get_IFSR;
+   end Save_Fault_Status_Registers;
+
+   procedure Restore_Fault_Status_Registers (
+      Fault_Status_Registers : Fault_Status_Registers_Type) is
+   begin
+      Set_DFSR (Fault_Status_Registers.DFSR_Value);
+      Set_IFSR (Fault_Status_Registers.IFSR_Value);
+   end Restore_Fault_Status_Registers;
+
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

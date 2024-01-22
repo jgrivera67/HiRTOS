@@ -46,7 +46,7 @@ private
       with Convention => C;
 
    type Floating_Point_Registers_Type is record
-      Double_Precision_Registers : Double_Precision_Registers_Type := [ others => 0 ];
+      Double_Precision_Registers : Double_Precision_Registers_Type := [others => 0];
       Fpscr : Interfaces.Unsigned_32 := 0;
       Reserved : Interfaces.Unsigned_32 := 0; --  alignment hole
    end record

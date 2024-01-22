@@ -8,8 +8,10 @@
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Low_Level_Debug_Interface;
 with HiRTOS.Separation_Kernel.SK_Private;
+with HiRTOS.Separation_Kernel.Partition;
 with HiRTOS.Separation_Kernel.Partition_Private;
 with HiRTOS_Cpu_Arch_Interface.Partition_Context;
+with System.Storage_Elements;
 
 package body HiRTOS.Separation_Kernel.Interrupt_Handling is
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -46,6 +48,17 @@ package body HiRTOS.Separation_Kernel.Interrupt_Handling is
                Separation_Kernel_Cpu_Instance.Partition_Instances (New_Current_Partition_Id);
          begin
             if New_Current_Partition_Id /= Old_Current_Partition_Id then
+               if Debug_Tracing_On then
+                  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** Switching to partition_id: ");
+                  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
+                     Interfaces.Unsigned_32 (New_Current_Partition_Id));
+                  HiRTOS_Low_Level_Debug_Interface.Print_String (" PC: ");
+                  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
+                     Interfaces.Unsigned_32 (System.Storage_Elements.To_Integer (
+                        HiRTOS_Cpu_Arch_Interface.Partition_Context.Get_Saved_PC (
+                           New_Current_Partition_Obj.Cpu_Context))), End_Line => True);
+               end if;
+
                if Old_Current_Partition_Id /= Invalid_Partition_Id then
                   declare
                      Old_Current_Partition_Obj : Partition_Type renames
@@ -56,12 +69,6 @@ package body HiRTOS.Separation_Kernel.Interrupt_Handling is
                end if;
 
                Restore_Partition_Extended_Context (New_Current_Partition_Obj);
-            end if;
-
-            if Debug_Tracing_On then
-               HiRTOS_Low_Level_Debug_Interface.Print_String ("*** Switching to partition_id: ");
-               HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
-                  Interfaces.Unsigned_32 (New_Current_Partition_Id), End_Line => True);
             end if;
 
             --
@@ -99,6 +106,40 @@ package body HiRTOS.Separation_Kernel.Interrupt_Handling is
 
    procedure Hypervisor_Trap_Handler (
       Hypervisor_Trap : HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor.Hypervisor_Traps_Type) is
+
+      procedure Handle_Hypervisor_Call (Partition_Obj : Partition_Type) is
+         use type HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+         Op_Code_Value : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
+         Op_Code : Hypercall_Op_Code_Type;
+      begin
+         Op_Code_Value := HiRTOS_Cpu_Arch_Interface.Partition_Context.Get_Saved_R0 (Partition_Obj.Cpu_Context);
+         if Op_Code_Value > Hypercall_Op_Code_Type'Last'Enum_Rep then
+            HiRTOS_Low_Level_Debug_Interface.Print_String ("Invalid hypercall from partition ");
+            HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
+               Interfaces.Unsigned_32 (Partition_Obj.Id));
+            HiRTOS_Low_Level_Debug_Interface.Print_String (": ");
+            HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
+               Interfaces.Unsigned_32 (Op_Code_Value), End_Line => True);
+            return;
+         end if;
+
+         Op_Code := Hypercall_Op_Code_Type'Enum_Val (Op_Code_Value);
+         case Op_Code is
+            when Hypercall_Stop_Partition =>
+               HiRTOS.Separation_Kernel.Partition.Stop_Partition (Partition_Obj.Id);
+            when Hypercall_Start_Failover_Partition =>
+               if Partition_Obj.Failover_Partition_Id /= Invalid_Partition_Id and then
+                  HiRTOS.Separation_Kernel.Partition.Is_Partition_Suspended (Partition_Obj.Failover_Partition_Id)
+               then
+                  HiRTOS.Separation_Kernel.Partition.Resume_Partition (Partition_Obj.Failover_Partition_Id);
+               end if;
+            when Hypercall_Reboot_Partition =>
+               HiRTOS.Separation_Kernel.Partition.Reboot_Partition (Partition_Obj.Id);
+            when Hypercall_Trace_Value =>
+               HiRTOS.Separation_Kernel.Partition.Trace_Partition (Partition_Obj.Id);
+         end case;
+      end Handle_Hypervisor_Call;
+
       Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
          Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
       Partition_Obj : Partition_Type renames
@@ -107,8 +148,8 @@ package body HiRTOS.Separation_Kernel.Interrupt_Handling is
       case Hypervisor_Trap is
          when HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor.WFI_Instruction_Executed =>
             Partition_Obj.Executed_WFI := True;
-         when others =>
-            null; -- TODO
+         when HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor.HVC_Instruction_Executed =>
+            Handle_Hypervisor_Call (Partition_Obj);
       end case;
    end Hypervisor_Trap_Handler;
 

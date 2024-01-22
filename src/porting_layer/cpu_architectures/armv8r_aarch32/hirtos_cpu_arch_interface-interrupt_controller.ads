@@ -56,6 +56,11 @@ is
    Lowest_Interrupt_Priority : constant Interrupt_Priority_Type :=
      Interrupt_Priority_Type'Last - 1;
 
+   subtype Valid_Interrupt_Priority_Type is Interrupt_Priority_Type range
+      Highest_Interrupt_Priority .. Lowest_Interrupt_Priority;
+
+   Invalid_Interrupt_Priority : constant Interrupt_Priority_Type := Interrupt_Priority_Type'Last;
+
    type Interrupt_Handler_Entry_Point_Type is
      access procedure (Arg : System.Address);
 
@@ -86,7 +91,7 @@ is
    --
    procedure Configure_Internal_Interrupt
      (Internal_Interrupt_Id         : Internal_Interrupt_Id_Type;
-      Priority                      : Interrupt_Priority_Type;
+      Priority                      : Valid_Interrupt_Priority_Type;
       Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
       Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
@@ -99,7 +104,7 @@ is
    --
    procedure Configure_External_Interrupt
      (External_Interrupt_Id         : External_Interrupt_Id_Type;
-      Priority                      : Interrupt_Priority_Type;
+      Priority                      : Valid_Interrupt_Priority_Type;
       Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
       Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;

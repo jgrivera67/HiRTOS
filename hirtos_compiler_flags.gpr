@@ -1,6 +1,6 @@
 --
 --  Copyright (c) 2022-2023, German Rivera
---  
+--
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
@@ -65,7 +65,7 @@ abstract project Hirtos_Compiler_Flags is
 
       when "riscv32" =>
               CPU_Arch := "riscv32";
-              Target_Compiler_Selector := "riscv32-elf";
+              Target_Compiler_Selector := "riscv64-elf";
               CPU_Core_Switches := ("-march=rv32imac",
                                     "-mabi=ilp32",
                                     "-mcmodel=medany");

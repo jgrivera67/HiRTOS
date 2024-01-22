@@ -89,6 +89,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    --  @pre  sp_hyp points to bottom of current partition's hypervisor stack
    --  @pre  CPU is in HYP mode
    --  @post CPU is in HYP mode
+   --  @post sp_hyp points to bottom of EL2 esception stack
    --
    --  NOTE: We cannot check preconditions, as that would insert code
    --  at the beginning of this subprogram, which would clobber the CPU registers
@@ -131,7 +132,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          --  sp points to the current partition's CPU_Context.
          --
          "ldr sp, [sp]" & LF &
-
+         --
+         --  sp = Cpu_Context.Interrupt_Stack_End_Address
          --
          --  Set frame pointer to be the same as stack pointer:
          --  (needed for stack unwinding across interrupted contexts)
@@ -162,7 +164,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
       System.Machine_Code.Asm (
          --
          --  Set sp to value returned by HiRTOS.Separation_Kernel.Interrupt_Handling.Exit_Interrupt_Context,
-         --  which is the address of the new current partitions' CPU_Context.
+         --  which is the address of the new current partition's CPU_Context.
          --
          "bl hirtos_separation_kernel_exit_interrupt_context" & LF &
          "add sp, r0, #4" & LF & -- skip Interrupt_Stack_End_Address field

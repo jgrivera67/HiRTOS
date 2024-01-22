@@ -108,7 +108,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    function Get_ISR_Stack_Info (Cpu_Id : Cpu_Core_Id_Type)
       return ISR_Stack_Info_Type
    is
-      use type System.Storage_Elements.Integer_Address;
       ISR_Stack_Info : constant ISR_Stack_Info_Type :=
          (Base_Address => ISR_Stacks (Cpu_Id).Stack_Entries'Address,
           Size_In_Bytes => ISR_Stacks (Cpu_Id).Stack_Entries'Size / System.Storage_Unit);
@@ -271,7 +270,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    end EL1_Undefined_Instruction_Exception_Handler;
 
    procedure Handle_Undefined_Instruction_Exception is
-      use type System.Storage_Elements.Integer_Address;
       Faulting_PC : constant System.Storage_Elements.Integer_Address :=
          System.Storage_Elements.To_Integer (HiRTOS.Interrupt_Handling.Get_Interrupted_PC) - 4;
    begin

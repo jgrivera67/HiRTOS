@@ -40,14 +40,6 @@ is
    procedure Stop_Timer
       with Pre => Cpu_In_Privileged_Mode;
 
-   type Timer_Context_Type is limited private;
-
-   procedure Save_Timer_Context (Timer_Context : out Timer_Context_Type)
-      with Pre => Cpu_In_Hypervisor_Mode;
-
-   procedure Restore_Timer_Context (Timer_Context : Timer_Context_Type)
-      with Pre => Cpu_In_Hypervisor_Mode;
-
 private
 
    function Get_Timer_Timestamp_Us return HiRTOS.Absolute_Time_Us_Type is
@@ -96,7 +88,7 @@ private
    --
    type CNTP_CTL_Type is record
       ENABLE : Timer_Enable_Type := Timer_Disabled;
-      IMASK : Timer_Interrupt_Mask_Type := Timer_Interrupt_Not_Masked;
+      IMASK : Timer_Interrupt_Mask_Type := Timer_Interrupt_Masked;
       ISTATUS : Timer_Status_Type := Timer_Condition_Not_Met;
    end record
    with Size => 32,
@@ -175,9 +167,25 @@ private
    function Get_CNTPCTSS return CNTPCT_Type
       with Inline_Always;
 
-   type Timer_Context_Type is record
-      CNTP_CTL_Value : Tick_Timer.CNTP_CTL_Type;
-      CNTP_TVAL_Value : Tick_Timer.CNTP_TVAL_Type;
-   end record;
+   subtype CNTV_CTL_Type is CNTP_CTL_Type;
+
+   function Get_CNTV_CTL return CNTV_CTL_Type
+      with Inline_Always;
+
+   procedure Set_CNTV_CTL (CNTV_CTL_Value : CNTV_CTL_Type)
+      with Inline_Always;
+
+   subtype CNTV_TVAL_Type is CNTP_TVAL_Type;
+
+   function Get_CNTV_TVAL return CNTV_TVAL_Type
+      with Inline_Always;
+
+   procedure Set_CNTV_TVAL (CNTV_TVAL_Value : CNTV_TVAL_Type)
+      with Inline_Always;
+
+   subtype CNTVCT_Type is CNTPCT_Type;
+
+   function Get_CNTVCT return CNTVCT_Type
+      with Inline_Always;
 
 end HiRTOS_Cpu_Arch_Interface.Tick_Timer;

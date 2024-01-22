@@ -311,6 +311,29 @@ is
        Interrupt_Nesting_Counter_Type'First + 1 ..
          Interrupt_Nesting_Counter_Type'Last;
 
+   -----------------------------------------------------------------------------
+   --  Hypervisor call interface                                              --
+   -----------------------------------------------------------------------------
+
+   type Hypercall_Op_Code_Type is (Hypercall_Stop_Partition,
+                                   Hypercall_Start_Failover_Partition,
+                                   Hypercall_Reboot_Partition,
+                                   Hypercall_Trace_Value)
+      with Size => Interfaces.Unsigned_8'Size;
+
+   for Hypercall_Op_Code_Type use (
+     Hypercall_Stop_Partition => 0,
+     Hypercall_Start_Failover_Partition => 1,
+     Hypercall_Reboot_Partition => 2,
+     Hypercall_Trace_Value => 3
+   );
+
+   procedure Hypercall (Op_Code : Hypercall_Op_Code_Type) with
+     Pre => not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode,
+     Export,
+     Convention => C,
+     External_Name => "hirtos_hypercall";
+
 private
 
    --
@@ -339,7 +362,7 @@ private
       with Component_Size => 1, Size => HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size;
 
    type Thread_Priority_Queue_Type is record
-      Non_Empty_Thread_Queues_Map : Boolean_Bit_Map_Type := [ others => False ];
+      Non_Empty_Thread_Queues_Map : Boolean_Bit_Map_Type := [others => False];
       Thread_Queues_Array : Per_Priority_Thread_Queues_Array_Type;
    end record;
 

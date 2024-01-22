@@ -29,7 +29,7 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
                                             Thread_Arg : Cpu_Register_Type;
                                             Stack_End_Address : Cpu_Register_Type) is
    begin
-      Thread_Cpu_Context.Floating_Point_Registers := ( others => <> );
+      Thread_Cpu_Context.Floating_Point_Registers := (others => <>);
       Thread_Cpu_Context.Integer_Registers :=
          (R0 => Thread_Arg,
           R1 => 16#01010101#,

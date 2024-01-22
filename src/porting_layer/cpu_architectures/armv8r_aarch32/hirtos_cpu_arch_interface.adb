@@ -343,4 +343,14 @@ package body HiRTOS_Cpu_Arch_Interface is
       Strong_Memory_Barrier;
    end Disable_Caches;
 
+   procedure Hypercall (Op_Code : Interfaces.Unsigned_8) is
+   begin
+      System.Machine_Code.Asm (
+            "mov r0, %0" & LF &
+            "hvc #0",
+            Inputs => Interfaces.Unsigned_8'Asm_Input ("r", Op_Code), --  %0
+            Clobber => "r0",
+            Volatile => True);
+   end Hypercall;
+
 end HiRTOS_Cpu_Arch_Interface;
