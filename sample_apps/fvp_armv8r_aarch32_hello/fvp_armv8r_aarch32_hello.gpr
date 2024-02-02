@@ -18,7 +18,7 @@ project Fvp_Armv8r_Aarch32_Hello is
    for Exec_Dir use "bin";
    for Main use ("fvp_armv8r_aarch32_hello.adb");
 
-   Executable_Prefix := "hello";
+   Executable_Prefix := "fvp_armv8r_aarch32_hello";
 
    package Compiler is
       for Default_Switches ("Ada") use Fvp_Armv8r_Aarch32_Hello_Config.Ada_Compiler_Switches &
@@ -31,11 +31,15 @@ project Fvp_Armv8r_Aarch32_Hello is
          ("-nostartfiles",
           "-nostdlib",
         --"-nolibc",
-         "-lgcc", -- needed for __aeabi_uldivmod
-          "-Wl,-Map=" & "memory_map.map",
-			 "-Xlinker", "--gc-sections",
-	       "-T../../src/porting_layer/platforms/" & HiRTOS_Compiler_Flags.Platform & "/memory_layout.ld");
+          "-lgcc", -- needed for __aeabi_uldivmod
+          "-Wl,-Map=" & Executable_Prefix & ".map",
+	  "-Xlinker", "--gc-sections",
+	  "-T../../memory_layout.ld");
    end Linker;
+
+   package Builder is
+      for Executable_Suffix use ".elf";
+   end Builder;
 
    package Install is
       for Artifacts (".") use ("share");

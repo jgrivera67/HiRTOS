@@ -17,4 +17,8 @@
 
 #define BUILD_PROFILE  3
 
+#define PLATFORM_ARM_FVP 1
+
+#define PLATFORM  1
+
 #endif

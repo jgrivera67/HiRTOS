@@ -24,3 +24,8 @@ hirtos = "development"
 type = "post-build"
 command = ["arm-none-eabi-objcopy", "-O", "binary", "-S", "bin/hello_partition2.elf",
            "bin/hello_partition2.bin"]
+
+[[actions]]
+type = "post-build"
+command = ["sh", "-c", "arm-none-eabi-objdump -dSstl bin/hello_partition2.elf > bin/hello_partition2.lst"]
+

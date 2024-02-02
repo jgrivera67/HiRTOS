@@ -14,6 +14,7 @@ maintainers-logins = ["jgrivera67"]
 
 [configuration.variables]
 Separation_Kernel_Debug_Tracing_On = {type = "Boolean", default = false}
+Platform = {type = "Enum", values = ["arm_fvp"], default = "arm_fvp"}
 
 [[depends-on]]
 gnat_arm_elf = "^13.2.1"

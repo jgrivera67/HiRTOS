@@ -34,11 +34,10 @@ project Hello_Partitions is
          ("-nostartfiles",
           "-nostdlib",
         --"-nolibc",
-         "-lgcc", -- needed for __aeabi_uldivmod
+          "-lgcc", -- needed for __aeabi_uldivmod
           "-Wl,-Map=" & Executable_Prefix & ".map",
-			 "-Xlinker", "--gc-sections",
-	       "-T../../" & HiRTOS_Compiler_Flags.Platform & "_" &
-                  Executable_Prefix & "_memory_layout.ld");
+          "-Xlinker", "--gc-sections",
+	  "-T../../memory_layout.ld");
    end Linker;
 
    package Builder is

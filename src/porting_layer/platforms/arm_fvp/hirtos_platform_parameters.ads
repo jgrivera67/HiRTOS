@@ -22,6 +22,9 @@ is
 
    System_Clock_Frequency_Hz : constant := 100_000_000;
 
+   GICD_Base_Address : constant System.Address :=
+     System'To_Address (16#8000_0000# + 16#2F00_0000#);
+
    --
    --  Linker-script symbols defined in
    --  porting_layer/platforms/*/memory_layout.ld

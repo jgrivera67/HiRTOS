@@ -13,7 +13,6 @@ abstract project Hirtos_Compiler_Flags is
    Mode := External ("GPR_TOOL", "");
 
    CPU_Arch := "";
-   Platform := "";
    Target_Compiler_Selector := "";
    CPU_Core_Switches := ();
    Build_Profile_Switches := ();
@@ -53,7 +52,6 @@ abstract project Hirtos_Compiler_Flags is
 
       when "arm_cortex_r52" =>
               CPU_Arch := "armv8r_aarch32";
-              Platform := "arm_fvp";
               Target_Compiler_Selector := "arm-eabi";
               CPU_Core_Switches := ("-mcpu=cortex-r52",
                                   --"-march=armv8-r",

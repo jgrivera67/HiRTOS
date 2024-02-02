@@ -134,7 +134,13 @@ package body HiRTOS.Separation_Kernel.Interrupt_Handling is
                   HiRTOS.Separation_Kernel.Partition.Resume_Partition (Partition_Obj.Failover_Partition_Id);
                end if;
             when Hypercall_Reboot_Partition =>
-               HiRTOS.Separation_Kernel.Partition.Reboot_Partition (Partition_Obj.Id);
+               if Partition_Obj.Failover_Partition_Id /= Invalid_Partition_Id and then
+                  not HiRTOS.Separation_Kernel.Partition.Is_Partition_Suspended (Partition_Obj.Failover_Partition_Id)
+               then
+                  HiRTOS.Separation_Kernel.Partition.Stop_Partition (Partition_Obj.Id);
+               else
+                  HiRTOS.Separation_Kernel.Partition.Reboot_Partition (Partition_Obj.Id);
+               end if;
             when Hypercall_Trace_Value =>
                HiRTOS.Separation_Kernel.Partition.Trace_Partition (Partition_Obj.Id);
          end case;

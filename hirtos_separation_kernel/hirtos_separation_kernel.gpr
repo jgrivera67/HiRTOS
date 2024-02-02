@@ -37,7 +37,7 @@ project HiRTOS_Separation_Kernel is
                         "../src/porting_layer/cpu_architectures",
                         "../src/porting_layer/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch,
                         "../src/porting_layer/platforms",
-                        "../src/porting_layer/platforms/" & HiRTOS_Compiler_Flags.Platform,
+                        "../src/porting_layer/platforms/" & Hirtos_Separation_Kernel_Config.Platform,
                         "config");
 
    for Object_Dir use "obj/" & HiRTOS_Separation_Kernel_Config.Build_Profile;

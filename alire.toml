@@ -12,6 +12,9 @@ authors = ["J. German Rivera"]
 maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
 maintainers-logins = ["jgrivera67"]
 
+[configuration.variables]
+Platform = {type = "Enum", values = ["arm_fvp"], default = "arm_fvp"}
+
 [[depends-on]]
 gnat_arm_elf = "^13.2.1"
 #gnat_riscv64_elf = "^13.2.1"
