@@ -12,7 +12,6 @@
 #define ALIRE_HOST_DISTRO "ubuntu"
 
 #define PLATFORM_ARM_FVP 1
-#define PLATFORM_AP5_SGK 2
 
 #define PLATFORM  1
 

@@ -12,6 +12,7 @@ with HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface.Partition_Context;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor;
 with HiRTOS_Cpu_Startup_Interface;
+with HiRTOS_Low_Level_Debug_Interface;
 with HiRTOS_Platform_Parameters;
 with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Separation_Kernel.SK_Private;
@@ -72,9 +73,9 @@ package body HiRTOS.Separation_Kernel is
          HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Get_ISR_Stack_Info (Cpu_Id);
    begin
       HiRTOS_Cpu_Arch_Interface.Hypervisor.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Initialize;
       HiRTOS.Separation_Kernel.Memory_Protection_Private.Initialize;
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
-      HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor.Initialize;
       HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor.Register_Hypervisor_Trap_Callback (
          HiRTOS.Separation_Kernel.Interrupt_Handling.Hypervisor_Trap_Handler'Access);

@@ -49,16 +49,12 @@ is
          end loop;
 
          GICD_TYPER_Value := GICD.GICD_TYPER;
-         pragma Assert
-           (GICD_TYPER_Value.IDBits = ARM_Cortex_R52_GICD_TYPER_IDbits);
+         pragma Assert (GICD_TYPER_Value.IDBits = ARM_Cortex_R52_GICD_TYPER_IDbits);
 
          Max_Number_Interrupt_Sources :=
            (32 * Interfaces.Unsigned_16 (GICD_TYPER_Value.ITLinesNumber)) + 1;
          pragma Assert
-           (Max_Number_Interrupt_Sources <=
-            Interfaces.Unsigned_16
-              (External_Interrupt_Id_Type'Last -
-               External_Interrupt_Id_Type'First + 1));
+           (Max_Number_Interrupt_Sources <= Interfaces.Unsigned_16 (Max_Num_Interrupts_Supported));
 
          --
          --  Disable and clear all SPIs:

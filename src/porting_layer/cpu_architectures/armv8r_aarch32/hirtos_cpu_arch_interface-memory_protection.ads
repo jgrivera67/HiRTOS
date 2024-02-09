@@ -11,6 +11,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Parameters;
+private with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with System.Storage_Elements;
 with Interfaces;
 with Bit_Sized_Integer_Types;
@@ -569,6 +570,7 @@ private
    type Fault_Status_Registers_Type is limited record
       DFSR_Value : DFSR_Type;
       IFSR_Value : IFSR_Type;
+      SCTLR_Value : HiRTOS_Cpu_Arch_Interface.System_Registers.SCTLR_Type;
    end record;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

@@ -27,7 +27,8 @@ package HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
    --  Perform the first partittion context switch
    --
    procedure First_Partition_Context_Switch
-      with Pre => Cpu_In_Hypervisor_Mode,
+      with Pre => Cpu_In_Hypervisor_Mode and then
+                  Cpu_Interrupting_Disabled,
            No_Return;
 
    --

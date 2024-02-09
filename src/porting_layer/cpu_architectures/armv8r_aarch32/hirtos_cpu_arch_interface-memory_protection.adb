@@ -271,6 +271,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    begin
       Fault_Status_Registers.DFSR_Value := (others => <>);
       Fault_Status_Registers.IFSR_Value := (others => <>);
+      Fault_Status_Registers.SCTLR_Value := HiRTOS_Cpu_Arch_Interface.System_Registers.Get_SCTLR;
    end Initialize_Fault_Status_Registers;
 
    procedure Save_Fault_Status_Registers (
@@ -278,6 +279,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    begin
       Fault_Status_Registers.DFSR_Value := Get_DFSR;
       Fault_Status_Registers.IFSR_Value := Get_IFSR;
+      Fault_Status_Registers.SCTLR_Value := HiRTOS_Cpu_Arch_Interface.System_Registers.Get_SCTLR;
    end Save_Fault_Status_Registers;
 
    procedure Restore_Fault_Status_Registers (
@@ -285,6 +287,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    begin
       Set_DFSR (Fault_Status_Registers.DFSR_Value);
       Set_IFSR (Fault_Status_Registers.IFSR_Value);
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_SCTLR (Fault_Status_Registers.SCTLR_Value);
    end Restore_Fault_Status_Registers;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;
