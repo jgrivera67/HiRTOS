@@ -42,8 +42,6 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor with SPARK_M
       HSCTLR_Value := Get_HSCTLR;
       HSCTLR_Value.M := Mpu_Enabled;
       HSCTLR_Value.A := Alignment_Check_Disabled; -- To allow unaligned accesses
-      --  ???SCTLR_Value.C := Cacheable; --TODO
-      --  ???SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
       if Enable_Background_Region then
          HSCTLR_Value.BR := Background_Region_Enabled;
       else

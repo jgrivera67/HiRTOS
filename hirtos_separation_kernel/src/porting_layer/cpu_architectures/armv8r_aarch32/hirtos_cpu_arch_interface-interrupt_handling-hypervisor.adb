@@ -111,7 +111,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          --  Save elr_hyp and spsr_hyp:
          --
          "mrs     r0, elr_hyp" & LF &
-         "mrs     r1, spsr" & LF &
+         "mrs     r1, spsr_hyp" & LF &
          "push    {r0-r1}" & LF &
 
          --
@@ -182,7 +182,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          --
          "pop     {r0-r1}" & LF &
          "msr     elr_hyp, r0" & LF &
-         "msr     spsr, r1" & LF &
+         "msr     spsr_hyp, r1" & LF &
 
          --
          --  Restore general-purpose registers saved on the stack:
@@ -287,6 +287,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    begin
       Interrupt_Handler_Prolog;
 
+      pragma Assert(Cpu_In_Hypervisor_Mode);
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.GIC_Interrupt_Handler (
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Fiq);
 
