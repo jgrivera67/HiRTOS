@@ -58,11 +58,7 @@ is
       with Pre => Cpu_In_Privileged_Mode,
            Post => Get_Num_Regions_Supported'Result'Enum_Rep <= Max_Num_Memory_Regions;
 
-   --
-   --  Load all memory attributes supported into the EL1-controlled MPU's MAIR0/MAIR1
-   --  registers
-   --
-   procedure Load_Memory_Attributes_Lookup_Table
+   procedure Initialize
       with Pre => Cpu_In_Privileged_Mode;
 
    --
@@ -574,3 +570,4 @@ private
    end record;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+

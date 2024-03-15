@@ -129,6 +129,16 @@ is
    procedure Disable_Caches
       with Pre => Cpu_In_Privileged_Mode;
 
+   procedure Invalidate_Data_Cache;
+
+   procedure Invalidate_Instruction_Cache;
+
+   procedure Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address);
+
+   procedure Flush_Data_Cache_Line (Cache_Line_Address : System.Address);
+
+   procedure Flush_Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address);
+
    procedure Hypercall (Op_Code : Interfaces.Unsigned_8) with
      Pre => not Cpu_In_Hypervisor_Mode;
 

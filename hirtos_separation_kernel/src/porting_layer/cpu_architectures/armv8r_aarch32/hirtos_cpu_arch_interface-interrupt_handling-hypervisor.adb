@@ -78,9 +78,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
            External_Name => "el2_fiq_interrupt_handler";
    pragma Machine_Attribute (EL2_Fiq_Interrupt_Handler, "naked");
 
-   procedure Interrupt_Handler_Prolog
-      with Inline_Always;
-
    --
    --  Inline subprogram to be invoked at the beginning of top-level EL2 interrupt
    --  handlers from which the partition scheduler can be called upon exit.

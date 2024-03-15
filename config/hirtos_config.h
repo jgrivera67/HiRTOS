@@ -18,7 +18,8 @@
 #define BUILD_PROFILE  3
 
 #define PLATFORM_ARM_FVP 1
+#define PLATFORM_ESP32_C3 2
 
-#define PLATFORM  1
+#define PLATFORM  2
 
 #endif

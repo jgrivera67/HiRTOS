@@ -22,6 +22,9 @@ is
    function Round_Up (M : Unsigned_32; N : Unsigned_32) return Unsigned_32
    is (How_Many (M, N) * N);
 
+   function Round_Down (M : Unsigned_32; N : Unsigned_32) return Unsigned_32
+   is ((M / N) * N);
+
    type Bytes_Array_Type is array (Positive range <>) of aliased Unsigned_8;
 
    --
@@ -97,10 +100,6 @@ is
    --  (C global and static initialized variables)
    --
    procedure Copy_Data_Section;
-
-   procedure Invalidate_Data_Cache;
-
-   procedure Invalidate_Instruction_Cache;
 
    procedure Invalidate_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address)
       with Pre => To_Integer (Start_Address) mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0

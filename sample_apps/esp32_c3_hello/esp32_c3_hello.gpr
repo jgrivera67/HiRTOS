@@ -1,0 +1,48 @@
+--
+--  Copyright (c) 2022-2023, German Rivera
+--
+--
+--  SPDX-License-Identifier: Apache-2.0
+--
+with "config/esp32_c3_hello_config.gpr";
+with "../../hirtos_compiler_flags.gpr";
+
+project Esp32_C3_Hello is
+   for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
+   for Runtime ("Ada") use "../../third_party/portable_minimal_ada_rts";
+   for Languages use ("Ada");
+
+   for Source_Dirs use ("src/", "config/");
+   for Object_Dir use "obj/" & Esp32_C3_Hello_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Exec_Dir use "bin";
+   for Main use ("esp32_c3_hello.adb");
+
+   Executable_Prefix := "esp32_c3_hello";
+
+   package Compiler is
+      for Default_Switches ("Ada") use Esp32_C3_Hello_Config.Ada_Compiler_Switches &
+                                       HiRTOS_Compiler_Flags.Compiler.ADAFLAGS;
+   end Compiler;
+
+   package Linker is
+      for Default_Switches ("Ada") use
+         HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS &
+         ("-nostartfiles",
+          "-nostdlib",
+        --"-nolibc",
+         "-lgcc", -- needed for __aeabi_uldivmod
+          "-Wl,-Map=" & "../../bin/" & Executable_Prefix & ".map",
+			 "-Xlinker", "--gc-sections",
+	       "-T../../memory_layout.ld");
+   end Linker;
+
+   package Builder is
+      for Executable_Suffix use ".elf";
+   end Builder;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Esp32_C3_Hello;

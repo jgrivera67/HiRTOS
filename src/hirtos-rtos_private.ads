@@ -131,7 +131,7 @@ is
       Mutex_Lists_Nodes    : Mutex_List_Package.List_Nodes_Type;
       Timer_Lists_Nodes    : Timer_List_Package.List_Nodes_Type;
    end record with
-      Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+      Alignment => HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes;
 
    type HiRTOS_Cpu_Instance_Array_Type is
       array (Valid_Cpu_Core_Id_Type) of HiRTOS_Cpu_Instance_Type;
@@ -144,7 +144,7 @@ is
    type HiRTOS_Type is limited record
       RTOS_Cpu_Instances   : HiRTOS_Cpu_Instance_Array_Type;
    end record with
-      Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+      Alignment => HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes;
 
    --
    --  Singleton object representing the state of the whole HiRTOS kernel

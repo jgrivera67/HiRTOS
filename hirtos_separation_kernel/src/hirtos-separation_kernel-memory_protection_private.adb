@@ -122,7 +122,7 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
          To_Integer (Global_Mmio_Region_End_Address) - To_Integer (Global_Mmio_Region_Start_Address);
    begin
       Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array := [others => False];
-      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize_Fault_Status_Registers (
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize_Global_Registers (
          Memory_Protection_Context.Fault_Status_Registers);
 
       --

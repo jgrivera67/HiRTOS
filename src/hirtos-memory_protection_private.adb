@@ -11,7 +11,7 @@
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Cpu_Arch_Interface.System_Registers;
+with HiRTOS_Cpu_Arch_Interface;
 
 package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -24,15 +24,7 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
       Cpu_Id : constant Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type := Get_ISR_Stack_Info (Cpu_Id);
    begin
-      Disable_Memory_Protection;
-      Load_Memory_Attributes_Lookup_Table;
-
-      --
-      --  Disable all region descriptors:
-      --
-      for Region_Id in Memory_Region_Id_Type loop
-         Disable_Memory_Region (Region_Id);
-      end loop;
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize;
 
       --
       --  Configure global text region:
@@ -61,7 +53,7 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
       --
       --  Set NULL pointer de-reference guard region:
       --
-      if HiRTOS_Cpu_Arch_Interface.System_Registers.Get_VBAR /= System.Null_Address then
+      if HiRTOS_Platform_Parameters.Global_Text_Region_Start_Address /= System.Null_Address then
          Configure_Memory_Region (Memory_Region_Id_Type (Null_Pointer_Dereference_Guard'Enum_Rep),
                                  System.Null_Address,
                                  HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment,

@@ -343,6 +343,35 @@ package body HiRTOS_Cpu_Arch_Interface is
       Strong_Memory_Barrier;
    end Disable_Caches;
 
+   procedure Invalidate_Data_Cache is
+   begin
+      Strong_Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIM_ALL;
+      Strong_Memory_Barrier;
+   end Invalidate_Data_Cache;
+
+   procedure Invalidate_Instruction_Cache is
+   begin
+      Strong_Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_ICIALLU;
+      Strong_Memory_Barrier;
+   end Invalidate_Instruction_Cache;
+
+   procedure Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is
+   begin
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIMVAC (Cache_Line_Address);
+   end Invalidate_Data_Cache_Line;
+
+   procedure Flush_Data_Cache_Line (Cache_Line_Address : System.Address) is
+   begin
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCMVAC (Cache_Line_Address);
+   end Flush_Data_Cache_Line;
+
+   procedure Flush_Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is
+   begin
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCIMVAC (Cache_Line_Address);
+   end Flush_Invalidate_Data_Cache_Line;
+
    procedure Hypercall (Op_Code : Interfaces.Unsigned_8) is
    begin
       System.Machine_Code.Asm (

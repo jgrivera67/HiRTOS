@@ -64,7 +64,9 @@ abstract project Hirtos_Compiler_Flags is
       when "riscv32" =>
               CPU_Arch := "riscv32";
               Target_Compiler_Selector := "riscv64-elf";
-              CPU_Core_Switches := ("-march=rv32imac",
+              --  ‘g’ will expand to ‘i’, ‘m’, ‘a’, ‘f’, ‘d’, ‘zicsr’ and ‘zifencei’.
+              --  'zbb' Basic bit manipulation extension.
+              CPU_Core_Switches := ("-march=rv32imc_zicsr_zifencei", --  rv32gc_zbb
                                     "-mabi=ilp32",
                                     "-mcmodel=medany");
       when others =>

@@ -71,9 +71,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
            External_Name => "el1_fiq_interrupt_handler";
    pragma Machine_Attribute (EL1_Fiq_Interrupt_Handler, "naked");
 
-   procedure Interrupt_Handler_Prolog
-      with Inline_Always;
-
    procedure Do_Synchronous_Context_Switch
       with Export,
            External_Name => "do_synchronous_context_switch";
@@ -333,7 +330,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
          --
          --  Return from the exception:
-         --  (see Cortex-R5 Technical Reference Manual, section 3.8.1)
          --
          --  NOTE: For the SVC exception, lr points the instruction right
          --  after the svc instruction that brought us here.
