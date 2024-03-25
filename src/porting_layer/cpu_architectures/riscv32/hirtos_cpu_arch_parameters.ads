@@ -12,7 +12,7 @@
 with System;
 
 package HiRTOS_Cpu_Arch_Parameters
-   with SPARK_Mode => On
+   with SPARK_Mode => On, No_Elaboration_Code_All
 is
    --
    --  Width in bits of CPUs interger registers
@@ -27,7 +27,7 @@ is
    --
    --  Minimum Alignment in bytes for a memory protection region
    --
-   Memory_Region_Alignment : constant := 32;
+   Memory_Region_Alignment : constant := 8; -- Minimum NAPOT region size supported by PMP
 
    --
    --  Required alignment in bytes for the stack pointer
@@ -42,7 +42,7 @@ is
    --
    --  Size in bytes of the 'BL' machine instruction
    --
-   Call_Instruction_Size : constant := 4;
+   Call_Instruction_Size_In_Bytes : constant := 4;
 
    --
    --  Number of usable external interrupt priorities (levels) in

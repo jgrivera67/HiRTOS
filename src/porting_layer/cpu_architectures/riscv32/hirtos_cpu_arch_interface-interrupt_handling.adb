@@ -10,10 +10,12 @@
 --
 
 with Generic_Execution_Stack;
+with HiRTOS_Platform_Parameters;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Arch_Interface_Private;
 with HiRTOS_Low_Level_Debug_Interface;
+with Number_Conversion_Utils;
 with System.Machine_Code;
 with Interfaces;
 
@@ -21,7 +23,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use ASCII;
    use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
-   use type Interfaces.Unsigned_8;
+   use HiRTOS_Cpu_Arch_Interface.Thread_Context;
+   use type Interfaces.Unsigned_16;
 
    Instruction_Address_Misaligned_Str : aliased constant String := "Instruction Address Misaligned";
    Instruction_Access_Fault_Str : aliased constant String := "Instruction Access Fault";
@@ -55,7 +58,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
        Load_Page_Fault => Load_Page_Fault_Str'Access,
        Store_Page_Fault => Store_Page_Fault_Str'Access];
 
-   Cpu_Context_Size_In_Bytes : constant Interfaces.Unsigned_8 :=
+   Cpu_Context_Size_In_Bytes : constant Interfaces.Unsigned_16 :=
       HiRTOS_Cpu_Arch_Interface.Thread_Context.Cpu_Context_Type'Object_Size / System.Storage_Unit;
 
    --
@@ -63,12 +66,14 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --
    procedure Synchronous_Exception_Handler
       with Export,
-           External_Name => "synchronous_exception_handler";
+           External_Name => "synchronous_exception_handler",
+           No_Return;
    pragma Machine_Attribute (Synchronous_Exception_Handler, "naked");
 
    procedure Ecall_Exception_Handler
       with Export,
-           External_Name => "ecall_exception_handler";
+           External_Name => "ecall_exception_handler",
+           No_Return;
    pragma Machine_Attribute (Ecall_Exception_Handler, "naked");
 
    --
@@ -76,7 +81,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --
    procedure Unexpected_Interrupt_Handler
       with Export,
-           External_Name => "unexpected_interrupt_handler";
+           External_Name => "unexpected_interrupt_handler",
+           No_Return;
    pragma Machine_Attribute (Unexpected_Interrupt_Handler, "naked");
 
    --
@@ -84,7 +90,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --
    procedure Machine_Timer_Interrupt_Handler
       with Export,
-           External_Name => "machine_timer_interrupt_handler";
+           External_Name => "machine_timer_interrupt_handler",
+           No_Return;
    pragma Machine_Attribute (Machine_Timer_Interrupt_Handler, "naked");
 
    --
@@ -92,7 +99,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --
    procedure  Machine_External_Interrupt_Handler
       with Export,
-           External_Name => "machine_external_interrupt_handler";
+           External_Name => "machine_external_interrupt_handler",
+           No_Return;
    pragma Machine_Attribute (Machine_External_Interrupt_Handler, "naked");
 
    procedure Handle_Synchronous_Exception
@@ -112,12 +120,20 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    package ISR_Stacks_Package is new
       Generic_Execution_Stack (Stack_Size_In_Bytes => ISR_Stack_Size_In_Bytes);
 
+   pragma Compile_Time_Error (
+      ISR_Stacks_Package.Stack_Entries_Type'Size /= ISR_Stack_Size_In_Bytes * System.Storage_Unit,
+      "Unexpected ISR stack size");
+
    ISR_Stacks :
-      array (Cpu_Core_Id_Type) of ISR_Stacks_Package.Execution_Stack_Type
+      array (Valid_Cpu_Core_Id_Type) of ISR_Stacks_Package.Execution_Stack_Type
          with Linker_Section => ".isr_stack",
               Convention => C,
               Export,
               External_Name => "isr_stacks";
+
+   pragma Compile_Time_Error (
+      ISR_Stacks'Size = HiRTOS_Platform_Parameters.Num_Cpu_Cores * ISR_Stack_Size_In_Bytes * System.Storage_Unit,
+      "Unexpected size of ISR_Stacks");
 
    ------------------------
    -- Get_ISR_Stack_Info --
@@ -130,6 +146,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          (Base_Address => ISR_Stacks (Cpu_Id).Stack_Entries'Address,
           Size_In_Bytes => ISR_Stacks (Cpu_Id).Stack_Entries'Size / System.Storage_Unit);
    begin
+      pragma Assert (Number_Conversion_Utils.Is_Value_Power_Of_Two (
+                        ISR_Stack_Info.Size_In_Bytes));
       return ISR_Stack_Info;
    end Get_ISR_Stack_Info;
 
@@ -172,55 +190,56 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --
          --  Allocate space on the stack:
          --
-        "addi sp, sp, -%0" & LF &
-        --
-        --  Save general-purpose registers on the stack:
-        --
-        --  NOTE: Although x2 (sp) does not need to be saved on the stack,
-        --  we save it, so that it can be included in the context checksum check.
-        --
-        "sw x1, (1 * %1)(sp)" & LF &
-        "sw x2, (2 * %1)(sp)" & LF &
-        "sw x3, (3 * %1)(sp)" & LF &
-        "sw x4, (4 * %1)(sp)" & LF &
-        "sw x5, (5 * %1)(sp)" & LF &
-        "sw x6, (6 * %1)(sp)" & LF &
-        "sw x7, (7 * %1)(sp)" & LF &
-        "sw x8, (8 * %1)(sp)" & LF &
-        "sw x9, (9 * %1)(sp)" & LF &
-        "sw x10, (10 * %1)(sp)" & LF &
-        "sw x11, (11 * %1)(sp)" & LF &
-        "sw x12, (12 * %1)(sp)" & LF &
-        "sw x13, (13 * %1)(sp)" & LF &
-        "sw x14, (14 * %1)(sp)" & LF &
-        "sw x15, (15 * %1)(sp)" & LF &
-        "sw x16, (16 * %1)(sp)" & LF &
-        "sw x17, (17 * %1)(sp)" & LF &
-        "sw x18, (18 * %1)(sp)" & LF &
-        "sw x19, (19 * %1)(sp)" & LF &
-        "sw x20, (20 * %1)(sp)" & LF &
-        "sw x21, (21 * %1)(sp)" & LF &
-        "sw x22, (22 * %1)(sp)" & LF &
-        "sw x23, (23 * %1)(sp)" & LF &
-        "sw x24, (24 * %1)(sp)" & LF &
-        "sw x25, (25 * %1)(sp)" & LF &
-        "sw x26, (26 * %1)(sp)" & LF &
-        "sw x27, (27 * %1)(sp)" & LF &
-        "sw x28, (28 * %1)(sp)" & LF &
-        "sw x29, (29 * %1)(sp)" & LF &
-        "sw x30, (30 * %1)(sp)" & LF &
-        "sw x31, (31 * %1)(sp)" & LF &
-        --
-        --  Save MEPC, MSTATUS and MSCRATCH:
-        --
-        "csrr t0, mepc" & LF &
-        "sw   t0, (32 * %1)(sp)" & LF &
-        "csrr t1, mstatus" & LF &
-        "sw   t1, (33 * %1)(sp)" & LF &
-        "csrr t2, mscratch" & LF &
-        "sw   t2, (34 * %1)(sp)" & LF &
-        --  Update mscratch to remember that we are in privileged mode */
-        "csrsi mscratch, 0x1" & LF &
+         "addi sp, sp, -%0" & LF &
+         --
+         --  Save general-purpose registers on the stack:
+         --
+         --  NOTE: Although x2 (sp) does not need to be saved on the stack,
+         --  we save it, so that it can be included in the context checksum check.
+         --
+         "sw x1, (1 * %1)(sp)" & LF &
+         "sw x2, (2 * %1)(sp)" & LF &
+         "sw x3, (3 * %1)(sp)" & LF &
+         "sw x4, (4 * %1)(sp)" & LF & --  TP saved
+         "sw x5, (5 * %1)(sp)" & LF &
+         "sw x6, (6 * %1)(sp)" & LF &
+         "sw x7, (7 * %1)(sp)" & LF &
+         "sw x8, (8 * %1)(sp)" & LF &
+         "sw x9, (9 * %1)(sp)" & LF &
+         "sw x10, (10 * %1)(sp)" & LF &
+         "sw x11, (11 * %1)(sp)" & LF &
+         "sw x12, (12 * %1)(sp)" & LF &
+         "sw x13, (13 * %1)(sp)" & LF &
+         "sw x14, (14 * %1)(sp)" & LF &
+         "sw x15, (15 * %1)(sp)" & LF &
+         "sw x16, (16 * %1)(sp)" & LF &
+         "sw x17, (17 * %1)(sp)" & LF &
+         "sw x18, (18 * %1)(sp)" & LF &
+         "sw x19, (19 * %1)(sp)" & LF &
+         "sw x20, (20 * %1)(sp)" & LF &
+         "sw x21, (21 * %1)(sp)" & LF &
+         "sw x22, (22 * %1)(sp)" & LF &
+         "sw x23, (23 * %1)(sp)" & LF &
+         "sw x24, (24 * %1)(sp)" & LF &
+         "sw x25, (25 * %1)(sp)" & LF &
+         "sw x26, (26 * %1)(sp)" & LF &
+         "sw x27, (27 * %1)(sp)" & LF &
+         "sw x28, (28 * %1)(sp)" & LF &
+         "sw x29, (29 * %1)(sp)" & LF &
+         "sw x30, (30 * %1)(sp)" & LF &
+         "sw x31, (31 * %1)(sp)" & LF &
+         --
+         --  Save MEPC, MSTATUS and MSCRATCH:
+         --
+         "csrr t0, mepc" & LF &
+         "sw   t0, (32 * %1)(sp)" & LF &
+         "csrr t1, mstatus" & LF &
+         "sw   t1, (33 * %1)(sp)" & LF &
+         "csrr t2, mscratch" & LF &
+         "sw   t2, (34 * %1)(sp)" & LF &
+         --  Update mscratch and tp to remember that we are in privileged mode */
+         "csrsi mscratch, 0x1" & LF &
+         "and  tp, tp, %2" & LF &
          --
          --  Call sp = HiRTOS.Enter_Interrupt_Context (sp)
          --
@@ -235,11 +254,14 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --
          "mv     fp, sp",
          Inputs =>
-            [Interfaces.Unsigned_8'Asm_Input ("g",
-                                              Cpu_Context_Size_In_Bytes),  --  %0
+            [Interfaces.Unsigned_16'Asm_Input ("g",
+                                               Cpu_Context_Size_In_Bytes), --  %0
              Interfaces.Unsigned_8'Asm_Input ("g",
-                                              HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)], -- %1
+                                              HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes), --  %1
+             Interfaces.Unsigned_32'Asm_Input ("g",
+                                               TP_Cpu_Running_In_Privileged_Mode_Mask)], --  %2
          Volatile => True);
+
    end Interrupt_Handler_Prolog;
 
    --
@@ -288,7 +310,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --
          "lw x1, (1 * %1)(sp)" & LF &
          "lw x3, (3 * %1)(sp)" & LF &
-         "lw x4, (4 * %1)(sp)" & LF &
+         "lw x4, (4 * %1)(sp)" & LF & --  TP restored
          "lw x5, (5 * %1)(sp)" & LF &
          "lw x6, (6 * %1)(sp)" & LF &
          "lw x7, (7 * %1)(sp)" & LF &
@@ -325,8 +347,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --
          "mret",
          Inputs =>
-            [Interfaces.Unsigned_8'Asm_Input ("g",
-                                              Cpu_Context_Size_In_Bytes),  --  %0
+            [Interfaces.Unsigned_16'Asm_Input ("g",
+                                               Cpu_Context_Size_In_Bytes),  --  %0
              Interfaces.Unsigned_8'Asm_Input ("g",
                                               HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)], -- %1
          Volatile => True);

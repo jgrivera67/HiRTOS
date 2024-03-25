@@ -3,13 +3,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-/** Simplified memory map for the bootloader.
- *  Make sure the bootloader can load into main memory without overwriting itself.
- *
- *  ESP32-C3 ROM static data usage is as follows:
- *  - 0x3fccae00 - 0x3fcdc710: Shared buffers, used in UART/USB/SPI download mode only
- *  - 0x3fcdc710 - 0x3fcde710: PRO CPU stack, can be reclaimed as heap after RTOS startup
- *  - 0x3fcde710 - 0x3fce0000: ROM .bss and .data (not easily reclaimable)
+
+/*
+ * Simplified memory map for the ESP32-C3 2nd stage bootloader.
  *
  *  The 2nd stage bootloader can take space up to the end of ROM shared
  *  buffers area (0x3fcdc710).
@@ -37,7 +33,10 @@ bootloader_dram_seg_start = 0x3FC80000; /*bootloader_dram_seg_end - bootloader_d
 bootloader_iram_loader_seg_start = 0x403ce710; /*bootloader_dram_seg_start - bootloader_iram_loader_seg_len + iram_dram_offset;*/
 bootloader_iram_seg_start = 0x40380000; /*bootloader_iram_loader_seg_start - bootloader_iram_seg_len; */
 
-MPU_REGION_ALIGNMENT = 32;
+MPU_REGION_ALIGNMENT = 4;
+
+MPU_TEXT_REGION_SIZE = 128K; /* Must be a power of two */
+MPU_RODATA_REGION_SIZE = 32K; /* Must be a power of two */
 
 MEMORY
 {
@@ -89,13 +88,13 @@ SECTIONS
     *(.text .text.*)
     *(.gnu.linkonce.t.*)
 
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(MPU_TEXT_REGION_SIZE);
     PROVIDE (__visible_text_end = .);
     __global_text_region_end = .;
   } > iram_seg
 
   /**
-   * This section is required to skip .fast_text area because Instruction_Bus_Sram_Alias and
+   * This section is required to skip text sections because Instruction_Bus_Sram_Alias and
    * Data_Bus_Sram_Alias reflect the same address space on different buses.
    */
   .data_bus_sram_alias_skip_fast_text (NOLOAD):
@@ -110,7 +109,12 @@ SECTIONS
     *(.rdata)
     *(.rodata .rodata.*)
     *(.gnu.linkonce.r.*)
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    *(.srodata.cst16)
+    *(.srodata.cst8)
+    *(.srodata.cst4)
+    *(.srodata.cst2)
+    *(.srodata .srodata.*)
+    . = ALIGN(MPU_RODATA_REGION_SIZE);
     PROVIDE_HIDDEN (__rodata_end = .);
     PROVIDE( __data_load = . );
   } > dram_seg
@@ -131,16 +135,10 @@ SECTIONS
     *(.jcr)
 
     *(.data .data.*)
-    *(.dram1 .dram1.*)
 
     *(.sdata .sdata.*)
     *(.sdata2 .sdata2.*)
     *(.gnu.linkonce.s.*)
-    *(.srodata.cst16)
-    *(.srodata.cst8)
-    *(.srodata.cst4)
-    *(.srodata.cst2)
-    *(.srodata .srodata.*)
 
     PROVIDE( __data_end = . );
   } > dram_seg
@@ -159,8 +157,8 @@ SECTIONS
     *(EXCLUDE_FILE(*hirtos*.o).bss.*)
     *(.gnu.linkonce.b.*)
     *(COMMON)
-    PROVIDE( __bss_end = . );
     . = ALIGN(MPU_REGION_ALIGNMENT);
+    PROVIDE( __bss_end = . );
     __global_data_region_end = .;
   } > dram_seg
 
@@ -168,7 +166,6 @@ SECTIONS
   {
    /*
     * Privileged uninitialized global variables (only accessible in privileged mode)
-    * are located the beginning of the bss section
     */
     . = ALIGN(MPU_REGION_ALIGNMENT);
     __privileged_bss_start = .;
@@ -188,48 +185,17 @@ SECTIONS
     _stacks_end = .;
   } > dram_seg
 
-/*???
-  .dram0.bootdesc : ALIGN(0x10)
+  .thread_local (NOLOAD)  :
   {
-    _data_start = ABSOLUTE(.);
-    *(.data_bootloader_desc .data_bootloader_desc.*)
+    . = ALIGN(MPU_REGION_ALIGNMENT);
+    _thread_local_start = .;
+    *(.thread_local)
+    . = ALIGN(MPU_REGION_ALIGNMENT);
+    _thread_local_end = .;
   } > dram_seg
-???*/
 }
 
-
-/**
- *  Appendix: Memory Usage of ROM bootloader
- *
- * 0x3fccae00 ------------------> _dram0_0_start
- *            |               |
- *            |               |
- *            |               |   1. Large buffers that are only used in certain boot modes, see shared_buffers.h
- *            |               |
- *            |               |
- * 0x3fcdc710 ------------------> __stack_sentry
- *            |               |
- *            |               |   2. Startup pro cpu stack (freed when IDF app is running)
- *            |               |
- * 0x3fcde710 ------------------> __stack (pro cpu)
- *            |               |
- *            |               |
- *            |               |   3. Shared memory only used in startup code or nonos/early boot*
- *            |               |      (can be freed when IDF runs)
- *            |               |
- *            |               |
- * 0x3fcdf060 ------------------> _dram0_rtos_reserved_start
- *            |               |
- *            |               |
- *            |               |   4. Shared memory used in startup code and when IDF runs
- *            |               |
- *            |               |
- * 0x3fcdf664 ------------------> _dram0_rtos_reserved_end
- *            |               |
- * 0x3fcdf830 ------------------> _data_start_interface
- *            |               |
- *            |               |   5. End of DRAM is the 'interface' data with constant addresses (ECO compatible)
- *            |               |
- * 0x3fce0000 ------------------> _data_end_interface
- */
-
+ASSERT(__global_text_region_end - __global_text_region_start == MPU_TEXT_REGION_SIZE,
+       "Global text region size must be MPU_TEXT_REGION_SIZE");
+ASSERT(__rodata_end - __rodata_start == MPU_RODATA_REGION_SIZE,
+       "Rodata region size must be MPU_RODATA_REGION_SIZE");

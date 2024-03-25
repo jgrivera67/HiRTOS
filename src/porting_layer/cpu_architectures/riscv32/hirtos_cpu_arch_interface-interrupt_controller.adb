@@ -9,6 +9,8 @@
 --  @summary RTOS to target platform interface - Interrupt controller driver for ESP32-C3
 --
 
+with HiRTOS_Platform_Interface;
+
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with
   SPARK_Mode => Off
 is
@@ -30,7 +32,7 @@ is
 
       Old_Cpu_Interrupting_State := Disable_Cpu_Interrupting;
 
-      -- TODO
+      HiRTOS_Platform_Interface.Initialize_Interrupt_Controller;
 
       Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
 

@@ -13,11 +13,14 @@ with System.Machine_Code;
 with System.Storage_Elements;
 with HiRTOS_Cpu_Arch_Interface_Private;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
+with HiRTOS_Cpu_Multi_Core_Interface;
 with Bit_Sized_Integer_Types;
 
 package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
    use HiRTOS_Cpu_Arch_Interface_Private;
+   use HiRTOS_Cpu_Multi_Core_Interface;
+   use HiRTOS_Cpu_Arch_Interface.Thread_Context;
    use type Bit_Sized_Integer_Types.Bit_Type;
 
    function Get_Cpu_Status_Register return Cpu_Register_Type is
@@ -49,7 +52,7 @@ package body HiRTOS_Cpu_Arch_Interface is
 
       return System.Storage_Elements.To_Address (
                System.Storage_Elements.Integer_Address (
-                  Reg_Value - HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size));
+                  Reg_Value - HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size_In_Bytes));
    end Get_Call_Address;
 
    function Get_Stack_Pointer return Cpu_Register_Type is
@@ -110,15 +113,7 @@ package body HiRTOS_Cpu_Arch_Interface is
    end Enable_Cpu_Interrupting;
 
    function Cpu_In_Privileged_Mode return Boolean is
-      Mscratch_Value : Cpu_Register_Type;
-   begin
-      System.Machine_Code.Asm (
-         "csrr %0, mscratch",
-         Outputs => Cpu_Register_Type'Asm_Output ("=r", Mscratch_Value), --  %0
-         Volatile => True);
-
-      return (Mscratch_Value and 2#1#) /= 0;
-   end Cpu_In_Privileged_Mode;
+      (Get_Thread_Pointer.Cpu_Running_In_Privileged_Mode);
 
    function Cpu_In_Hypervisor_Mode return Boolean is
       (False);
@@ -129,27 +124,35 @@ package body HiRTOS_Cpu_Arch_Interface is
    --
    procedure Switch_Cpu_To_Privileged_Mode is
    begin
-         --
-         --  Switch to privileged mode:
-         --
-         --  NOTE: The SVC exception handler sets `Cpu_Privileged_Nesting_Counter` to 1
-         --
-         System.Machine_Code.Asm (
-            "ecall",
-            Volatile => True);
+      --
+      --  Switch to privileged mode:
+      --
+      System.Machine_Code.Asm (
+         "ecall",
+         Volatile => True);
 
-         --
-         --  NOTE: We returned here in privileged mode.
-         --
+      --
+      --  NOTE: We returned here in privileged mode.
+      --
+      declare
+         Thread_Pointer : Thread_Pointer_Type := Get_Thread_Pointer;
+      begin
+         Thread_Pointer.Cpu_Running_In_Privileged_Mode := True;
+         Set_Thread_Pointer (Thread_Pointer);
+      end;
    end Switch_Cpu_To_Privileged_Mode;
 
    --
-   --  Transitions the CPU from sys-mode to user-mode with interrupts enabled.
+   --  Transitions the CPU from machine-mode to user-mode with interrupts enabled.
    --
    procedure Switch_Cpu_To_Unprivileged_Mode -- with Inline_Never
    is
       use type Interfaces.Unsigned_32;
+      Thread_Pointer : Thread_Pointer_Type := Get_Thread_Pointer;
    begin
+      Thread_Pointer.Cpu_Running_In_Privileged_Mode := False;
+      Set_Thread_Pointer (Thread_Pointer);
+
       --  Switch to unprivileged mode:
       System.Machine_Code.Asm (
          --  Update mscratch to remember that we are going to be in unprivileged mode:
@@ -339,11 +342,15 @@ package body HiRTOS_Cpu_Arch_Interface is
       MISA_Value : constant MISA_Type := Get_MISA;
    begin
       if MISA_Value.G = 1 then
-         System.Machine_Code.Asm (
-            "ctz %0, %1",
-            Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
-            Inputs => Cpu_Register_Type'Asm_Input ("r", Value),     --  %1
-            Volatile => True);
+         --
+         --   NOTE: To enable the code below, need to compile with -march=rv32gc_zbb
+         --
+         --  System.Machine_Code.Asm (
+         --     "ctz %0, %1",
+         --     Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
+         --     Inputs => Cpu_Register_Type'Asm_Input ("r", Value),     --  %1
+         --     Volatile => True);
+         pragma Assert (False);
       else
          Result := 0;
          for Bit_Index in 0 .. HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits - 1 loop

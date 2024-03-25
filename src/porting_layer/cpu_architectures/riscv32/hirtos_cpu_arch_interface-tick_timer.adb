@@ -12,6 +12,7 @@
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
+with HiRTOS_Platform_Interface;
 with System.Storage_Elements;
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
@@ -27,8 +28,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
 
    procedure Initialize is
    begin
-      -- TODO
-      null;
+      HiRTOS_Platform_Interface.Initialize_System_Timer;
    end Initialize;
 
    function Get_Timer_Timestamp_Cycles return Timer_Timestamp_Cycles_Type is

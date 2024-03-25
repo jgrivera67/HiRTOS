@@ -83,6 +83,7 @@ project HiRTOS is
                               "HiRTOS_Low_Level_Debug_Interface",
                               "Bit_Sized_Integer_Types",
                               "Memory_Utils",
+                              "Number_Conversion_Utils",
                               "Uart_Driver");
 
    for Library_Auto_Init use "False";

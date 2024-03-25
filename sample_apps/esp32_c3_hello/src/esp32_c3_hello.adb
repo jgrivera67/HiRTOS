@@ -32,7 +32,6 @@ procedure Esp32_C3_Hello is
 begin -- Main
    HiRTOS.Initialize;
    Print_Console_Greeting;
-
    App_Threads.Initialize;
    HiRTOS.Start_Thread_Scheduler;
 

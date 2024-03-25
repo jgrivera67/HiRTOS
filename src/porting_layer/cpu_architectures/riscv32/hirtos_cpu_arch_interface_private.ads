@@ -14,7 +14,7 @@ with System;
 with Bit_Sized_Integer_Types;
 
 private package HiRTOS_Cpu_Arch_Interface_Private with
- SPARK_Mode => On, No_Elaboration_Code_All
+ SPARK_Mode => On
 is
    MCAUSE_Exception_Code_Bit_Mask : constant Interfaces.Unsigned_32 :=
       2#01111111_11111111_11111111_11111111#;
@@ -128,5 +128,10 @@ is
    end record;
 
    function Get_MISA return MISA_Type;
+
+   Interrupt_Vector_Jump_Table : constant Interfaces.Unsigned_32 with
+         Import,
+         Convention => Asm,
+         External_Name => "interrupt_vector_jump_table";
 
 end HiRTOS_Cpu_Arch_Interface_Private;

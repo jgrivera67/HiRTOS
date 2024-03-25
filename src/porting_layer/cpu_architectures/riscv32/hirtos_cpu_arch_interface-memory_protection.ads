@@ -10,15 +10,16 @@
 --  for  the RISCV PMP
 --
 
-with HiRTOS_Cpu_Arch_Parameters;
 with System.Storage_Elements;
 with Interfaces;
 with Bit_Sized_Integer_Types;
+with Number_Conversion_Utils;
 
 package HiRTOS_Cpu_Arch_Interface.Memory_Protection
    with SPARK_Mode => On
 is
    use System.Storage_Elements;
+   use Number_Conversion_Utils;
    use type System.Address;
 
    type Memory_Region_Descriptor_Type is limited private;
@@ -37,9 +38,50 @@ is
       Normal_Memory_Write_Through_Cacheable,
       Normal_Memory_Write_Back_Cacheable);
 
-   Max_Num_Memory_Regions : constant := 16;
+   Max_Num_PMP_Entries : constant := 16;
 
-   type Memory_Region_Id_Type is mod Max_Num_Memory_Regions;
+   Min_Region_Size_In_Bytes : constant := 4;
+
+   type Memory_Region_Id_Type is mod Max_Num_PMP_Entries;
+
+   --
+   --  Mapping of logical memory protection regions to memory protection descriptor
+   --  indices
+   --
+   --  NOTE: We allocate 4 single-PMP-entry NAPOT regions and 6 two-PMP-entry non-NAPOT i
+   --  regions to consume the 16 PMP entries
+   --
+   type Memory_Region_Role_Type is
+     (
+      Global_Code_Region,                    -- single-entry NAPOT region
+      Global_Rodata_Region,                  -- single-entry NAPOT region
+      Null_Pointer_Dereference_Guard,        -- single-entry NAPOT region
+      Global_Interrupt_Stack_Overflow_Guard, --  single-entry NAPOT region
+      Global_Interrupt_Stack_Region,         --  Two-entry non-NAPOT region
+      Thread_Stack_Overflow_Guard,           --  Two-entry non-NAPOT region
+      Thread_Stack_Data_Region,              --  Two-entry non-NAPOT region
+      Thread_Private_Data_Region,            --  Two-entry non-NAPOT region
+      Thread_Private_Data2_Region,           --  Two-entry non-NAPOT region
+      Thread_Private_Mmio_Region,            --  Two-entry non-NAPOT region
+
+      --  Valid region roles must be added before this entry:
+      Invalid_Region_Role);
+
+   for Memory_Region_Role_Type use
+     (
+      Global_Code_Region => 0,
+      Global_Rodata_Region => 1,
+      Null_Pointer_Dereference_Guard => 2,
+      Global_Interrupt_Stack_Overflow_Guard => 3,
+      Global_Interrupt_Stack_Region => 4,
+      Thread_Stack_Overflow_Guard => 6,
+      Thread_Stack_Data_Region => 8,
+      Thread_Private_Data_Region => 10,
+      Thread_Private_Data2_Region => 12,
+      Thread_Private_Mmio_Region => 14,
+
+      --  Valid region roles must be added before this entry:
+      Invalid_Region_Role => Max_Num_PMP_Entries);
 
    procedure Initialize
       with Pre => Cpu_In_Privileged_Mode;
@@ -58,12 +100,14 @@ is
       with Pre => Cpu_In_Privileged_Mode;
 
    function Is_Address_Power_Of_Two (Address : System.Address) return Boolean is
-      (Address /= System.Null_Address and then
-       (To_Integer (Address) and (To_Integer (Address) - 1)) = 0);
+      (Is_Value_Power_Of_Two (To_Integer (Address)));
 
-   function Is_Value_Power_Of_Two (Value : Integer_Address) return Boolean is
-      (Value /= 0 and then
-       (Value and (Value - 1)) = 0);
+   function Is_Range_NAPOT_Aligned (Start_Address : System.Address;
+                                    Size_In_Bytes : System.Storage_Elements.Integer_Address)
+      return Boolean is
+      (Is_Value_Power_Of_Two (Size_In_Bytes) and then
+       Size_In_Bytes >= 8 and then
+       To_Integer (Start_Address) mod Size_In_Bytes = 0);
 
    procedure Configure_Memory_Region (
       Region_Id : Memory_Region_Id_Type;
@@ -73,13 +117,8 @@ is
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
       with Pre => Cpu_In_Privileged_Mode and then
-                  Is_Address_Power_Of_Two (Start_Address) and then
-                  To_Integer (Start_Address) >=
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment and then
-                  Size_In_Bytes > 0 and then
-                  Size_In_Bytes mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0,
-            Post => Is_Memory_Region_Enabled (Region_Id);
+                  Size_In_Bytes /= 0,
+           Post => Is_Memory_Region_Enabled (Region_Id);
 
    procedure Configure_Memory_Region (
       Region_Id : Memory_Region_Id_Type;
@@ -89,36 +128,22 @@ is
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
       with Pre => Cpu_In_Privileged_Mode and then
-                  Is_Address_Power_Of_Two (Start_Address) and then
-                  To_Integer (Start_Address) >=
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment and then
-                  To_Integer (End_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
                   To_Integer (Start_Address) < To_Integer (End_Address) and then
                   not Is_Memory_Region_Enabled (Region_Id),
            Post => Is_Memory_Region_Enabled (Region_Id);
 
-   --
-   --  Initializes state of a memory protection descriptor object in NAPOT mode
-   --
-   --  NOTE: For NAPOT mode, the size of the region must be a power of two,
-   --  encoded as the index of the lowest bit that is 0, as follows:
-   --  If the lowest bit that is 0 in the PMPADDR register is bit i,
-   --  (i: 0 .. 31), the size of the region is 2**(i + 3) and the
-   --  base address must be a multiple of 2**(i + 1), so that all
-   --  bits lower than bit i are also 0s in the base address.
-   --
    procedure Initialize_Memory_Region_Descriptor (
       Region_Descriptor : out Memory_Region_Descriptor_Type;
       Start_Address : System.Address;
       Size_In_Bytes : System.Storage_Elements.Integer_Address;
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
-      Region_Attributes : Region_Attributes_Type)
-      with Pre =>
-         Is_Value_Power_Of_Two (Size_In_Bytes) and then
-         Size_In_Bytes >= 8 and then
-         To_Integer (Start_Address) mod (Size_In_Bytes / 4) = 0;
+      Region_Attributes : Region_Attributes_Type;
+      Is_Single_PMP_Entry : Boolean)
+      with Pre => Size_In_Bytes /= 0 and then
+                  Size_In_Bytes mod Min_Region_Size_In_Bytes = 0 and then
+                  To_Integer (Start_Address) mod Min_Region_Size_In_Bytes = 0 and then
+                  (if Is_Single_PMP_Entry then Is_Range_NAPOT_Aligned (Start_Address, Size_In_Bytes));
 
    procedure Initialize_Memory_Region_Descriptor (
       Region_Descriptor : out Memory_Region_Descriptor_Type;
@@ -127,7 +152,9 @@ is
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
-      with Pre => To_Integer (Start_Address) < To_Integer (End_Address);
+      with Pre => To_Integer (Start_Address) < To_Integer (End_Address) and then
+                  To_Integer (Start_Address) mod Min_Region_Size_In_Bytes = 0 and then
+                  To_Integer (End_Address) mod Min_Region_Size_In_Bytes = 0;
 
    procedure Initialize_Memory_Region_Descriptor_Disabled (
       Region_Descriptor : out Memory_Region_Descriptor_Type);
@@ -139,8 +166,11 @@ is
       with Pre => Cpu_In_Privileged_Mode;
 
    --
-   --  Copies saved state of a memory protection descriptor to the
-   --  corresponding memory descriptor in the supervisor MPU
+   --  Copies saved state of a memory region descriptor to the
+   --  corresponding PMP entries. THe region descriptor can be either
+   --  a single-entry or two-entry descriptor that was initialize by an
+   --  earlier call to Initialize_Memory_Region_Descriptor, or to
+   --  Save_Memory_Region_Descriptor..
    --
    procedure Restore_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
@@ -148,25 +178,42 @@ is
       with Pre => Cpu_In_Privileged_Mode;
 
    --
-   --  Saves state of a memory protection descriptor from the supervisor MPU
+   --  Saves state of a memory region descriptor from the corresponding
+   --  PMP entries
    --
    procedure Save_Memory_Region_Descriptor (
       Region_Id : Memory_Region_Id_Type;
       Region_Descriptor : out Memory_Region_Descriptor_Type)
-      with Pre => Cpu_In_Privileged_Mode;
-
-   procedure Disable_Memory_Region (Region_Id : Memory_Region_Id_Type)
-      with Pre => Cpu_In_Privileged_Mode,
-           Post => not Is_Memory_Region_Enabled (Region_Id);
-
-   procedure Enable_Memory_Region (Region_Id : Memory_Region_Id_Type)
-      with Pre => Cpu_In_Privileged_Mode,
-           Post => Is_Memory_Region_Enabled (Region_Id);
+      with Pre => Cpu_In_Privileged_Mode and then
+                  Region_Id mod 2 = 0;
 
 private
    use type Interfaces.Unsigned_32;
 
-   PMPADDR_Bit_Offset : constant := 2;
+   Log_Base_2_Min_NAPOT_Aligned_Size : constant := 3;
+
+   Min_NAPOT_Aligned_Size : constant := 2 ** Log_Base_2_Min_NAPOT_Aligned_Size;
+
+   pragma Compile_Time_Error (
+      HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment mod Min_Region_Size_In_Bytes /= 0,
+      "Wrong value for Memory_Region_Alignment"
+   );
+
+   Max_Num_Single_Entry_Memory_Regions : constant := 4;
+
+   Max_Num_Two_Entry_Memory_Regions : constant := 6;
+
+   pragma Compile_Time_Error (
+      Global_Interrupt_Stack_Overflow_Guard'Enum_Rep /= Max_Num_Single_Entry_Memory_Regions - 1,
+      "Wrong value for last single-entry region Id");
+
+   pragma Compile_Time_Error (
+      Global_Interrupt_Stack_Region'Enum_Rep /= Max_Num_Single_Entry_Memory_Regions,
+      "Wrong value for first two-entry region Id");
+
+   pragma Compile_Time_Error (
+      Max_Num_Single_Entry_Memory_Regions + (2 * Max_Num_Two_Entry_Memory_Regions) /=
+      Max_Num_PMP_Entries, "Max_Num_PMP_Entries mismatch");
 
    type PMPADDR_Type is new Interfaces.Unsigned_32;
 
@@ -258,10 +305,11 @@ private
    --  RISCV PMP region descriptor for NAPOT mode
    --
    type Memory_Region_Descriptor_Type is limited record
-      --  Region base address and size (NAPOT encoded)
-      PMPADDR : PMPADDR_Type := 0;
-      --  "PMPCFG" byte associated with the region
-      PMPCFG_Entry : PMPCFG_Entry_Type;
+      Is_Single_PMP_Entry : Boolean := False;
+      First_PMPADDR : PMPADDR_Type := 0;
+      Second_PMPADDR : PMPADDR_Type := 0;
+      First_PMPCFG_Entry : PMPCFG_Entry_Type;
+      Second_PMPCFG_Entry : PMPCFG_Entry_Type;
    end record
      with Convention => C;
 
@@ -299,7 +347,10 @@ private
 
    function Is_Memory_Region_Descriptor_Enabled (Region_Descriptor : Memory_Region_Descriptor_Type)
       return Boolean is
-      (Region_Descriptor.PMPCFG_Entry.Addr_Matching_Mode /= PMP_Region_Off);
+      (if Region_Descriptor.Is_Single_PMP_Entry then
+          Region_Descriptor.First_PMPCFG_Entry.Addr_Matching_Mode /= PMP_Region_Off
+       else
+          Region_Descriptor.Second_PMPCFG_Entry.Addr_Matching_Mode /= PMP_Region_Off);
 
    Instruction_Address_Misaligned_Str : aliased constant String := "Instruction_Address_Misaligned";
    Instruction_Access_Fault_Str : aliased constant String := "Instruction_Access_Fault";

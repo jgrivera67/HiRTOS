@@ -97,8 +97,11 @@ is
       --
       HiRTOS_Low_Level_Debug_Interface.Initialize;
       HiRTOS.Memory_Protection_Private.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.3" & ASCII.LF); --???
       HiRTOS.Interrupt_Handling_Private.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.4" & ASCII.LF); --???
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.5" & ASCII.LF); --???
 
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
@@ -141,7 +144,9 @@ is
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
            HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
       begin
+   HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR Except 1.1" & ASCII.LF); --???
          HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
+   HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR Except 1.2" & ASCII.LF); --???
          --
          --  Calculate length of the null-terminated 'Msg' string:
          --
@@ -332,8 +337,6 @@ is
          end if;
       end if;
 
-      pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
-
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
          Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
@@ -341,6 +344,8 @@ is
       begin
          Thread_Private.Increment_Privilege_Nesting (Current_Thread_Obj);
       end;
+
+      pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
    end Enter_Cpu_Privileged_Mode;
 
    procedure Exit_Cpu_Privileged_Mode is

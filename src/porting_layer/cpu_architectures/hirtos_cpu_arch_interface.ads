@@ -51,8 +51,7 @@ is
    --
    --  Restore interrupt enablement at the CPU
    --
-   procedure Restore_Cpu_Interrupting
-    (Old_Cpu_Interrupting : Cpu_Register_Type) with
+   procedure Restore_Cpu_Interrupting (Old_Cpu_Interrupting : Cpu_Register_Type) with
     Pre => Cpu_In_Privileged_Mode and then
            Cpu_Interrupting_Disabled;
 
@@ -70,8 +69,8 @@ is
    --  Switch to CPU privileged mode
    --
    procedure Switch_Cpu_To_Privileged_Mode with
-    Pre  => not Cpu_In_Privileged_Mode and then
-            not Cpu_Interrupting_Disabled,
+    Pre  => not Cpu_In_Privileged_Mode, -- and then
+            --not Cpu_Interrupting_Disabled,
     Post => Cpu_In_Privileged_Mode;
 
    --

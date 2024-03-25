@@ -92,7 +92,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       Generic_Execution_Stack (Stack_Size_In_Bytes => ISR_Stack_Size_In_Bytes);
 
    ISR_Stacks :
-      array (Cpu_Core_Id_Type) of ISR_Stacks_Package.Execution_Stack_Type
+      array (Valid_Cpu_Core_Id_Type) of ISR_Stacks_Package.Execution_Stack_Type
          with Linker_Section => ".isr_stack",
               Convention => C,
               Export,

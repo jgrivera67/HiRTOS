@@ -87,23 +87,4 @@ is
    Software_Timers_Bookkeeping_Method : constant Software_Timers_Bookkeeping_Method_Type :=
       Software_Timers_Bookkeeping_In_Timer_ISR;
 
-   --
-   --  Global variables default access
-   --
-   type Global_Data_Default_Access_Type is
-      (Global_Data_Privileged_Unprivileged_No_Access,
-       Global_Data_Privileged_Access_Unprivileged_No_Access,
-       Global_Data_Privileged_Unprivileged_Access);
-
-   Global_Data_Default_Access : constant Global_Data_Default_Access_Type :=
-      Global_Data_Privileged_Unprivileged_Access;
-
-   type Global_Mmio_Default_Access_Type is
-      (Global_Mmio_Privileged_Unprivileged_No_Access,
-       Global_Mmio_Privileged_Access_Unprivileged_No_Access,
-       Global_Mmio_Privileged_Unprivileged_Access);
-
-   Global_Mmio_Default_Access : constant Global_Mmio_Default_Access_Type :=
-      Global_Mmio_Privileged_Access_Unprivileged_No_Access;
-
 end HiRTOS_Config_Parameters;

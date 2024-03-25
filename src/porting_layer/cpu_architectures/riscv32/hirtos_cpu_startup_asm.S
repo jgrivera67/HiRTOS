@@ -31,8 +31,8 @@
 /*
  * Imported symbols
  */
-	.extern isr_stack			                            /* defined in startup.adb */
-	.extern ada_reset_handler			                   /* defined in startup.adb */
+	.extern isr_stacks			                         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern ada_reset_handler			                   /* defined in hirtos_cpu_startup_interface.adb */
 	.extern synchronous_exception_handler               /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 	.extern unexpected_interrupt_handler                /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 	.extern machine_timer_interrupt_handler             /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
@@ -113,7 +113,6 @@ hirtos_booted_as_partition:
         .cfi_undefined ra
 reset_handler:
         la gp, __global_pointer
-        //j . //???
 
         /*
          * Set ISR stack for calling CPU:

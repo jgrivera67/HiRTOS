@@ -103,6 +103,32 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
 
+   function Get_MSCRATCH return Cpu_Register_Type;
+
+   type Thread_Pointer_Type is record
+      Cpu_Running_In_Privileged_Mode : Boolean := False;
+      Thread_Id : Interfaces.Unsigned_8 := 0;
+      Cpu_Id : Interfaces.Unsigned_8 := 0;
+   end record
+     with Size => 32,
+          Bit_Order => System.Low_Order_First;
+
+   for Thread_Pointer_Type use record
+      Cpu_Running_In_Privileged_Mode at 0 range 0 .. 0;
+      Thread_Id at 0 range 8 .. 15;
+      Cpu_Id at 0 range 16 .. 23;
+   end record;
+
+   --
+   --  NOTE: This bit mask must agree with  the bit offset of Cpu_Running_In_Privileged_Mode
+   --  in Thread_Pointer_Type
+   --
+   TP_Cpu_Running_In_Privileged_Mode_Mask : constant Interfaces.Unsigned_32 := 2#1#;
+
+   function Get_Thread_Pointer return Thread_Pointer_Type;
+
+   procedure Set_Thread_Pointer (Thread_Pointer : Thread_Pointer_Type);
+
 private
 
    --
@@ -114,7 +140,7 @@ private
       RA : Cpu_Register_Type;  --  also known as register X1
       SP : Cpu_Register_Type;  --  also known as register X2
       GP : Cpu_Register_Type;  --  also known as register X3
-      TP : Cpu_Register_Type;  --  also known as register X4
+      TP : Thread_Pointer_Type;  --  also known as register X4
       T0 : Cpu_Register_Type;  --  also known as register X5
       T1 : Cpu_Register_Type;  --  also known as register X6
       T2 : Cpu_Register_Type;  --  also known as register X7

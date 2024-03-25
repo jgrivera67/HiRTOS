@@ -11,6 +11,7 @@
 --
 
 with System.Machine_Code;
+with Memory_Utils;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
 
@@ -245,18 +246,86 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    function Is_Memory_Region_Enabled (Region_Id : Memory_Region_Id_Type) return Boolean
    is
       PMPCFG_Value : constant PMPCFG_Type := Get_PMPCFG (Region_Id);
+      PMPCFG_Entry_Index : constant PMPCFG_Entry_Index_Type :=
+         PMPCFG_Entry_Index_Type (Region_Id mod Num_PMPCFG_Entries);
    begin
-      return PMPCFG_Value.Entries (PMPCFG_Entry_Index_Type (Region_Id mod Num_PMPCFG_Entries)).
-               Addr_Matching_Mode /= PMP_Region_Off;
+      if Region_Id < Max_Num_Single_Entry_Memory_Regions then
+         return PMPCFG_Value.Entries (PMPCFG_Entry_Index).Addr_Matching_Mode /= PMP_Region_Off;
+      else
+         pragma Assert (Region_Id mod 2 = 0);
+         return PMPCFG_Value.Entries (PMPCFG_Entry_Index + 1).Addr_Matching_Mode /= PMP_Region_Off;
+      end if;
    end Is_Memory_Region_Enabled;
 
+   --
+   --  If the size of the region is 2**(i + 3), the encoded size is
+   --  a value whose lowest bit that is 0 is bit i
+   --
+   function Encode_NAPOT_Region_Size (Size_In_Bytes : Integer_Address) return Integer_Address with
+      Pre => Is_Value_Power_Of_Two (Size_In_Bytes) and then
+               Size_In_Bytes >= Min_NAPOT_Aligned_Size
+   is
+      Size_Log_Base_2 : constant Log_Base_2_Type := Get_Log_Base_2 (Size_In_Bytes);
+   begin
+      return Integer_Address ((2 ** (Size_Log_Base_2 - Log_Base_2_Min_NAPOT_Aligned_Size)) - 1);
+   end Encode_NAPOT_Region_Size;
+
+   function Decode_NAPOT_Region_Size (Encoded_Size_In_Bytes : Integer_Address) return Integer_Address with
+      Pre => Is_Value_Power_Of_Two (Encoded_Size_In_Bytes + 1)
+   is
+      Size_Log_Base_2 : constant Log_Base_2_Type :=
+         Get_Log_Base_2 (Encoded_Size_In_Bytes + 1) + Log_Base_2_Min_NAPOT_Aligned_Size;
+   begin
+      return Integer_Address (2 ** Size_Log_Base_2);
+   end Decode_NAPOT_Region_Size;
+
+   function Encode_Region_Start_Address (Start_Address : System.Address) return Integer_Address
+      with Pre => To_Integer (Start_Address) mod Min_Region_Size_In_Bytes = 0
+   is
+   begin
+      return To_Integer (Start_Address) / Min_Region_Size_In_Bytes;
+   end Encode_Region_Start_Address;
+
+   function Encode_Region_End_Address (End_Address : System.Address) return Integer_Address
+      renames Encode_Region_Start_Address;
+
+   function Decode_Region_Start_Address (Encoded_Start_Address : Integer_Address)
+      return System.Address
+   is (To_Address (Encoded_Start_Address * Min_Region_Size_In_Bytes));
+
+   function Decode_Region_End_Address (Encoded_End_Address : Integer_Address)
+      return System.Address
+      renames Decode_Region_Start_Address;
+
+   procedure Decode_NAPOT_PMPADDR (PMPADDR_Value : PMPADDR_Type;
+                             Region_Start_Address : out System.Address;
+                             Region_Size_In_Bytes : out Integer_Address) is
+      Lowest_Zero_Bit_Index : constant Log_Base_2_Type :=
+         Log_Base_2_Type (Count_Trailing_Zeros (not Cpu_Register_Type (PMPADDR_Value)));
+      Encoded_Region_Size : constant Integer_Address := Integer_Address (2 ** Lowest_Zero_Bit_Index) - 1;
+   begin
+      Region_Size_In_Bytes := Decode_NAPOT_Region_Size (Encoded_Region_Size);
+      Region_Start_Address := Decode_Region_Start_Address (Integer_Address (PMPADDR_Value) and not Encoded_Region_Size);
+   end Decode_NAPOT_PMPADDR;
+
    procedure Initialize is
+      procedure Disable_PMP_Entry (Region_Id : Memory_Region_Id_Type)
+      is
+         PMPCFG_Value : PMPCFG_Type;
+      begin
+         HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
+         PMPCFG_Value := Get_PMPCFG (Region_Id);
+         PMPCFG_Value.Entries (PMPCFG_Entry_Index_Type (Region_Id mod Num_PMPCFG_Entries)).
+            Addr_Matching_Mode := PMP_Region_Off;
+         Set_PMPCFG (Region_Id, PMPCFG_Value);
+      end Disable_PMP_Entry;
+
    begin
       --
       --  Disable all region descriptors:
       --
       for Region_Id in Memory_Region_Id_Type loop
-         Disable_Memory_Region (Region_Id);
+         Disable_PMP_Entry (Region_Id);
       end loop;
    end Initialize;
 
@@ -270,12 +339,32 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    is
       Region_Descriptor : Memory_Region_Descriptor_Type;
    begin
-      Initialize_Memory_Region_Descriptor (Region_Descriptor,
-                                           Start_Address,
-                                           Size_In_Bytes,
-                                           Unprivileged_Permissions,
-                                           Privileged_Permissions,
-                                           Region_Attributes);
+      if Region_Id < Max_Num_Single_Entry_Memory_Regions then
+         --
+         --  Use a single-PMP-entry region descriptor:
+         --
+         pragma Assert (Is_Range_NAPOT_Aligned (Start_Address, Size_In_Bytes));
+         Initialize_Memory_Region_Descriptor (Region_Descriptor,
+                                              Start_Address,
+                                              Size_In_Bytes,
+                                              Unprivileged_Permissions,
+                                              Privileged_Permissions,
+                                              Region_Attributes,
+                                              Is_Single_PMP_Entry => True);
+      else
+         --
+         --  Use a two-PMP-entry region descriptor:
+         --
+         pragma Assert (Region_Id mod 2 = 0);
+         Initialize_Memory_Region_Descriptor (Region_Descriptor,
+                                              Start_Address,
+                                              Size_In_Bytes,
+                                              Unprivileged_Permissions,
+                                              Privileged_Permissions,
+                                              Region_Attributes,
+                                              Is_Single_PMP_Entry => False);
+      end if;
+
       Restore_Memory_Region_Descriptor (Region_Id, Region_Descriptor);
    end Configure_Memory_Region;
 
@@ -287,15 +376,15 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
    is
-      Region_Descriptor : Memory_Region_Descriptor_Type;
+      Size_In_Bytes : constant System.Storage_Elements.Integer_Address :=
+         To_Integer (End_Address) - To_Integer (Start_Address);
    begin
-      Initialize_Memory_Region_Descriptor (Region_Descriptor,
-                                           Start_Address,
-                                           End_Address,
-                                           Unprivileged_Permissions,
-                                           Privileged_Permissions,
-                                           Region_Attributes);
-      Restore_Memory_Region_Descriptor (Region_Id, Region_Descriptor);
+      Configure_Memory_Region (Region_Id,
+                               Start_Address,
+                               Size_In_Bytes,
+                               Unprivileged_Permissions,
+                               Privileged_Permissions,
+                               Region_Attributes);
    end Configure_Memory_Region;
 
    procedure Initialize_Memory_Region_Descriptor (
@@ -304,40 +393,73 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Size_In_Bytes : System.Storage_Elements.Integer_Address;
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type with Unreferenced;
-      Region_Attributes : Region_Attributes_Type with Unreferenced)
+      Region_Attributes : Region_Attributes_Type with Unreferenced;
+      Is_Single_PMP_Entry : Boolean)
    is
-      --
-      --  If the size of the region is 2**(i + 3), the encoded size is
-      --  a value whose lowest bit that is 0 is bit i
-      --
-      function Encode_NAPOT_Region_Size (Size_In_Bytes : System.Storage_Elements.Integer_Address)
-         return Interfaces.Unsigned_32 with
-         Pre => Is_Value_Power_Of_Two (Size_In_Bytes) and then
-                Size_In_Bytes >= 2**3
-      is
-         Log_Base_2 : constant Natural range 3 .. 31 :=
-            Natural (31 - Count_Leading_Zeros (Cpu_Register_Type (Size_In_Bytes)));
-      begin
-         return Interfaces.Shift_Left (Interfaces.Unsigned_32 (1), Log_Base_2 - 3) - 1;
-      end Encode_NAPOT_Region_Size;
-
+      End_Address : constant System.Address := To_Address (To_Integer (Start_Address) + Size_In_Bytes);
+      PMPCFG_Entry : PMPCFG_Entry_Type;
    begin
-      Region_Descriptor.PMPADDR := PMPADDR_Type (
-         Interfaces.Unsigned_32 (To_Integer (Start_Address)) or
-         Encode_NAPOT_Region_Size (Size_In_Bytes));
-      Region_Descriptor.PMPCFG_Entry := (Addr_Matching_Mode => PMP_Region_NAPOT, others => <>);
+      Region_Descriptor.Is_Single_PMP_Entry := Is_Single_PMP_Entry;
+      if Is_Single_PMP_Entry then
+         --
+         --  Single-PMP-entry memory protection descriptor object using NAPOT mode:
+         --
+         --  NOTE: For NAPOT mode, the size of the region must be a power of two,
+         --  encoded as the index of the lowest bit that is 0, as follows:
+         --  If the lowest bit that is 0 in the PMPADDR register is bit i,
+         --  (i: 0 .. 31), the size of the region is 2**(i + 3) and the
+         --  base address must be a multiple of 2**(i + 1), so that all
+         --  bits lower than bit i are also 0s in the base address.
+         --
+         Region_Descriptor.First_PMPADDR := PMPADDR_Type (
+            Encode_Region_Start_Address (Start_Address) or
+            Encode_NAPOT_Region_Size (Size_In_Bytes));
+
+         PMPCFG_Entry.Addr_Matching_Mode := PMP_Region_NAPOT;
+
+         declare
+            Decoded_Region_Start_Address : System.Address;
+            Decoded_Region_Size_In_Bytes : Integer_Address;
+         begin
+            Decode_NAPOT_PMPADDR (Region_Descriptor.First_PMPADDR, Decoded_Region_Start_Address,
+                                  Decoded_Region_Size_In_Bytes);
+            pragma Assert (Decoded_Region_Start_Address = Start_Address);
+            pragma Assert (Decoded_Region_Size_In_Bytes = Size_In_Bytes);
+         end;
+      else
+         --
+         --  Two-PMP-entry descriptor, using TOR mode for the second PMP entry:
+         --
+         Region_Descriptor.First_PMPADDR := PMPADDR_Type (Encode_Region_Start_Address (Start_Address));
+         Region_Descriptor.First_PMPCFG_Entry := (Addr_Matching_Mode => PMP_Region_Off, others => <>);
+         Region_Descriptor.Second_PMPADDR := PMPADDR_Type (Encode_Region_End_Address (End_Address));
+         PMPCFG_Entry.Addr_Matching_Mode := PMP_Region_TOR;
+      end if;
+
       case Unprivileged_Permissions is
-         when Read_Write =>
-            Region_Descriptor.PMPCFG_Entry.Read_Perm := 1;
-            Region_Descriptor.PMPCFG_Entry.Write_Perm := 1;
+         when None =>
+            PMPCFG_Entry.Locked_Entry := 1;
          when Read_Only =>
-            Region_Descriptor.PMPCFG_Entry.Read_Perm := 1;
+            PMPCFG_Entry.Read_Perm := 1;
+            PMPCFG_Entry.Locked_Entry := 1;
+         when Read_Write =>
+            PMPCFG_Entry.Read_Perm := 1;
+            PMPCFG_Entry.Write_Perm := 1;
          when Read_Execute =>
-            Region_Descriptor.PMPCFG_Entry.Read_Perm := 1;
-            Region_Descriptor.PMPCFG_Entry.Execute_Perm := 1;
-         when others =>
-            pragma Assert (False);
+            PMPCFG_Entry.Read_Perm := 1;
+            PMPCFG_Entry.Execute_Perm := 1;
+            PMPCFG_Entry.Locked_Entry := 1;
+         when Read_Write_Execute =>
+            PMPCFG_Entry.Read_Perm := 1;
+            PMPCFG_Entry.Write_Perm := 1;
+            PMPCFG_Entry.Execute_Perm := 1;
       end case;
+
+      if Is_Single_PMP_Entry then
+         Region_Descriptor.First_PMPCFG_Entry := PMPCFG_Entry;
+      else
+         Region_Descriptor.Second_PMPCFG_Entry := PMPCFG_Entry;
+      end if;
    end Initialize_Memory_Region_Descriptor;
 
    procedure Initialize_Memory_Region_Descriptor (
@@ -356,7 +478,8 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
                                            Size_In_Bytes,
                                            Unprivileged_Permissions,
                                            Privileged_Permissions,
-                                           Region_Attributes);
+                                           Region_Attributes,
+                                           Is_Single_PMP_Entry => False);
    end Initialize_Memory_Region_Descriptor;
 
    procedure Restore_Memory_Region_Descriptor (
@@ -370,18 +493,22 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       --  Begin critical section
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      --
-      --  NOTE: Before changing the address range associate with the region in the
-      --  PMP, it is safer to disable the region.
-      --
-      PMPCFG_Value := Get_PMPCFG (Region_Id);
-      PMPCFG_Value.Entries (PMPCFG_Entry_Index) :=
-         (Addr_Matching_Mode => PMP_Region_Off, others => <>);
-      Set_PMPCFG (Region_Id, PMPCFG_Value);
+      if Region_Descriptor.Is_Single_PMP_Entry then
+         Set_PMPADDR (Region_Id, Region_Descriptor.First_PMPADDR);
+         PMPCFG_Value := Get_PMPCFG (Region_Id);
+         PMPCFG_Value.Entries (PMPCFG_Entry_Index) := Region_Descriptor.First_PMPCFG_Entry;
+         Set_PMPCFG (Region_Id, PMPCFG_Value);
+      else
+         --  Two PMP entry descriptor:
+         pragma Assert (Region_Id mod 2 = 0);
+         Set_PMPADDR (Region_Id, Region_Descriptor.First_PMPADDR);
+         Set_PMPADDR (Region_Id + 1, Region_Descriptor.Second_PMPADDR);
+         PMPCFG_Value := Get_PMPCFG (Region_Id);
+         PMPCFG_Value.Entries (PMPCFG_Entry_Index) := Region_Descriptor.First_PMPCFG_Entry;
+         PMPCFG_Value.Entries (PMPCFG_Entry_Index + 1) := Region_Descriptor.Second_PMPCFG_Entry;
+         Set_PMPCFG (Region_Id, PMPCFG_Value);
+      end if;
 
-      Set_PMPADDR (Region_Id, Region_Descriptor.PMPADDR);
-      PMPCFG_Value.Entries (PMPCFG_Entry_Index) := Region_Descriptor.PMPCFG_Entry;
-      Set_PMPCFG (Region_Id, PMPCFG_Value);
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
 
       --  End critical section
@@ -391,7 +518,9 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    procedure Initialize_Memory_Region_Descriptor_Disabled (
       Region_Descriptor : out Memory_Region_Descriptor_Type) is
    begin
-      Region_Descriptor.PMPCFG_Entry := (Addr_Matching_Mode => PMP_Region_Off, others => <>);
+      Region_Descriptor.Is_Single_PMP_Entry := False;
+      Region_Descriptor.First_PMPCFG_Entry := (Addr_Matching_Mode => PMP_Region_Off, others => <>);
+      Region_Descriptor.Second_PMPCFG_Entry := (Addr_Matching_Mode => PMP_Region_Off, others => <>);
    end Initialize_Memory_Region_Descriptor_Disabled;
 
    procedure Save_Memory_Region_Descriptor (
@@ -401,41 +530,51 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       PMPCFG_Entry_Index : constant PMPCFG_Entry_Index_Type :=
          PMPCFG_Entry_Index_Type (Region_Id mod Num_PMPCFG_Entries);
    begin
-      Region_Descriptor.PMPADDR := Get_PMPADDR (Region_Id);
+      Region_Descriptor.Is_Single_PMP_Entry := False;
+      Region_Descriptor.First_PMPADDR := Get_PMPADDR (Region_Id);
+      Region_Descriptor.Second_PMPADDR := Get_PMPADDR (Region_Id + 1);
       PMPCFG_Value := Get_PMPCFG (Region_Id);
-      Region_Descriptor.PMPCFG_Entry := PMPCFG_Value.Entries (PMPCFG_Entry_Index);
+      Region_Descriptor.First_PMPCFG_Entry := PMPCFG_Value.Entries (PMPCFG_Entry_Index);
+      Region_Descriptor.Second_PMPCFG_Entry := PMPCFG_Value.Entries (PMPCFG_Entry_Index + 1);
    end Save_Memory_Region_Descriptor;
-
-   procedure Disable_Memory_Region (Region_Id : Memory_Region_Id_Type)
-   is
-      PMPCFG_Value : PMPCFG_Type;
-   begin
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
-      PMPCFG_Value := Get_PMPCFG (Region_Id);
-      PMPCFG_Value.Entries (PMPCFG_Entry_Index_Type (Region_Id mod Num_PMPCFG_Entries)).
-         Addr_Matching_Mode := PMP_Region_Off;
-      Set_PMPCFG (Region_Id, PMPCFG_Value);
-   end Disable_Memory_Region;
-
-   procedure Enable_Memory_Region (Region_Id : Memory_Region_Id_Type)
-   is
-      PMPCFG_Value : PMPCFG_Type;
-   begin
-      PMPCFG_Value := Get_PMPCFG (Region_Id);
-      PMPCFG_Value.Entries (PMPCFG_Entry_Index_Type (Region_Id mod Num_PMPCFG_Entries)).
-         Addr_Matching_Mode := PMP_Region_NAPOT;
-      Set_PMPCFG (Region_Id, PMPCFG_Value);
-      HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
-   end Enable_Memory_Region;
 
    procedure Enable_Memory_Protection (Enable_Background_Region : Boolean with Unreferenced) is
    begin
+      --  The PMP is enabled by default
       null;
    end Enable_Memory_Protection;
 
    procedure Disable_Memory_Protection is
    begin
+      --  The PMP cannot be disabled
       null;
    end Disable_Memory_Protection;
+
+   procedure Get_NAPOT_Aligned_Range (Start_Address : System.Address;
+                                      Size_In_Bytes : Integer_Address;
+                                      Aligned_Start_Address : out System.Address;
+                                      Aligned_Size_In_Bytes : out Integer_Address)
+      with Pre => Size_In_Bytes in 1 .. 2 ** (Integer_Address'Size - 1),
+            Post => Memory_Utils.Is_Subrange_Of_Address_Range (Start_Address, Size_In_Bytes,
+                                                               Aligned_Start_Address, Aligned_Size_In_Bytes)
+   is
+      Nearest_Log_Of_2_Ceiling : constant Log_Base_2_Type := Get_Log_Base_2 (Size_In_Bytes) + 1;
+      Nearest_Power_Of_2_Ceiling : constant Integer_Address := 2 ** Nearest_Log_Of_2_Ceiling;
+   begin
+      if Nearest_Power_Of_2_Ceiling < Min_NAPOT_Aligned_Size then
+         Aligned_Size_In_Bytes := Min_NAPOT_Aligned_Size;
+      else
+         Aligned_Size_In_Bytes := Nearest_Power_Of_2_Ceiling;
+      end if;
+
+      loop
+         Aligned_Start_Address := To_Address (Memory_Utils.Round_Down (To_Integer (Start_Address),
+                                                                        Aligned_Size_In_Bytes));
+         exit when Memory_Utils.Is_Subrange_Of_Address_Range (Start_Address, Size_In_Bytes,
+                                                               Aligned_Start_Address, Aligned_Size_In_Bytes);
+
+         Aligned_Size_In_Bytes := @ * 2; --  next power of 2
+      end loop;
+   end Get_NAPOT_Aligned_Range;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

@@ -88,10 +88,6 @@ package body App_Threads is
       pragma Assert (not HiRTOS.Cpu_In_Privileged_Mode);
       pragma Assert (not HiRTOS.Cpu_Interrupting_Disabled);
       pragma Assert (Arg_Value = Positive (Thread_Id) - 1);
-      --  HiRTOS.Enter_Cpu_Privileged_Mode;
-      --  HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
-      --  pragma Assert (not HiRTOS.Current_Execution_Context_Is_Interrupt);
-      --  HiRTOS.Exit_Cpu_Privileged_Mode;
 
       loop
          HiRTOS.Mutex.Acquire (My_Cpu_Data.Mutex_Id);

@@ -49,7 +49,7 @@ package body HiRTOS_Cpu_Arch_Interface is
 
       return System.Storage_Elements.To_Address (
                System.Storage_Elements.Integer_Address (
-                  Reg_Value - HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size));
+                  Reg_Value - HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size_In_Bytes));
    end Get_Call_Address;
 
    function Get_Stack_Pointer return Cpu_Register_Type is

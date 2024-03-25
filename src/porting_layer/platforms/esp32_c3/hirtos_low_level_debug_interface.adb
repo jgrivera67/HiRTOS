@@ -75,8 +75,6 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
          Uart_Driver.Put_Char (ASCII.LF);
          Uart_Driver.Put_Char (ASCII.CR);
       end if;
-
-      Uart_Driver.Tx_Flush;
    end Print_String;
 
    --------------------------

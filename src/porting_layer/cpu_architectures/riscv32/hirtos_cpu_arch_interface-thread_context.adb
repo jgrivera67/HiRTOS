@@ -19,7 +19,7 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
 
-   function Get_GP return Cpu_Register_Type with
+   function Get_Global_Pointer return Cpu_Register_Type with
       Inline_Always, Suppress => All_Checks;
 
    procedure Thread_Unintended_Exit_Catcher is
@@ -35,8 +35,8 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
       Thread_Cpu_Context :=
          (RA => Cpu_Register_Type (To_Integer (Thread_Unintended_Exit_Catcher'Address)),
           SP => Stack_End_Address - (Cpu_Context_Type'Object_Size / System.Storage_Unit),
-          GP => Get_GP,
-          TP => 16#04040404#,
+          GP => Get_Global_Pointer,
+          TP => (others => <>),
           T0 => 16#05050505#,
           T1 => 16#06060606#,
           T2 => 16#07070707#,
@@ -65,10 +65,11 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
           T5 => 16#30303030#,
           T6 => 16#31313131#,
           MEPC => Entry_Point_Address,
-          --  Enable interrupts at the CPU when switching thread in:
-          MSTATUS => (MPIE => 1, others => <>),
-          --  Set mscratch to indicate that thread starts in unprivileged mode
+          --  Enable interrupts at the CPU when switching thread in, and start in unprivileged mode:
+          MSTATUS => (MPIE => 1, MPP => Mstatus_Mpp_User_Mode, others => <>),
+          --  Set mscratch to indicate that thread's privilege level is unprivileged
           MSCRATCH => 0);
+
    end Initialize_Thread_Cpu_Context;
 
    procedure First_Thread_Context_Switch is
@@ -126,7 +127,7 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
       HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Interrupt_Handler_Epilog;
    end Synchronous_Thread_Context_Switch;
 
-   function Get_GP return Cpu_Register_Type  is
+   function Get_Global_Pointer return Cpu_Register_Type  is
       GP_Value : Cpu_Register_Type;
    begin
       System.Machine_Code.Asm (
@@ -135,6 +136,36 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
          Volatile => True);
 
       return GP_Value;
-   end Get_GP;
+   end Get_Global_Pointer;
+
+   function Get_Thread_Pointer return Thread_Pointer_Type is
+      Thread_Pointer : Thread_Pointer_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mv %0, tp",
+         Outputs => Thread_Pointer_Type'Asm_Output ("=r", Thread_Pointer),
+         Volatile => True);
+
+      return Thread_Pointer;
+   end Get_Thread_Pointer;
+
+   procedure Set_Thread_Pointer (Thread_Pointer : Thread_Pointer_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mv tp, %0",
+         Inputs => Thread_Pointer_Type'Asm_Input ("r", Thread_Pointer),
+         Volatile => True);
+   end Set_Thread_Pointer;
+
+   function Get_MSCRATCH return Cpu_Register_Type  is
+      MSCRATCH_Value : Cpu_Register_Type;
+   begin
+      System.Machine_Code.Asm (
+         "csrr %0, mscratch",
+         Outputs => Cpu_Register_Type'Asm_Output ("=r", MSCRATCH_Value),
+         Volatile => True);
+
+      return MSCRATCH_Value;
+   end Get_MSCRATCH;
 
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

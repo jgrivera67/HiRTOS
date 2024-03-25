@@ -42,6 +42,41 @@ is
 
    type Memory_Region_Id_Type is mod Max_Num_Memory_Regions;
 
+   --
+   --  Mapping of logical memory protection regions to MPU region Ids
+   --
+   type Memory_Region_Role_Type is
+     (
+      Global_Code_Region,
+      Global_Rodata_Region,
+      Null_Pointer_Dereference_Guard,
+      Global_Interrupt_Stack_Overflow_Guard,
+      Global_Interrupt_Stack_Region,
+      Thread_Stack_Overflow_Guard,
+      Thread_Stack_Data_Region,
+      Thread_Private_Data_Region,
+      Thread_Private_Data2_Region,
+      Thread_Private_Mmio_Region,
+
+      --  Valid region roles must be added before this entry:
+      Invalid_Region_Role);
+
+   for Memory_Region_Role_Type use
+     (
+      Global_Code_Region => 0,
+      Global_Rodata_Region => 1,
+      Null_Pointer_Dereference_Guard => 2,
+      Global_Interrupt_Stack_Overflow_Guard => 3,
+      Global_Interrupt_Stack_Region => 4,
+      Thread_Stack_Overflow_Guard => 5,
+      Thread_Stack_Data_Region => 6,
+      Thread_Private_Data_Region => 7,
+      Thread_Private_Data2_Region => 8,
+      Thread_Private_Mmio_Region => 9,
+
+      --  Valid region roles must be added before this entry:
+      Invalid_Region_Role => Max_Num_Memory_Regions);
+
    type Mpu_Regions_Count_Type is (Mpu_16_Regions,
                                    Mpu_20_Regions,
                                    Mpu_24_Regions,

@@ -5,7 +5,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 
-with System;
+with System.Storage_Elements;
 with Interfaces;
 with HiRTOS_Config_Parameters;
 with HiRTOS_Cpu_Arch_Parameters;
@@ -21,6 +21,11 @@ package HiRTOS with
   SPARK_Mode => On
 is
    use type Interfaces.Unsigned_16;
+
+   pragma Compile_Time_Error (
+      System.Storage_Elements.Integer_Address'Size /= HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits,
+      "Unexpected size of Integer_Address type"
+   );
 
    -----------------------------------------------------------------------------
    --  Application interface public declarations                              --
@@ -51,8 +56,12 @@ is
    --
    --  Initialize HiRTOS library
    --
+   --  NOTE: We cannot check pre-conditions in this subprogram, as it is invoked
+   --  before Ada package elaboration for the HiRTOS library is performed. Indeed,
+   --  this subprogram invokes the Ada package elaboration code for the HiRTOS library.
+   --
    procedure Initialize with
-     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+     --  Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
      External_Name => "hirtos_initialize";

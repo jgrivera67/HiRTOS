@@ -12,7 +12,6 @@
 package body HiRTOS.Memory_Protection with
   SPARK_Mode => On
 is
-   use HiRTOS.Memory_Protection_Private;
    use System.Storage_Elements;
 
    procedure Begin_Data_Range_Write_Access (
@@ -22,7 +21,6 @@ is
       with Refined_Post => Old_Data_Range.Range_Region_Role = Invalid_Region_Role or else
                            Old_Data_Range.Range_Region_Role = Thread_Private_Data_Region
    is
-      use type HiRTOS_Config_Parameters.Global_Data_Default_Access_Type;
       Region_Size_In_Bytes : constant Integer_Address :=
          Integer_Address (Size_In_Bits / System.Storage_Unit);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
@@ -30,12 +28,8 @@ is
       Old_Data_Range.Range_Region_Role := Invalid_Region_Role;
       if Valid_Stack_Address (Start_Address)
          or else
-         (Valid_Global_Data_Address (Start_Address)
-          and then
-          (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
-           or else
-           HiRTOS_Config_Parameters.Global_Data_Default_Access =
-             HiRTOS_Config_Parameters.Global_Data_Privileged_Unprivileged_Access))
+         (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+          Valid_Global_Data_Address (Start_Address))
       then
          return;
       end if;
@@ -92,18 +86,13 @@ is
       with Refined_Post => Old_Mmio_Range.Range_Region_Role = Invalid_Region_Role or else
                            Old_Mmio_Range.Range_Region_Role = Thread_Private_Mmio_Region
    is
-      use type HiRTOS_Config_Parameters.Global_Mmio_Default_Access_Type;
       Region_Size_In_Bytes : constant Integer_Address :=
          Integer_Address (Size_In_Bits / System.Storage_Unit);
       Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       Old_Mmio_Range.Range_Region_Role := Invalid_Region_Role;
-      if Valid_Global_Mmio_Address (Start_Address)
-         and then
-         (HiRTOS_Config_Parameters.Global_Mmio_Default_Access =
-            HiRTOS_Config_Parameters.Global_Mmio_Privileged_Unprivileged_Access
-          or else
-          HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode)
+      if HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then
+         Valid_Global_Mmio_Address (Start_Address)
       then
          return;
       end if;
