@@ -51,8 +51,12 @@ is
    --
    --  Initialize HiRTOS library
    --
+   --  NOTE: We cannot check pre-conditions in this subprogram, as it is invoked
+   --  before Ada package elaboration for the HiRTOS library is performed. Indeed,
+   --  this subprogram invokes the Ada package elaboration code for the HiRTOS library.
+   --
    procedure Initialize with
-     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+     --  Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
      External_Name => "hirtos_initialize";

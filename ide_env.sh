@@ -182,7 +182,8 @@ function flash_esp32c3_app
     fi
 
    # Flash App image on ESPC32-C3 flash:
-   $ESPTOOL_DIR/esptool.py --chip esp32c3 -p $tty_dev -b 460800 \
+   #$ESPTOOL_DIR/esptool.py --chip esp32c3 -p $tty_dev -b 460800 \
+   esptool.py --chip esp32c3 -p $tty_dev -b 460800 \
       --before=default_reset --after=hard_reset write_flash \
       --flash_mode dio --flash_freq 80m --flash_size 2MB 0x10000 \
        $bin_file
@@ -209,7 +210,8 @@ function flash_esp32c3
     fi
 
    # Flash App image on ESPC32-C3 flash:
-   $ESPTOOL_DIR/esptool.py --chip esp32c3 -p $tty_dev -b 460800 \
+   #$ESPTOOL_DIR/esptool.py --chip esp32c3 -p $tty_dev -b 460800 \
+   esptool.py --chip esp32c3 -p $tty_dev -b 460800 \
       --before=default_reset --after=hard_reset write_flash \
       --flash_mode dio --flash_freq 80m --flash_size 2MB 0x00000 \
        $bin_file

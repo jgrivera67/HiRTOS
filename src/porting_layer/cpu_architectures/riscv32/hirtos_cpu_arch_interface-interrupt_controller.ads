@@ -114,7 +114,7 @@ private
       Spinlock : HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Type;
       Interrupt_Handlers  : Interrupt_Handler_Array_Type;
    end record with
-     Warnings  => Off;
+     Warnings => Off;
 
    Interrupt_Controller_Obj : Interrupt_Controller_Type;
 

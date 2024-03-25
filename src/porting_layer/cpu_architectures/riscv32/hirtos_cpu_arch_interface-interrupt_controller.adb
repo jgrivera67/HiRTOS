@@ -9,6 +9,8 @@
 --  @summary RTOS to target platform interface - Interrupt controller driver for ESP32-C3
 --
 
+with HiRTOS_Low_Level_Debug_Interface; --???
+
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with
   SPARK_Mode => Off
 is
@@ -24,6 +26,7 @@ is
       Old_Flags                  : Cpu_Register_Type with Unreferenced;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR3.0" & ASCII.LF); --???
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (Interrupt_Controller_Obj'Address, Interrupt_Controller_Obj'Size,
          Old_Data_Range);

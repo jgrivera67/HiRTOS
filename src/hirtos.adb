@@ -95,10 +95,15 @@ is
       --
       --  Per-cpu initializations:
       --
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.0" & ASCII.LF); --???
       HiRTOS_Low_Level_Debug_Interface.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.2" & ASCII.LF); --???
       HiRTOS.Memory_Protection_Private.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.3" & ASCII.LF); --???
       HiRTOS.Interrupt_Handling_Private.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.4" & ASCII.LF); --???
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.5" & ASCII.LF); --???
 
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);

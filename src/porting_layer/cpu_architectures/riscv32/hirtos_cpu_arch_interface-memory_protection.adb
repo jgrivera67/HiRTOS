@@ -11,6 +11,7 @@
 --
 
 with System.Machine_Code;
+with Memory_Utils;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
 
@@ -306,6 +307,36 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       Privileged_Permissions : Region_Permissions_Type with Unreferenced;
       Region_Attributes : Region_Attributes_Type with Unreferenced)
    is
+
+      procedure Get_NAPOT_Aligned_Range (Start_Address : System.Address;
+                                         Size_In_Bytes : Integer_Address;
+                                         Aligned_Start_Address : out System.Address;
+                                         Aligned_Size_In_Bytes : out Integer_Address)
+         with Pre => Size_In_Bytes in 1 .. 2 ** (Integer_Address'Size - 1),
+              Post => Memory_Utils.Is_Subrange_Of_Address_Range (Start_Address, Size_In_Bytes,
+                                                                 Aligned_Start_Address, Aligned_Size_In_Bytes)
+      is
+         Max_Log_Of_2 : constant := Integer_Address'Size - 1;
+         Nearest_Log_Of_2_Ceiling : constant Natural range 0 .. Max_Log_Of_2 :=
+            Natural (Max_Log_Of_2 - Count_Leading_Zeros (Cpu_Register_Type (Size_In_Bytes))) + 1;
+         Nearest_Power_Of_2_Ceiling : constant Integer_Address := 2 ** Nearest_Log_Of_2_Ceiling;
+      begin
+         if Nearest_Power_Of_2_Ceiling < 8 then
+            Aligned_Size_In_Bytes := 8;
+         else
+            Aligned_Size_In_Bytes := Nearest_Power_Of_2_Ceiling;
+         end if;
+
+         loop
+            Aligned_Start_Address := To_Address (Memory_Utils.Round_Down (To_Integer (Start_Address),
+                                                                          Aligned_Size_In_Bytes / 4));
+            exit when Memory_Utils.Is_Subrange_Of_Address_Range (Start_Address, Size_In_Bytes,
+                                                                 Aligned_Start_Address, Aligned_Size_In_Bytes);
+
+            Aligned_Size_In_Bytes := @ * 2; --  next power of 2
+         end loop;
+      end Get_NAPOT_Aligned_Range;
+
       --
       --  If the size of the region is 2**(i + 3), the encoded size is
       --  a value whose lowest bit that is 0 is bit i
@@ -321,10 +352,21 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
          return Interfaces.Shift_Left (Interfaces.Unsigned_32 (1), Log_Base_2 - 3) - 1;
       end Encode_NAPOT_Region_Size;
 
+      Aligned_Start_Address : System.Address;
+      Aligned_Size_In_Bytes : System.Storage_Elements.Integer_Address;
    begin
+      if Is_Range_NAPOT_Aligned (Start_Address, Size_In_Bytes) then
+         Aligned_Start_Address := Start_Address;
+         Aligned_Size_In_Bytes := Size_In_Bytes;
+      else
+         pragma Assert (Unprivileged_Permissions = Read_Write);
+         Get_NAPOT_Aligned_Range (Start_Address, Size_In_Bytes,
+                                  Aligned_Start_Address, Aligned_Size_In_Bytes);
+      end if;
+
       Region_Descriptor.PMPADDR := PMPADDR_Type (
-         Interfaces.Unsigned_32 (To_Integer (Start_Address)) or
-         Encode_NAPOT_Region_Size (Size_In_Bytes));
+         Interfaces.Unsigned_32 (To_Integer (Aligned_Start_Address)) or
+         Encode_NAPOT_Region_Size (Aligned_Size_In_Bytes));
       Region_Descriptor.PMPCFG_Entry := (Addr_Matching_Mode => PMP_Region_NAPOT, others => <>);
       case Unprivileged_Permissions is
          when Read_Write =>
@@ -332,11 +374,13 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
             Region_Descriptor.PMPCFG_Entry.Write_Perm := 1;
          when Read_Only =>
             Region_Descriptor.PMPCFG_Entry.Read_Perm := 1;
+            Region_Descriptor.PMPCFG_Entry.Locked_Entry := 1;
          when Read_Execute =>
             Region_Descriptor.PMPCFG_Entry.Read_Perm := 1;
             Region_Descriptor.PMPCFG_Entry.Execute_Perm := 1;
+            Region_Descriptor.PMPCFG_Entry.Locked_Entry := 1;
          when others =>
-            pragma Assert (False);
+            null;
       end case;
    end Initialize_Memory_Region_Descriptor;
 
@@ -370,18 +414,11 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       --  Begin critical section
       Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
-      --
-      --  NOTE: Before changing the address range associate with the region in the
-      --  PMP, it is safer to disable the region.
-      --
       PMPCFG_Value := Get_PMPCFG (Region_Id);
-      PMPCFG_Value.Entries (PMPCFG_Entry_Index) :=
-         (Addr_Matching_Mode => PMP_Region_Off, others => <>);
+      PMPCFG_Value.Entries (PMPCFG_Entry_Index) := Region_Descriptor.PMPCFG_Entry;
       Set_PMPCFG (Region_Id, PMPCFG_Value);
 
       Set_PMPADDR (Region_Id, Region_Descriptor.PMPADDR);
-      PMPCFG_Value.Entries (PMPCFG_Entry_Index) := Region_Descriptor.PMPCFG_Entry;
-      Set_PMPCFG (Region_Id, PMPCFG_Value);
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
 
       --  End critical section

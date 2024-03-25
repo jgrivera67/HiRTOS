@@ -11,6 +11,7 @@ with HiRTOS;
 with HiRTOS.Debug;
 with Interfaces;
 with GNAT.Source_Info;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 --  NOTE: This is needed to force the startup code to be linked-in
 pragma Unreferenced (HiRTOS_Cpu_Startup_Interface);

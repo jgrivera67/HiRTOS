@@ -24,6 +24,8 @@ is
    --
    Cache_Line_Size_Bytes : constant := 32;
 
+   Stack_Guard_Size_In_Bytes : constant := 1024;
+
    --
    --  Minimum Alignment in bytes for a memory protection region
    --

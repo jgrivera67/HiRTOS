@@ -10,7 +10,6 @@
 --  for  the RISCV PMP
 --
 
-with HiRTOS_Cpu_Arch_Parameters;
 with System.Storage_Elements;
 with Interfaces;
 with Bit_Sized_Integer_Types;
@@ -65,6 +64,13 @@ is
       (Value /= 0 and then
        (Value and (Value - 1)) = 0);
 
+   function Is_Range_NAPOT_Aligned (Start_Address : System.Address;
+                                    Size_In_Bytes : System.Storage_Elements.Integer_Address)
+      return Boolean is
+      (Is_Value_Power_Of_Two (Size_In_Bytes) and then
+       Size_In_Bytes >= 8 and then
+       To_Integer (Start_Address) mod (Size_In_Bytes / 4) = 0);
+
    procedure Configure_Memory_Region (
       Region_Id : Memory_Region_Id_Type;
       Start_Address : System.Address;
@@ -73,13 +79,8 @@ is
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
       with Pre => Cpu_In_Privileged_Mode and then
-                  Is_Address_Power_Of_Two (Start_Address) and then
-                  To_Integer (Start_Address) >=
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment and then
-                  Size_In_Bytes > 0 and then
-                  Size_In_Bytes mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0,
-            Post => Is_Memory_Region_Enabled (Region_Id);
+                  Size_In_Bytes /= 0,
+           Post => Is_Memory_Region_Enabled (Region_Id);
 
    procedure Configure_Memory_Region (
       Region_Id : Memory_Region_Id_Type;
@@ -89,11 +90,6 @@ is
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
       with Pre => Cpu_In_Privileged_Mode and then
-                  Is_Address_Power_Of_Two (Start_Address) and then
-                  To_Integer (Start_Address) >=
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment and then
-                  To_Integer (End_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
                   To_Integer (Start_Address) < To_Integer (End_Address) and then
                   not Is_Memory_Region_Enabled (Region_Id),
            Post => Is_Memory_Region_Enabled (Region_Id);
@@ -115,10 +111,7 @@ is
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
-      with Pre =>
-         Is_Value_Power_Of_Two (Size_In_Bytes) and then
-         Size_In_Bytes >= 8 and then
-         To_Integer (Start_Address) mod (Size_In_Bytes / 4) = 0;
+      with Pre => Size_In_Bytes /= 0;
 
    procedure Initialize_Memory_Region_Descriptor (
       Region_Descriptor : out Memory_Region_Descriptor_Type;

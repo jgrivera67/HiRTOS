@@ -43,7 +43,10 @@ package body HiRTOS_Cpu_Startup_Interface is
          To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address);
 
       MISA_Value : constant MISA_Type := Get_MISA;
+      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
    begin
+      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+
       if MISA_Value.F = 1 then
          Enable_FPU;
       end if;

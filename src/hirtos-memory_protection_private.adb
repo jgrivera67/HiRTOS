@@ -11,7 +11,7 @@
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Cpu_Arch_Interface;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -26,6 +26,7 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
    begin
       HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize;
 
+HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR.MPU.0" & ASCII.LF); --???
       --
       --  Configure global text region:
       --
@@ -38,6 +39,7 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
                                  --  Only reads need to be cached
                                  Normal_Memory_Write_Through_Cacheable);
 
+HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR.MPU.1" & ASCII.LF); --???
       --
       --  Configure global rodata region:
       --
@@ -100,15 +102,16 @@ package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
       --  Configure ISR stack region:
       --
       Configure_Memory_Region (Memory_Region_Id_Type (Global_Interrupt_Stack_Region'Enum_Rep),
-                                           ISR_Stack_Info.Base_Address,
-                                           ISR_Stack_Info.Size_In_Bytes,
-                                           Unprivileged_Permissions => Read_Write,
-                                           Privileged_Permissions => Read_Write,
-                                           Region_Attributes => Normal_Memory_Write_Back_Cacheable);
+                               ISR_Stack_Info.Base_Address,
+                               ISR_Stack_Info.Size_In_Bytes,
+                               Unprivileged_Permissions => Read_Write,
+                               Privileged_Permissions => Read_Write,
+                               Region_Attributes => Normal_Memory_Write_Back_Cacheable);
 
       --
       --  Set region to detect ISR stack overflows:
       --
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR2.5" & ASCII.LF); --???
       Configure_Memory_Region (Memory_Region_Id_Type (Global_Interrupt_Stack_Overflow_Guard'Enum_Rep),
                                To_Address (To_Integer (ISR_Stack_Info.Base_Address) -
                                            HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment),

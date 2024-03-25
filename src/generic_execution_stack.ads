@@ -18,14 +18,16 @@ package Generic_Execution_Stack with
   SPARK_Mode => On
 is
 
+   pragma Compile_Time_Error (
+      Stack_Size_In_Bytes mod HiRTOS_Cpu_Arch_Parameters.Stack_Guard_Size_In_Bytes /= 0,
+      "Stack size must be a multiple of the stack guard size"
+   );
+
    type Stack_Overflow_Guard_Type is
-     array
-       (1 ..
-            HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment) of Interfaces
-       .Unsigned_8 with
+     array (1 .. HiRTOS_Cpu_Arch_Parameters.Stack_Guard_Size_In_Bytes) of Interfaces.Unsigned_8 with
      Size =>
-      HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment * System.Storage_Unit,
-     Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+      HiRTOS_Cpu_Arch_Parameters.Stack_Guard_Size_In_Bytes * System.Storage_Unit,
+     Alignment => HiRTOS_Cpu_Arch_Parameters.Stack_Guard_Size_In_Bytes;
 
    subtype Stack_Entry_Type is System.Storage_Elements.Integer_Address;
 
@@ -42,6 +44,6 @@ is
       Stack_Entries        : Stack_Entries_Type;
    end record with
      Convention => C,
-     Alignment  => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+     Alignment  => HiRTOS_Cpu_Arch_Parameters.Stack_Guard_Size_In_Bytes;
 
 end Generic_Execution_Stack;

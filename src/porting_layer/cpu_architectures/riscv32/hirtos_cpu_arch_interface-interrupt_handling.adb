@@ -10,7 +10,9 @@
 --
 
 with Generic_Execution_Stack;
+with HiRTOS_Platform_Parameters;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
+with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Arch_Interface_Private;
 with HiRTOS_Low_Level_Debug_Interface;
@@ -21,7 +23,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use ASCII;
    use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
-   use type Interfaces.Unsigned_8;
+   use type Interfaces.Unsigned_16;
 
    Instruction_Address_Misaligned_Str : aliased constant String := "Instruction Address Misaligned";
    Instruction_Access_Fault_Str : aliased constant String := "Instruction Access Fault";
@@ -55,7 +57,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
        Load_Page_Fault => Load_Page_Fault_Str'Access,
        Store_Page_Fault => Store_Page_Fault_Str'Access];
 
-   Cpu_Context_Size_In_Bytes : constant Interfaces.Unsigned_8 :=
+   Cpu_Context_Size_In_Bytes : constant Interfaces.Unsigned_16 :=
       HiRTOS_Cpu_Arch_Interface.Thread_Context.Cpu_Context_Type'Object_Size / System.Storage_Unit;
 
    --
@@ -112,6 +114,10 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    package ISR_Stacks_Package is new
       Generic_Execution_Stack (Stack_Size_In_Bytes => ISR_Stack_Size_In_Bytes);
 
+   pragma Compile_Time_Error (
+      ISR_Stacks_Package.Stack_Entries_Type'Size /= ISR_Stack_Size_In_Bytes * System.Storage_Unit,
+      "Unexpected ISR stack size");
+
    ISR_Stacks :
       array (Cpu_Core_Id_Type) of ISR_Stacks_Package.Execution_Stack_Type
          with Linker_Section => ".isr_stack",
@@ -119,6 +125,9 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
               Export,
               External_Name => "isr_stacks";
 
+   pragma Compile_Time_Error (
+      ISR_Stacks'Size = HiRTOS_Platform_Parameters.Num_Cpu_Cores * ISR_Stack_Size_In_Bytes * System.Storage_Unit,
+      "Unexpected size of ISR_Stacks");
    ------------------------
    -- Get_ISR_Stack_Info --
    ------------------------
@@ -130,6 +139,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          (Base_Address => ISR_Stacks (Cpu_Id).Stack_Entries'Address,
           Size_In_Bytes => ISR_Stacks (Cpu_Id).Stack_Entries'Size / System.Storage_Unit);
    begin
+      pragma Assert (HiRTOS_Cpu_Arch_Interface.Memory_Protection.Is_Value_Power_Of_Two (
+                        ISR_Stack_Info.Size_In_Bytes));
       return ISR_Stack_Info;
    end Get_ISR_Stack_Info;
 
@@ -235,8 +246,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --
          "mv     fp, sp",
          Inputs =>
-            [Interfaces.Unsigned_8'Asm_Input ("g",
-                                              Cpu_Context_Size_In_Bytes),  --  %0
+            [Interfaces.Unsigned_16'Asm_Input ("g",
+                                               Cpu_Context_Size_In_Bytes),  --  %0
              Interfaces.Unsigned_8'Asm_Input ("g",
                                               HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)], -- %1
          Volatile => True);
@@ -325,8 +336,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --
          "mret",
          Inputs =>
-            [Interfaces.Unsigned_8'Asm_Input ("g",
-                                              Cpu_Context_Size_In_Bytes),  --  %0
+            [Interfaces.Unsigned_16'Asm_Input ("g",
+                                               Cpu_Context_Size_In_Bytes),  --  %0
              Interfaces.Unsigned_8'Asm_Input ("g",
                                               HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)], -- %1
          Volatile => True);

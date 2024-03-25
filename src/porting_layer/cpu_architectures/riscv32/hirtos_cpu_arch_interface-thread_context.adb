@@ -65,10 +65,11 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
           T5 => 16#30303030#,
           T6 => 16#31313131#,
           MEPC => Entry_Point_Address,
-          --  Enable interrupts at the CPU when switching thread in:
-          MSTATUS => (MPIE => 1, others => <>),
-          --  Set mscratch to indicate that thread starts in unprivileged mode
+          --  Enable interrupts at the CPU when switching thread in, and start in unprivileged mode:
+          MSTATUS => (MPIE => 1, MPP => Mstatus_Mpp_User_Mode, others => <>),
+          --  Set mscratch to indicate that thread's privilege level is unprivileged
           MSCRATCH => 0);
+
    end Initialize_Thread_Cpu_Context;
 
    procedure First_Thread_Context_Switch is

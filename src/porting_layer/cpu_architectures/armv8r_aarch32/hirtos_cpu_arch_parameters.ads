@@ -22,7 +22,9 @@ is
    --
    --  Cache line size in bytes
    --
-   Cache_Line_Size_Bytes : constant := 32;
+   Cache_Line_Size_Bytes : constant := 64;
+
+   Stack_Guard_Size_In_Bytes : CONSTANT := Cache_Line_Size_Bytes;
 
    --
    --  Alignment in bytes for a memory protection region
