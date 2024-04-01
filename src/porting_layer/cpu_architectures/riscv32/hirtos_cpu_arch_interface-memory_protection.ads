@@ -13,13 +13,10 @@
 with System.Storage_Elements;
 with Interfaces;
 with Bit_Sized_Integer_Types;
-with Number_Conversion_Utils;
 
 package HiRTOS_Cpu_Arch_Interface.Memory_Protection
    with SPARK_Mode => On
 is
-   use System.Storage_Elements;
-   use Number_Conversion_Utils;
    use type System.Address;
 
    type Memory_Region_Descriptor_Type is limited private;

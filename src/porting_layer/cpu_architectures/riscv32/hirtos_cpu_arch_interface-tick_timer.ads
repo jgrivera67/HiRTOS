@@ -19,7 +19,7 @@ is
    use type HiRTOS.Relative_Time_Us_Type;
 
    Timer_Counter_Cycles_Per_Us : constant :=
-      HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz / 1_000_000; --TODO
+       HiRTOS_Platform_Parameters.Timer_Counter_Clock_Frequency_Hz / 1_000_000;
 
    pragma Compile_Time_Error
      (Timer_Counter_Cycles_Per_Us = 0, "Invalid Timer_Counter_Cycles_Per_Us");

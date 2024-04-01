@@ -27,4 +27,7 @@ is
    function Get_Interrupted_PC return System.Address
       with Pre => Current_Execution_Context_Is_Interrupt;
 
+   procedure Set_Interrupted_PC (PC_Value : System.Address)
+      with Pre => Current_Execution_Context_Is_Interrupt;
+
 end HiRTOS.Interrupt_Handling;

@@ -33,6 +33,20 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    --
    procedure Synchronous_Thread_Context_Switch;
 
+   --
+   --  Switch to CPU privileged mode
+   --
+   procedure Switch_Cpu_To_Privileged_Mode with
+      Pre  => not Cpu_In_Privileged_Mode,
+      Post => Cpu_In_Privileged_Mode;
+
+   --
+   --  Switch back to CPU unprivileged mode
+   --
+   procedure Switch_Cpu_To_Unprivileged_Mode with
+    Pre  => Cpu_In_Privileged_Mode and then not Cpu_Interrupting_Disabled,
+    Post => not Cpu_In_Privileged_Mode;
+
    function  Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address;
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;

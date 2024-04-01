@@ -12,11 +12,11 @@
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface_Private;
+with HiRTOS_Low_Level_Debug_Interface; --???
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    use ASCII;
-   use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
 
    function Get_Global_Pointer return Cpu_Register_Type with
@@ -65,8 +65,14 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
           T5 => 16#30303030#,
           T6 => 16#31313131#,
           MEPC => Entry_Point_Address,
-          --  Enable interrupts at the CPU when switching thread in, and start in unprivileged mode:
-          MSTATUS => (MPIE => 1, MPP => Mstatus_Mpp_User_Mode, others => <>),
+          --
+          --  NOTE: When a thread is switched, it is lie if returned from an exception/interrupt.
+          --  So, when the mstatus register is restored, it ust indicate that interrupts are currently
+          --  disabled but they will be re-enabled when the mret is executed (MPIE cpied to MIE).
+          --  Also, when the mret is executed, the CPU goes to U-mode, since a thread must start
+          --  executiong in unprivileged mode:
+          --
+          MSTATUS => (MIE => 0, MPIE => 1, MPP => Mstatus_Mpp_User_Mode, others => <>),
           --  Set mscratch to indicate that thread's privilege level is unprivileged
           MSCRATCH => 0);
 
@@ -84,48 +90,81 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
       HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Interrupt_Handler_Epilog;
    end First_Thread_Context_Switch;
 
-   procedure Synchronous_Thread_Context_Switch -- with Inline_Never
+   procedure Synchronous_Thread_Context_Switch
    is
-      use type Interfaces.Unsigned_32;
    begin
       --
-      --  Set mstatus.MPIE to interrupts disabled and mstatus.MPP to M-mode (as
-      --  the calling context has interrupts disabled and is in M-mode):
+      --  Initiate a synchronous thread context switch by executing an ecall
+      --  instruction from M-mode, to trigger an Ecall exception from M-mode.
       --
       System.Machine_Code.Asm (
-         "li t0, %0" & LF &
-         "csrc mstatus, t0" & LF &
-         "li t1, %1" & LF &
-         "csrs mstatus, t1" & LF &
-         --
-         --  Set exception return address to be the caller's return address:
-         --
-         --  NOTE: The calling context will be resumed in the future as if it
-         --  were returning from a call to this routine:
-         --
-         "csrw mepc, ra",
-         Inputs =>
-            [Interfaces.Unsigned_32'Asm_Input ("g",
-               MSTATUS_MPIE_Bit_Mask or MSTATUS_MPP_Bit_Mask),  --  %0
-             Interfaces.Unsigned_32'Asm_Input ("g",
-               Interfaces.Shift_Left (
-                  Interfaces.Unsigned_32 (HiRTOS_Cpu_Arch_Interface.Thread_Context.Mstatus_Mpp_Machine_Mode'Enum_Rep),
-                  MSTATUS_MPP_Bit_Offset))], -- %1
-         Clobber => "t0, t1",
+         "ecall",
          Volatile => True);
 
       --
-      --  NOTE: At this point we are like if we would have come here as a result
-      --  of a synchronoous exception
+      --  NOTE: When the switched-out thread is resumed in the future, it will
+      --  start executing right here.
       --
-
-      --  Save the current thread's CPU state on its own stack
-      HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Interrupt_Handler_Prolog;
-
-      --  Run the thread scheduler to select next thread to run and
-      --  resume execution of the newly selected thread
-      HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Interrupt_Handler_Epilog;
+      --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: After Synchronous_context_Switch" & ASCII.LF); --???
    end Synchronous_Thread_Context_Switch;
+
+--
+   --  Transitions the CPU from user-mode to sys-mode with interrupts
+   --  enabled.
+   --
+   procedure Switch_Cpu_To_Privileged_Mode is
+   begin
+      --
+      --  Switch to privileged mode:
+      --
+      System.Machine_Code.Asm (
+         "ecall",
+         Volatile => True);
+
+      --
+      --  NOTE: We returned here in privileged mode.
+      --
+      --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** After going to privileged mode" & ASCII.LF); --???
+   end Switch_Cpu_To_Privileged_Mode;
+
+   --
+   --  Transitions the CPU from machine-mode to user-mode with interrupts enabled.
+   --
+   procedure Switch_Cpu_To_Unprivileged_Mode
+   is
+      use type Interfaces.Unsigned_32;
+   begin
+      --  Switch to unprivileged mode:
+      System.Machine_Code.Asm (
+         --  Disable CPU interrupting, so that we don't get interrupted before executing mret:
+         "csrrci t0, mstatus, %0" & LF &
+         "fence.i" & LF &
+         --  Update mscratch and tp to remember that we are going to be in unprivileged mode:
+         "csrci mscratch, 0x1" & LF &
+         "andi tp, tp, %3" & LF &
+         --  Set exception return address to be the caller's return address:
+         "csrw mepc, ra" & LF &
+         --  t0 = mstatus
+         --  Set mstatus.MPP to U-mode (00) and mstatus.MPIE to 1:
+         "li   t1, %1" & LF &
+         "and  t0, t0, t1" & LF &
+         "ori  t0, t0, %2" & LF &
+         "csrw mstatus, t0" & LF &
+         --  return from exception:
+        "mret",
+         Inputs =>
+            [Interfaces.Unsigned_32'Asm_Input ("g",
+                                               MSTATUS_MIE_Bit_Mask), --  %0
+             Interfaces.Unsigned_32'Asm_Input ("g",
+                                               not MSTATUS_MPP_Bit_Mask), --  %1
+             Interfaces.Unsigned_32'Asm_Input ("g",
+               Interfaces.Shift_Left (Interfaces.Unsigned_32 (Mstatus_Mpp_User_Mode'Enum_Rep),
+                                      MSTATUS_MPP_Bit_Offset) or MSTATUS_MPIE_Bit_Mask), --  %2
+             Interfaces.Unsigned_32'Asm_Input ("g",
+                                               not TP_Cpu_Running_In_Privileged_Mode_Bit_Mask)], --  %3
+         Clobber => "t0, t1",
+         Volatile => True);
+   end Switch_Cpu_To_Unprivileged_Mode;
 
    function Get_Global_Pointer return Cpu_Register_Type  is
       GP_Value : Cpu_Register_Type;
@@ -167,5 +206,11 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
 
       return MSCRATCH_Value;
    end Get_MSCRATCH;
+
+   procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : Cpu_Register_Type)
+   is
+   begin
+      Cpu_Context.MEPC := PC_Value;
+   end Set_Saved_PC;
 
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

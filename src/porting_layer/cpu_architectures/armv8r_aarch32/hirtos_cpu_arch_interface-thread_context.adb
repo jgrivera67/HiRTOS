@@ -75,4 +75,48 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
          Volatile => True);
    end Synchronous_Thread_Context_Switch;
 
+   --
+   --  Transitions the CPU from user-mode to sys-mode with interrupts
+   --  enabled.
+   --
+   procedure Switch_Cpu_To_Privileged_Mode is
+      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
+   begin
+         --
+         --  We are not in privileged mode, so interrupts must be enabled:
+         --
+         --  NOTE: It is a bug to be in non-privileged mode with interrupts disabled.
+         --
+         pragma Assert ((CPSR_Value and CPSR_I_Bit_Mask) = 0);
+
+         --
+         --  Switch to privileged mode:
+         --
+         --  NOTE: The SVC exception handler sets `Cpu_Privileged_Nesting_Counter` to 1
+         --
+         System.Machine_Code.Asm (
+            "mov r0, #1" & LF &
+            "svc #0",
+            Clobber => "r0",
+            Volatile => True);
+
+         --
+         --  NOTE: We returned here in privileged mode.
+         --
+   end Switch_Cpu_To_Privileged_Mode;
+
+   --
+   --  Transitions the CPU from sys-mode to user-mode with interrupts enabled.
+   --
+   procedure Switch_Cpu_To_Unprivileged_Mode
+   is
+   begin
+      --  Switch to unprivileged mode:
+      System.Machine_Code.Asm (
+         "cpsie i, %0" & LF &
+         "isb",
+         Inputs => Interfaces.Unsigned_8'Asm_Input ("g", CPSR_User_Mode), --  %0
+         Volatile => True);
+   end Switch_Cpu_To_Unprivileged_Mode;
+
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

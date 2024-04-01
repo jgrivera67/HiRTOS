@@ -55,26 +55,26 @@ is
      Post => Per_Cpu_Initialized;
 
    procedure Configure_Interrupt
-     (Interrupt_Id                  : Interrupt_Id_Type;
+     (Interrupt_Id                  : Valid_Interrupt_Id_Type;
       Priority                      : Interrupt_Priority_Type;
       Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
       Interrupt_Handler_Arg : System.Address := System.Null_Address) with
-     Pre => Per_Cpu_Initialized;
+     Pre => Per_Cpu_Initialized and then Cpu_In_Privileged_Mode;
 
    procedure Enable_Interrupt
-     (Interrupt_Id : Interrupt_Id_Type) with
-     Pre => Per_Cpu_Initialized;
+     (Interrupt_Id : Valid_Interrupt_Id_Type) with
+     Pre => Per_Cpu_Initialized and then Cpu_In_Privileged_Mode;
 
    procedure Disable_Interrupt
-     (Interrupt_Id : Interrupt_Id_Type) with
-     Pre => Per_Cpu_Initialized;
+     (Interrupt_Id : Valid_Interrupt_Id_Type) with
+     Pre => Per_Cpu_Initialized and then Cpu_In_Privileged_Mode;
 
-   procedure Interrupt_Handler with
-     Pre =>
-      Per_Cpu_Initialized and then
-      Cpu_In_Privileged_Mode and then
-      Cpu_Interrupting_Disabled;
+   procedure Interrupt_Handler (Interrupt_Id : Valid_Interrupt_Id_Type) with
+     Pre => Per_Cpu_Initialized and then
+            Cpu_In_Privileged_Mode and then
+            Cpu_Interrupting_Disabled,
+     Post => Cpu_Interrupting_Disabled;
 
    function Get_Highest_Interrupt_Priority_Disabled return Interrupt_Priority_Type
       with Pre => Cpu_In_Privileged_Mode;
@@ -104,9 +104,7 @@ private
      Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment;
 
    type Interrupt_Handler_Array_Type is
-     array
-       (Valid_Cpu_Core_Id_Type,
-        Interrupt_Id_Type) of Interrupt_Handler_Type;
+     array (Valid_Cpu_Core_Id_Type, Valid_Interrupt_Id_Type) of Interrupt_Handler_Type;
 
    type Interrupt_Controller_Type is record
       Per_Cpu_Initialized_Flags    : HiRTOS_Cpu_Multi_Core_Interface.Atomic_Counter_Type;

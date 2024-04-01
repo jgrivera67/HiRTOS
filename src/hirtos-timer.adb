@@ -8,7 +8,6 @@
 with HiRTOS.RTOS_Private;
 with HiRTOS.Timer_Private;
 with HiRTOS_Cpu_Multi_Core_Interface;
-with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with HiRTOS_Config_Parameters;
 with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
 
@@ -16,7 +15,6 @@ package body HiRTOS.Timer is
    use HiRTOS.RTOS_Private;
    use HiRTOS.Timer_Private;
    use HiRTOS_Cpu_Multi_Core_Interface;
-   use HiRTOS_Cpu_Arch_Interface;
 
    procedure Initialize_Timer (Timer_Obj : out Timer_Type; Timer_Id : Valid_Timer_Id_Type);
 
@@ -89,11 +87,10 @@ package body HiRTOS.Timer is
    procedure Stop_Timer (Timer_Id : Valid_Timer_Id_Type) is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       Timer_Obj : Timer_Type renames RTOS_Cpu_Instance.Timer_Instances (Timer_Id);
-      Old_Atomic_Level : Atomic_Level_Type;
+      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
    begin
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      Old_Atomic_Level := HiRTOS.Raise_Atomic_Level (
-         HiRTOS.Atomic_Level_Type (Interrupts.Interrupt_Priorities (Interrupts.System_Timer_Interrupt_Id)));
+      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
 
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
@@ -111,7 +108,7 @@ package body HiRTOS.Timer is
          end if;
       end;
 
-      HiRTOS.Restore_Atomic_Level (Old_Atomic_Level);
+      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
       HiRTOS.Exit_Cpu_Privileged_Mode;
    end Stop_Timer;
 

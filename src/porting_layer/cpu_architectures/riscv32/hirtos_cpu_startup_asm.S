@@ -34,9 +34,7 @@
 	.extern isr_stacks			                         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 	.extern ada_reset_handler			                   /* defined in hirtos_cpu_startup_interface.adb */
 	.extern synchronous_exception_handler               /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern unexpected_interrupt_handler                /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern machine_timer_interrupt_handler             /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern machine_external_interrupt_handler          /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+	.extern external_interrupt_handler                  /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
    .extern __global_pointer                            /* defined in memory-layout.ld */
 
 /**
@@ -52,36 +50,36 @@
         .global interrupt_vector_jump_table
 interrupt_vector_jump_table:
         jal x0, synchronous_exception_handler                /* vector 0 */
-        jal x0, unexpected_interrupt_handler                 /* vector 1 (supervisor software interrupt handler) */
-        jal x0, unexpected_interrupt_handler                 /* vector 2 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 3 (machine software interrupt handler) */
-        jal x0, unexpected_interrupt_handler                 /* vector 4 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 5 (supervisor timer interrupt handler) */
-        jal x0, unexpected_interrupt_handler                 /* vector 6 (unused) */
-        jal x0, machine_timer_interrupt_handler              /* vector 7 */
-        jal x0, unexpected_interrupt_handler                 /* vector 8 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 9 (supervisor_external_interrupt_handler) */
-        jal x0, unexpected_interrupt_handler                 /* vector 10 */
-        jal x0, machine_external_interrupt_handler           /* vector 11 */
-        jal x0, unexpected_interrupt_handler                 /* vector 12 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 13 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 14 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 15 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 16 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 17 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 18 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 20 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 21 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 22 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 23 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 24 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 25 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 26 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 27 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 28 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 29 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 30 (unused) */
-        jal x0, unexpected_interrupt_handler                 /* vector 31 (unused) */
+        jal x0, external_interrupt_handler                 /* vector 1 (supervisor software interrupt handler in standard RISCV) */
+        jal x0, external_interrupt_handler                 /* vector 2 */
+        jal x0, external_interrupt_handler                 /* vector 3 (machine software interrupt handler in standard RISCV) */
+        jal x0, external_interrupt_handler                 /* vector 4 */
+        jal x0, external_interrupt_handler                 /* vector 5 (supervisor timer interrupt handler in standard RISCV) */
+        jal x0, external_interrupt_handler                 /* vector 6 */
+        jal x0, external_interrupt_handler                 /* vector 7 (machine_timer_interrupt_handler in standard RISCV) */
+        jal x0, external_interrupt_handler                 /* vector 8 */
+        jal x0, external_interrupt_handler                 /* vector 9 (supervisor_external_interrupt_handler) */
+        jal x0, external_interrupt_handler                 /* vector 10 */
+        jal x0, external_interrupt_handler                 /* vector 11 (machine_external_interrupt_handler in standard RISCV) */
+        jal x0, external_interrupt_handler                 /* vector 12 */
+        jal x0, external_interrupt_handler                 /* vector 13 */
+        jal x0, external_interrupt_handler                 /* vector 14 */
+        jal x0, external_interrupt_handler                 /* vector 15 */
+        jal x0, external_interrupt_handler                 /* vector 16 */
+        jal x0, external_interrupt_handler                 /* vector 17 */
+        jal x0, external_interrupt_handler                 /* vector 18 */
+        jal x0, external_interrupt_handler                 /* vector 20 */
+        jal x0, external_interrupt_handler                 /* vector 21 */
+        jal x0, external_interrupt_handler                 /* vector 22 */
+        jal x0, external_interrupt_handler                 /* vector 23 */
+        jal x0, external_interrupt_handler                 /* vector 24 */
+        jal x0, external_interrupt_handler                 /* vector 25 */
+        jal x0, external_interrupt_handler                 /* vector 26 */
+        jal x0, external_interrupt_handler                 /* vector 27 */
+        jal x0, external_interrupt_handler                 /* vector 28 */
+        jal x0, external_interrupt_handler                 /* vector 29 */
+        jal x0, external_interrupt_handler                 /* vector 30 */
+        jal x0, external_interrupt_handler                 /* vector 31 */
         /* end of interrupt_vector_jump_table */
 
 	.section .globals_initialized_at_load_time
@@ -128,8 +126,9 @@ reset_handler:
         /* Initialize frame pointer (s0) (needed by unwind_stack()) */
         mv fp, sp
 
-        /* Initialize mscratch to remember that we are in privileged mode */
+        /* Initialize mscratch and tp to remember that we are in privileged mode */
         csrsi mscratch, 0x1
+        li    tp, 0x1
 
         call ada_reset_handler
 

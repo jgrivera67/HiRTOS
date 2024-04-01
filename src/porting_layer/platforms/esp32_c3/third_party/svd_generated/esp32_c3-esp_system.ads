@@ -8,7 +8,7 @@ pragma Restrictions (No_Elaboration_Code);
 
 with System;
 
-package ESP32_C3.SYSTEM is
+package ESP32_C3.ESP_SYSTEM is
    pragma Preelaborate;
 
    ---------------
@@ -1332,4 +1332,4 @@ package ESP32_C3.SYSTEM is
    SYSTEM_Periph : aliased SYSTEM_Peripheral
      with Import, Address => SYSTEM_Base;
 
-end ESP32_C3.SYSTEM;
+end ESP32_C3.ESP_SYSTEM;

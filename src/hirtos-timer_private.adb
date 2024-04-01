@@ -11,7 +11,7 @@ with HiRTOS.Condvar;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Config_Parameters;
-with HiRTOS_Low_Level_Debug_Interface; --???
+with HiRTOS_Low_Level_Debug_Interface;
 
 package body HiRTOS.Timer_Private is
    use HiRTOS.RTOS_Private;
@@ -125,7 +125,7 @@ package body HiRTOS.Timer_Private is
    begin
       pragma Assert (Arg = System.Null_Address);
       HiRTOS.Enter_Cpu_Privileged_Mode;
-      HiRTOS_Low_Level_Debug_Interface.Print_String("JGR: Timer_Thread_Proc" & ASCII.LF); --???
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS: Timer thread started" & ASCII.LF);
 
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames

@@ -18,15 +18,11 @@ pragma Unreferenced (HiRTOS_Cpu_Startup_Interface);
 procedure Esp32_C3_Hello is
 
    procedure Print_Console_Greeting is
-      Cpu_Id : constant HiRTOS.Cpu_Id_Type := HiRTOS.Get_Current_Cpu_Id;
    begin
       HiRTOS.Debug.Print_String (
-        "ESP32-C3 Hello (built on " &
+        "ESP32-C3 Hello threads app (built on " &
         GNAT.Source_Info.Compilation_Date &
         " at " & GNAT.Source_Info.Compilation_Time & ")" & ASCII.LF);
-
-      HiRTOS.Debug.Print_String ("CPU ");
-      HiRTOS.Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Cpu_Id), End_Line => True);
    end Print_Console_Greeting;
 
 begin -- Main

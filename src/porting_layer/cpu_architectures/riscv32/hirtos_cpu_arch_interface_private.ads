@@ -10,12 +10,14 @@
 --
 
 with Interfaces;
-with System;
+with System.Storage_Elements;
 with Bit_Sized_Integer_Types;
 
 private package HiRTOS_Cpu_Arch_Interface_Private with
  SPARK_Mode => On
 is
+   use System.Storage_Elements;
+
    MCAUSE_Exception_Code_Bit_Mask : constant Interfaces.Unsigned_32 :=
       2#01111111_11111111_11111111_11111111#;
    MCAUSE_Interrupt_Bit_Mask : constant Interfaces.Unsigned_32 :=
@@ -127,7 +129,112 @@ is
       A   at 0 range 0 .. 0;
    end record;
 
+   type MTVEC_Mode_Type is (Single_Interrupt_Handler_Mode,
+                            Vectored_Mode)
+      with Size => 2;
+
+   for MTVEC_Mode_Type use (Single_Interrupt_Handler_Mode => 2#00#,
+                            Vectored_Mode => 2#01#);
+
+   type MTVEC_Encoded_Base_Address_Type is mod 2 ** (Integer_Address'Size - 2)
+      with Size => Integer_Address'Size - 2;
+
+   type MTVEC_Type (As_Value : Boolean := False) is record
+      case As_Value is
+         when True =>
+            Value : Integer_Address := 0;
+         when False =>
+            Mode : MTVEC_Mode_Type := MTVEC_Mode_Type'First;
+            Encoded_Base_Address : MTVEC_Encoded_Base_Address_Type := 0;
+      end case;
+   end record
+      with Size => Integer_Address'Size,
+           Bit_Order => System.Low_Order_First,
+           Unchecked_Union;
+
+   for MTVEC_Type use record
+      Mode   at 0 range 0 .. 1;
+      Encoded_Base_Address at 0 range 2 .. Integer_Address'Size - 1;
+      Value at 0 range 0 .. Integer_Address'Size - 1;
+   end record;
+
    function Get_MISA return MISA_Type;
+
+   function Get_MTVEC return MTVEC_Type;
+
+   procedure Set_MTVEC (MTVEC_Value : MTVEC_Type);
+
+   --
+   --  RISCV privilege modes (values for mstatus.MPP)
+   --
+   type Mstatus_Mpp_Values_Type is (Mstatus_Mpp_User_Mode,
+                                    Mstatus_Mpp_Supervisor_Mode,
+                                    Mstatus_Mpp_Machine_Mode)
+      with Size => 2;
+
+   for Mstatus_Mpp_Values_Type use (Mstatus_Mpp_User_Mode => 0,
+                                    Mstatus_Mpp_Supervisor_Mode => 1,
+                                    Mstatus_Mpp_Machine_Mode => 3);
+
+   type MSTATUS_Type (As_Register : Boolean := False) is record
+      case As_Register is
+         when True =>
+            Value : Integer_Address := 0;
+         when False =>
+            UIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
+            SIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
+            HIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
+            MIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
+            UPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
+            SPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
+            HPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
+            MPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
+            SPP  : Bit_Sized_Integer_Types.Bit_Type := 0;
+            HPP  : Bit_Sized_Integer_Types.Two_Bits_Type := 0;
+            MPP  : Mstatus_Mpp_Values_Type := Mstatus_Mpp_User_Mode;
+            FS   : Bit_Sized_Integer_Types.Two_Bits_Type := 0;
+            XS   : Bit_Sized_Integer_Types.Two_Bits_Type := 0;
+            MPRV : Bit_Sized_Integer_Types.Bit_Type := 0;
+            SUM  : Bit_Sized_Integer_Types.Bit_Type := 0;
+            MXR  : Bit_Sized_Integer_Types.Bit_Type := 0;
+            TVM  : Bit_Sized_Integer_Types.Bit_Type := 0;
+            TW   : Bit_Sized_Integer_Types.Bit_Type := 0;
+            TSR  : Bit_Sized_Integer_Types.Bit_Type := 0;
+            SD   : Bit_Sized_Integer_Types.Bit_Type := 0;
+      end case;
+   end record with Size => Integer_Address'Size,
+                   Bit_Order => System.Low_Order_First,
+                   Unchecked_Union;
+
+   for MSTATUS_Type use record
+      Value at 0 range 0 .. Integer_Address'Size - 1;
+      UIE  at 0 range 0 .. 0;
+      SIE  at 0 range 1 .. 1;
+      HIE  at 0 range 2 .. 2;
+      MIE  at 0 range 3 .. 3;
+      UPIE  at 0 range 4 .. 4;
+      SPIE  at 0 range 5 .. 5;
+      HPIE  at 0 range 6 .. 6;
+      MPIE  at 0 range 7 .. 7;
+      SPP   at 0 range 8 .. 8;
+      HPP   at 0 range 9 .. 10;
+      MPP   at 0 range 11 .. 12;
+      FS    at 0 range 13 .. 14;
+      XS    at 0 range 15 .. 16;
+      MPRV  at 0 range 17 .. 17;
+      SUM   at 0 range 18 .. 18;
+      MXR   at 0 range 19 .. 19;
+      TVM   at 0 range 20 .. 20;
+      TW    at 0 range 21 .. 21;
+      TSR   at 0 range 22 .. 22;
+      SD    at 0 range 31 .. 31;
+   end record;
+
+   function Get_MSTATUS return MSTATUS_Type with
+      Inline_Always, Suppress => All_Checks;
+
+   function Get_Mepc_Register return Integer_Address with
+      Inline_Always, Suppress => All_Checks;
 
    Interrupt_Vector_Jump_Table : constant Interfaces.Unsigned_32 with
          Import,

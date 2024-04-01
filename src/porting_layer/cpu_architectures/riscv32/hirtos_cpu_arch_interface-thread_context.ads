@@ -11,77 +11,13 @@
 
 with System.Storage_Elements;
 with Bit_Sized_Integer_Types;
+private with HiRTOS_Cpu_Arch_Interface_Private;
 
 package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
 
    type Cpu_Context_Type is private;
 
    --
-   --  RISCV privilege modes (values for mstatus.MPP)
-   --
-   type Mstatus_Mpp_Values_Type is (Mstatus_Mpp_User_Mode,
-                                    Mstatus_Mpp_Supervisor_Mode,
-                                    Mstatus_Mpp_Machine_Mode)
-      with Size => 2;
-
-   for Mstatus_Mpp_Values_Type use (Mstatus_Mpp_User_Mode => 0,
-                                    Mstatus_Mpp_Supervisor_Mode => 1,
-                                    Mstatus_Mpp_Machine_Mode => 3);
-
-   type MSTATUS_Type (As_Register : Boolean := False) is record
-      case As_Register is
-         when True =>
-            Value : Cpu_Register_Type := 0;
-         when False =>
-            UIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
-            SIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
-            HIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
-            MIE :  Bit_Sized_Integer_Types.Bit_Type := 0;
-            UPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
-            SPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
-            HPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
-            MPIE : Bit_Sized_Integer_Types.Bit_Type := 0;
-            SPP  : Bit_Sized_Integer_Types.Bit_Type := 0;
-            HPP  : Bit_Sized_Integer_Types.Two_Bits_Type := 0;
-            MPP  : Mstatus_Mpp_Values_Type := Mstatus_Mpp_User_Mode;
-            FS   : Bit_Sized_Integer_Types.Two_Bits_Type := 0;
-            XS   : Bit_Sized_Integer_Types.Two_Bits_Type := 0;
-            MPRV : Bit_Sized_Integer_Types.Bit_Type := 0;
-            SUM  : Bit_Sized_Integer_Types.Bit_Type := 0;
-            MXR  : Bit_Sized_Integer_Types.Bit_Type := 0;
-            TVM  : Bit_Sized_Integer_Types.Bit_Type := 0;
-            TW   : Bit_Sized_Integer_Types.Bit_Type := 0;
-            TSR  : Bit_Sized_Integer_Types.Bit_Type := 0;
-            SD   : Bit_Sized_Integer_Types.Bit_Type := 0;
-      end case;
-   end record with Size => Cpu_Register_Type'Size,
-                   Bit_Order => System.Low_Order_First,
-                   Unchecked_Union;
-
-   for MSTATUS_Type use record
-      Value at 0 range 0 .. 31;
-      UIE  at 0 range 0 .. 0;
-      SIE  at 0 range 1 .. 1;
-      HIE  at 0 range 2 .. 2;
-      MIE  at 0 range 3 .. 3;
-      UPIE  at 0 range 4 .. 4;
-      SPIE  at 0 range 5 .. 5;
-      HPIE  at 0 range 6 .. 6;
-      MPIE  at 0 range 7 .. 7;
-      SPP   at 0 range 8 .. 8;
-      HPP   at 0 range 9 .. 10;
-      MPP   at 0 range 11 .. 12;
-      FS    at 0 range 13 .. 14;
-      XS    at 0 range 15 .. 16;
-      MPRV  at 0 range 17 .. 17;
-      SUM   at 0 range 18 .. 18;
-      MXR   at 0 range 19 .. 19;
-      TVM   at 0 range 20 .. 20;
-      TW    at 0 range 21 .. 21;
-      TSR   at 0 range 22 .. 22;
-      SD    at 0 range 31 .. 31;
-   end record;
-
    --  Initialize a thread's CPU context
    --
    procedure Initialize_Thread_Cpu_Context (Thread_Cpu_Context : out Cpu_Context_Type;
@@ -97,9 +33,33 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    --
    --  Perform a synchronous thread context switch
    --
-   procedure Synchronous_Thread_Context_Switch;
+   procedure Synchronous_Thread_Context_Switch
+      with Pre => Cpu_In_Privileged_Mode and then
+                  Cpu_Interrupting_Disabled,
+           Post => Cpu_In_Privileged_Mode and then
+                   Cpu_Interrupting_Disabled;
+
+   --
+   --  Switch to CPU privileged mode
+   --
+   procedure Switch_Cpu_To_Privileged_Mode with
+      Pre  => not Cpu_In_Privileged_Mode,
+      Post => Cpu_In_Privileged_Mode and then not Cpu_Interrupting_Disabled;
+
+   --
+   --  Switch back to CPU unprivileged mode
+   --
+   --  NOTE: we cannot check preconditions here, because we need to ensure
+   --  that the RA register is not changed before it is consumed within this
+   --  subprogram
+   --
+   procedure Switch_Cpu_To_Unprivileged_Mode with
+      No_Inline;
+   pragma Machine_Attribute (Switch_Cpu_To_Unprivileged_Mode, "naked");
 
    function  Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address;
+
+   procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : Cpu_Register_Type);
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
 
@@ -113,28 +73,38 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
      with Size => 32,
           Bit_Order => System.Low_Order_First;
 
+   TP_Cpu_Running_In_Privileged_Mode_Bit_Offset : constant := 0;
+
    for Thread_Pointer_Type use record
-      Cpu_Running_In_Privileged_Mode at 0 range 0 .. 0;
+      Cpu_Running_In_Privileged_Mode at 0 range TP_Cpu_Running_In_Privileged_Mode_Bit_Offset .. TP_Cpu_Running_In_Privileged_Mode_Bit_Offset;
       Thread_Id at 0 range 8 .. 15;
       Cpu_Id at 0 range 16 .. 23;
    end record;
 
    --
-   --  NOTE: This bit mask must agree with  the bit offset of Cpu_Running_In_Privileged_Mode
+   --  NOTE: This bit mask must agree with the bit offset of Cpu_Running_In_Privileged_Mode
    --  in Thread_Pointer_Type
    --
-   TP_Cpu_Running_In_Privileged_Mode_Mask : constant Interfaces.Unsigned_32 := 2#1#;
+   TP_Cpu_Running_In_Privileged_Mode_Bit_Mask : constant :=
+      2 ** TP_Cpu_Running_In_Privileged_Mode_Bit_Offset;
 
-   function Get_Thread_Pointer return Thread_Pointer_Type;
+   function Get_Thread_Pointer return Thread_Pointer_Type with
+      Inline_Always, Suppress => All_Checks;
 
-   procedure Set_Thread_Pointer (Thread_Pointer : Thread_Pointer_Type);
+   procedure Set_Thread_Pointer (Thread_Pointer : Thread_Pointer_Type) with
+      Inline_Always, Suppress => All_Checks;
 
 private
+   use HiRTOS_Cpu_Arch_Parameters;
+   use HiRTOS_Cpu_Arch_Interface_Private;
 
    --
    --  CPU context saved on the current's stack on entry to ISRs and on synchronous
    --  task context switches. Fields are in the exact order as the will be stored on the
    --  stack.
+   --
+   --  NOTE: X0 does not need to be saved as it is always 0. SP doe snot really need
+   --  to be saved on the stack, but it is just a redundant copy for a safety check.
    --
    type Cpu_Context_Type is record
       RA : Cpu_Register_Type;  --  also known as register X1
@@ -172,43 +142,44 @@ private
       MSTATUS : MSTATUS_Type;
       MSCRATCH : Cpu_Register_Type;
    end record
-      with Convention => C;
+      with Convention => C,
+           Size => 34 * Cpu_Register_Type'Size;
 
    for Cpu_Context_Type use record
-      RA  at 16#04# range 0 .. 31;
-      SP  at 16#08# range 0 .. 31;
-      GP  at 16#0c# range 0 .. 31;
-      TP  at 16#10# range 0 .. 31;
-      T0  at 16#14# range 0 .. 31;
-      T1  at 16#18# range 0 .. 31;
-      T2  at 16#1c# range 0 .. 31;
-      FP  at 16#20# range 0 .. 31;
-      S1  at 16#24# range 0 .. 31;
-      A0  at 16#28# range 0 .. 31;
-      A1  at 16#2c# range 0 .. 31;
-      A2  at 16#30# range 0 .. 31;
-      A3  at 16#34# range 0 .. 31;
-      A4  at 16#38# range 0 .. 31;
-      A5  at 16#3c# range 0 .. 31;
-      A6  at 16#40# range 0 .. 31;
-      A7  at 16#44# range 0 .. 31;
-      S2  at 16#48# range 0 .. 31;
-      S3  at 16#4c# range 0 .. 31;
-      S4  at 16#50# range 0 .. 31;
-      S5  at 16#54# range 0 .. 31;
-      S6  at 16#58# range 0 .. 31;
-      S7  at 16#5c# range 0 .. 31;
-      S8  at 16#60# range 0 .. 31;
-      S9  at 16#64# range 0 .. 31;
-      S10 at 16#68# range 0 .. 31;
-      S11 at 16#6c# range 0 .. 31;
-      T3  at 16#70# range 0 .. 31;
-      T4  at 16#74# range 0 .. 31;
-      T5  at 16#78# range 0 .. 31;
-      T6  at 16#7c# range 0 .. 31;
-      MEPC at 16#80# range 0 .. 31;
-      MSTATUS at 16#84# range 0 .. 31;
-      MSCRATCH at 16#88# range 0 .. 31;
+      RA  at 0 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      SP  at 1 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      GP  at 2 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      TP  at 3 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      T0  at 4 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      T1  at 5 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      T2  at 6 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      FP  at 7 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S1  at 8 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A0  at 9 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A1  at 10 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A2  at 11 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A3  at 12 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A4  at 13 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A5  at 14 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A6  at 15 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      A7  at 16 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S2  at 17 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S3  at 18 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S4  at 19 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S5  at 20 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S6  at 21 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S7  at 22 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S8  at 23 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S9  at 24 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S10 at 25 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      S11 at 26 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      T3  at 27 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      T4  at 28 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      T5  at 29 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      T6  at 30 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      MEPC at 31 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      MSTATUS at 32 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
+      MSCRATCH at 33 * Integer_Register_Size_In_Bytes range 0 .. Machine_Word_Width_In_Bits - 1;
    end record;
 
    function Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address is
@@ -216,6 +187,6 @@ private
          System.Storage_Elements.Integer_Address (Cpu_Context.MEPC)));
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
-      (Cpu_Context.MSTATUS.Value);
+      (Cpu_Register_Type (Cpu_Context.MSTATUS.Value));
 
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

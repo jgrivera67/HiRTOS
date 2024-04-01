@@ -5,10 +5,11 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 
-with HiRTOS.Thread;
-with HiRTOS.Mutex;
-with HiRTOS.Timer;
 with HiRTOS.Debug;
+with HiRTOS.Memory_Protection;
+with HiRTOS.Mutex;
+with HiRTOS.Thread;
+with HiRTOS.Timer;
 with System.Storage_Elements;
 with Interfaces;
 
@@ -35,7 +36,7 @@ package body App_Threads is
       Turn_LED_On : Boolean := True;
       Heart_Beat_Timer_Id : HiRTOS.Timer_Id_Type := HiRTOS.Invalid_Timer_Id;
       Mutex_Id : HiRTOS.Mutex_Id_Type := HiRTOS.Invalid_Mutex_Id;
-   end record;
+   end record with Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment;
 
    Per_Cpu_Data : array (HiRTOS.Cpu_Id_Type) of My_Cpu_Data_Type;
 
@@ -71,6 +72,7 @@ package body App_Threads is
       use type Interfaces.Unsigned_32;
       use type HiRTOS.Relative_Time_Us_Type;
       use type HiRTOS.Absolute_Time_Us_Type;
+      use type Interfaces.Unsigned_64;
 
       One_Hour_Us : constant := 3_600 * 1_000_000;
       Cpu_Id : constant HiRTOS.Cpu_Id_Type := HiRTOS.Get_Current_Cpu_Id;
@@ -84,13 +86,28 @@ package body App_Threads is
          HiRTOS.Get_Current_Time_Us + HiRTOS.Absolute_Time_Us_Type (Period_Us);
       Counter : Interfaces.Unsigned_32 := 1;
       My_Cpu_Data : My_Cpu_Data_Type renames Per_Cpu_Data (Cpu_Id);
+      Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
+      Current_Time_Us : HiRTOS.Absolute_Time_Us_Type;
    begin
-      pragma Assert (not HiRTOS.Cpu_In_Privileged_Mode);
-      pragma Assert (not HiRTOS.Cpu_Interrupting_Disabled);
       pragma Assert (Arg_Value = Positive (Thread_Id) - 1);
+      pragma Assert (not HiRTOS.Cpu_In_Privileged_Mode);
+
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      pragma Assert (not HiRTOS.Cpu_Interrupting_Disabled);
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+
+      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
+        (My_Cpu_Data'Address, My_Cpu_Data'Size, Old_Data_Range);
 
       loop
          HiRTOS.Mutex.Acquire (My_Cpu_Data.Mutex_Id);
+
+         Current_Time_Us := HiRTOS.Get_Current_Time_Us;
+         HiRTOS.Debug.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (
+            Interfaces.Shift_Right (Interfaces.Unsigned_64 (Current_Time_Us), 32)));
+         HiRTOS.Debug.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (
+            Interfaces.Unsigned_64 (Current_Time_Us) and
+            Interfaces.Unsigned_64 (Interfaces.Unsigned_32'Last)));
 
          HiRTOS.Debug.Print_String (" Thread ");
          HiRTOS.Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Arg_Value));

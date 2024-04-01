@@ -6,47 +6,22 @@
 --
 
 with HiRTOS_Cpu_Multi_Core_Interface;
+with HiRTOS_Cpu_Arch_Interface;
 with Uart_Driver;
-with Bit_Sized_Integer_Types;
 with Number_Conversion_Utils;
-with System;
+with ESP32_C3.GPIO;
 
 package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    use HiRTOS_Cpu_Multi_Core_Interface;
+   use HiRTOS_Cpu_Arch_Interface;
 
    procedure Initialize_Led;
-
-   --
-   --  Red/yellow/green LEDs on the VE hardware, which are mapped to bits [7:0] of the
-   --  SYS_LED register
-   --
-   SYS_LED_Base : constant System.Address := System'To_Address (16#8000_0000# + 16#1C01_0008#);
-
-   --
-   --  User DIP switches mapped to bits [7:0] of the SYS_SW register
-   --
-   SYS_SW_Base : constant System.Address := System'To_Address (16#8000_0000# + 16#1C01_0004#);
-
-   type Word_Bit_Index_Type is range 0 .. Interfaces.Unsigned_32'Size - 1;
-
-   type Word_Bit_Array_Type is array (Word_Bit_Index_Type) of Bit_Sized_Integer_Types.Bit_Type
-     with Component_Size => 1, Size => Interfaces.Unsigned_32'Size;
-
-   --
-   --  Array LED instance
-   --
-   SYS_LED_Periph : aliased Word_Bit_Array_Type
-     with Import, Volatile_Full_Access, Address => SYS_LED_Base;
-
-   --
-   --  Array of dip switches
-   --
-   SYS_SW_Periph : aliased Word_Bit_Array_Type
-     with Import, Volatile_Full_Access, Address => SYS_SW_Base;
 
    Baud_Rate : constant := 115_200;
 
    UART_Clock_Frequency_Hz : constant := 24_000_000; --- 24 MHz
+
+   Led_Gpio_Pin_Num : constant := 8;
 
    ----------------------------------------------------------------------------
    --  Public Subprograms
@@ -58,6 +33,21 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
       Uart_Driver.Initialize_Uart (Baud_Rate, UART_Clock_Frequency_Hz);
    end Initialize;
 
+   procedure Put_Char (C : Character) is
+      Old_Cpu_Interrupting_State : Cpu_Register_Type; --???
+   begin
+      --  Begin critical section
+      Old_Cpu_Interrupting_State := Disable_Cpu_Interrupting;
+
+      Uart_Driver.Put_Char (C);
+      if C = ASCII.LF then
+         Uart_Driver.Put_Char (ASCII.CR);
+      end if;
+
+      --  End critical section
+      Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
+   end Put_Char;
+
    ------------------
    -- Print_String --
    ------------------
@@ -65,15 +55,11 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    procedure Print_String (S : String; End_Line : Boolean := False) is
    begin
       for C of S loop
-         Uart_Driver.Put_Char (C);
-         if C = ASCII.LF then
-            Uart_Driver.Put_Char (ASCII.CR);
-         end if;
+         Put_Char (C);
       end loop;
 
       if End_Line then
-         Uart_Driver.Put_Char (ASCII.LF);
-         Uart_Driver.Put_Char (ASCII.CR);
+         Put_Char (ASCII.LF);
       end if;
    end Print_String;
 
@@ -109,12 +95,17 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    -------------
 
    procedure Set_Led (On : Boolean) is
-      SYS_LED_Value : Word_Bit_Array_Type;
-      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
+      use ESP32_C3.GPIO;
    begin
-      SYS_LED_Value := SYS_LED_Periph;
-      SYS_LED_Value (Word_Bit_Index_Type (Cpu_Id)) := Boolean'Pos (On);
-      SYS_LED_Periph := SYS_LED_Value;
+      if On then
+         GPIO_Periph.OUT_W1TS :=
+            (OUT_W1TS => ESP32_C3.UInt26 (HiRTOS_Cpu_Arch_Interface.Bit_Mask (Led_Gpio_Pin_Num)),
+             others => <>);
+      else
+         GPIO_Periph.OUT_W1TC :=
+            (OUT_W1TC => ESP32_C3.UInt26 (HiRTOS_Cpu_Arch_Interface.Bit_Mask (Led_Gpio_Pin_Num)),
+             others => <>);
+      end if;
    end Set_Led;
 
    ----------------------------------------------------------------------------
@@ -122,12 +113,13 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    ----------------------------------------------------------------------------
 
    procedure Initialize_Led is
-      SYS_LED_Value : Word_Bit_Array_Type;
-      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
+      use ESP32_C3.GPIO;
    begin
-      SYS_LED_Value := SYS_LED_Periph;
-      SYS_LED_Value (Word_Bit_Index_Type (Cpu_Id)) := 0;
-      SYS_LED_Periph := SYS_LED_Value;
+      GPIO_Periph.FUNC_OUT_SEL_CFG (Led_Gpio_Pin_Num) :=
+         (OUT_SEL => 16#80#, OEN_SEL => 1, others => <>);
+      GPIO_Periph.ENABLE_W1TS :=
+         (ENABLE_W1TS => ESP32_C3.UInt26 (HiRTOS_Cpu_Arch_Interface.Bit_Mask (Led_Gpio_Pin_Num)),
+          others => <>);
    end Initialize_Led;
 
 end HiRTOS_Low_Level_Debug_Interface;

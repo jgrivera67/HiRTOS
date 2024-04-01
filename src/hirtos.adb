@@ -19,8 +19,9 @@ with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
-with System.Storage_Elements;
+with HiRTOS_Platform_Interface;
 with Memory_Utils;
+with GNAT.Source_Info;
 
 --
 --  @summary HiRTOS implementation
@@ -61,6 +62,7 @@ is
    begin
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          HiRTOS_Lib_Elaboration;
+         HiRTOS_Platform_Interface.Initialize_Platform;
          Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          Memory_Utils.Flush_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
@@ -77,7 +79,6 @@ is
       end if;
 
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode);
-
       Initialize_RTOS;
    end Initialize;
 
@@ -85,26 +86,36 @@ is
    SPARK_Mode => Off
    is
       use type System.Storage_Elements.Integer_Address;
+
+      procedure Print_HiRTOS_Greeting (Cpu_Id : Valid_Cpu_Core_Id_Type) is
+      begin
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS running on CPU ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Cpu_Id));
+         HiRTOS_Low_Level_Debug_Interface.Print_String (
+         " (built on " &
+         GNAT.Source_Info.Compilation_Date &
+         " at " & GNAT.Source_Info.Compilation_Time & ")" & ASCII.LF);
+      end Print_HiRTOS_Greeting;
+
       Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type :=
          Get_ISR_Stack_Info (Cpu_Id);
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
-      HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
-      Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
+         HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
+      Old_Cpu_Interrupting_State : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
    begin
+      Old_Cpu_Interrupting_State := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+
       --
       --  Per-cpu initializations:
       --
       HiRTOS_Low_Level_Debug_Interface.Initialize;
-      HiRTOS.Memory_Protection_Private.Initialize;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.3" & ASCII.LF); --???
-      HiRTOS.Interrupt_Handling_Private.Initialize;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.4" & ASCII.LF); --???
-      HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
-      HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR1.5" & ASCII.LF); --???
+      Print_HiRTOS_Greeting (Cpu_Id);
 
-      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
-        (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
+      HiRTOS.Memory_Protection_Private.Initialize;
+      HiRTOS.Interrupt_Handling_Private.Initialize;
+      HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
+
       RTOS_Cpu_Instance.Interrupt_Stack_Base_Address := ISR_Stack_Info.Base_Address;
       RTOS_Cpu_Instance.Interrupt_Stack_End_Address := System.Storage_Elements.To_Address (
          System.Storage_Elements.To_Integer (ISR_Stack_Info.Base_Address) + ISR_Stack_Info.Size_In_Bytes);
@@ -124,14 +135,12 @@ is
          RTOS_Cpu_Instance.Idle_Thread_Id);
 
       HiRTOS.Thread.Create_Thread
-      (HiRTOS.Timer_Private.Timer_Thread_Proc'Access,
+        (HiRTOS.Timer_Private.Timer_Thread_Proc'Access,
          System.Null_Address,
          Highest_Thread_Priority,
          Timer_Thread_Stacks (Cpu_Id)'Address,
          Timer_Thread_Stacks (Cpu_Id)'Size / System.Storage_Unit,
          RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
-
-      HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_RTOS;
 
    procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
@@ -144,9 +153,8 @@ is
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
            HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
       begin
-   HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR Except 1.1" & ASCII.LF); --???
          HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
-   HiRTOS_Low_Level_Debug_Interface.Print_String ("JGR Except 1.2" & ASCII.LF); --???
+
          --
          --  Calculate length of the null-terminated 'Msg' string:
          --
@@ -284,20 +292,16 @@ is
    procedure Start_Thread_Scheduler is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
          HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-      Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
       pragma Assert (RTOS_Cpu_Instance.Thread_Scheduler_State = Thread_Scheduler_Stopped);
       pragma Assert (RTOS_Cpu_Instance.Current_Thread_Id = Invalid_Thread_Id);
       pragma Assert (RTOS_Cpu_Instance.Current_Atomic_Level = Atomic_Level_None);
       pragma Assert (RTOS_Cpu_Instance.Current_Cpu_Execution_Mode = Cpu_Executing_Reset_Handler);
 
-      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
-        (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
       RTOS_Cpu_Instance.Thread_Scheduler_State := Thread_Scheduler_Running;
 
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS: Thread scheduler started" & ASCII.LF);
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Start_Timer (HiRTOS_Config_Parameters.Tick_Timer_Period_Us);
-      HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
-
       HiRTOS_Cpu_Arch_Interface.Thread_Context.First_Thread_Context_Switch;
 
       --
@@ -326,7 +330,8 @@ is
    procedure Enter_Cpu_Privileged_Mode is
    begin
       if not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode then
-         HiRTOS_Cpu_Arch_Interface.Switch_Cpu_To_Privileged_Mode;
+         HiRTOS_Cpu_Arch_Interface.Thread_Context.Switch_Cpu_To_Privileged_Mode;
+         pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
       else
          if Current_Execution_Context_Is_Interrupt then
             --
@@ -368,7 +373,8 @@ is
       begin
          Thread_Private.Decrement_Privilege_Nesting (Current_Thread_Obj);
          if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then
-            HiRTOS_Cpu_Arch_Interface.Switch_Cpu_To_Unprivileged_Mode;
+            pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled);
+            HiRTOS_Cpu_Arch_Interface.Thread_Context.Switch_Cpu_To_Unprivileged_Mode;
             pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
          else
             pragma Assert (HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode);
@@ -380,6 +386,7 @@ is
    begin
       pragma Assert (Arg = System.Null_Address);
       HiRTOS.Enter_Cpu_Privileged_Mode;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS: Idle thread started" & ASCII.LF);
 
       loop
          HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;

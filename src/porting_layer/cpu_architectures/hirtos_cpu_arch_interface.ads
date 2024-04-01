@@ -10,12 +10,13 @@
 --
 
 with HiRTOS_Cpu_Arch_Parameters;
-with System;
+with System.Storage_Elements;
 with Interfaces;
 
 package HiRTOS_Cpu_Arch_Interface with
  SPARK_Mode => On
 is
+   use System.Storage_Elements;
 
    type Cpu_Register_Type is new Interfaces.Unsigned_32;
 
@@ -35,6 +36,8 @@ is
 
    function Get_Cpu_Status_Register return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
+
+   procedure Set_Cpu_Status_Register (Cpu_Status_Register : Cpu_Register_Type);
 
    function Cpu_Interrupting_Disabled return Boolean with
     Inline_Always, Suppress => All_Checks;
@@ -65,20 +68,7 @@ is
    function Cpu_In_Hypervisor_Mode return Boolean with
     Inline_Always, Suppress => All_Checks;
 
-   --
-   --  Switch to CPU privileged mode
-   --
-   procedure Switch_Cpu_To_Privileged_Mode with
-    Pre  => not Cpu_In_Privileged_Mode, -- and then
-            --not Cpu_Interrupting_Disabled,
-    Post => Cpu_In_Privileged_Mode;
-
-   --
-   --  Switch back to CPU unprivileged mode
-   --
-   procedure Switch_Cpu_To_Unprivileged_Mode with
-    Pre  => Cpu_In_Privileged_Mode and then not Cpu_Interrupting_Disabled,
-    Post => not Cpu_In_Privileged_Mode;
+   procedure Break_Point with Inline_Always;
 
    function Ldrex_Word (Word_Address : System.Address) return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
@@ -115,12 +105,23 @@ is
    function Count_Trailing_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
 
-   type Bit_Index_Type is range 0 .. Cpu_Register_Type'Size - 1;
+   type Bit_Index_Type is mod Integer_Address'Size;
 
    function Bit_Mask (Bit_Index : Bit_Index_Type) return Cpu_Register_Type is
-    (Cpu_Register_Type
-      (Interfaces.Shift_Left
-        (Interfaces.Unsigned_32 (1), Natural (Bit_Index))));
+    --(Cpu_Register_Type (Interfaces.Shift_Left (Interfaces.Unsigned_32 (1), Natural (Bit_Index))));
+    (Cpu_Register_Type (2 ** Natural (Bit_Index)));
+
+   subtype Log_Base_2_Type is Natural range 0 .. Integer_Address'Size - 1;
+
+   function Is_Value_Power_Of_Two (Value : Integer_Address) return Boolean is
+      (Value /= 0 and then
+       (Value and (Value - 1)) = 0);
+
+   function Get_Log_Base_2 (Value : Integer_Address) return Log_Base_2_Type
+      with Pre => Is_Value_Power_Of_Two (Value);
+
+   function Get_Log_Base_2 (Value : Integer_Address) return Log_Base_2_Type is
+      (Log_Base_2_Type'Last - Log_Base_2_Type (Count_Leading_Zeros (Cpu_Register_Type (Value))));
 
    procedure Enable_Caches
       with Pre => Cpu_In_Privileged_Mode;

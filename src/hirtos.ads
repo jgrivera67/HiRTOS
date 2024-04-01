@@ -61,7 +61,6 @@ is
    --  this subprogram invokes the Ada package elaboration code for the HiRTOS library.
    --
    procedure Initialize with
-     --  Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
      External_Name => "hirtos_initialize";
@@ -70,7 +69,8 @@ is
    --  Start RTOS tick timer and RTOS thread scheduler for the calling CPU
    --
    procedure Start_Thread_Scheduler with
-     Pre => Current_Execution_Context_Is_Interrupt,
+     Pre => Cpu_In_Privileged_Mode and then
+            Current_Execution_Context_Is_Interrupt,
      Export, Convention => C, External_Name => "hirtos_start_thread_scheduler",
      No_Return;
 
@@ -106,7 +106,7 @@ is
    function Cpu_Interrupting_Disabled return Boolean renames
       HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
-   --
+      --
    --  Get current time in microseconds since boot
    --
    function Get_Current_Time_Us return Absolute_Time_Us_Type;
@@ -292,7 +292,7 @@ is
 
    package Small_Thread_Stack_Package is new Generic_Execution_Stack
      (Stack_Size_In_Bytes =>
-        HiRTOS_Config_Parameters.Thread_Stack_Min_Size_In_Bytes);
+        2 * HiRTOS_Config_Parameters.Thread_Stack_Min_Size_In_Bytes);
 
    package Medium_Thread_Stack_Package is new Generic_Execution_Stack
      (Stack_Size_In_Bytes =>
@@ -410,9 +410,7 @@ private
    procedure Initialize_RTOS with
      Pre => Current_Execution_Context_Is_Interrupt
             and then
-            HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
-            and then
-            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+            HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
              and then
              HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;

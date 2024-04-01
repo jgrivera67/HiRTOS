@@ -23,11 +23,10 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
    function Get_Cpu_Id return Valid_Cpu_Core_Id_Type is
       Reg_Value : Cpu_Register_Type;
    begin
-      --  System.Machine_Code.Asm (
-      --     "csrr  %0, mhartid",
-      --     Outputs => Cpu_Register_Type'Asm_Output ("=r", Reg_Value),
-      --     Volatile => True);
-      Reg_value := 0; --???
+      System.Machine_Code.Asm (
+         "csrr  %0, mhartid",
+         Outputs => Cpu_Register_Type'Asm_Output ("=r", Reg_Value),
+         Volatile => True);
       return Valid_Cpu_Core_Id_Type (Reg_Value);
    end Get_Cpu_Id;
 

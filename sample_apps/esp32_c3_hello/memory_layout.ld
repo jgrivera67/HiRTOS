@@ -33,9 +33,9 @@ bootloader_dram_seg_start = 0x3FC80000; /*bootloader_dram_seg_end - bootloader_d
 bootloader_iram_loader_seg_start = 0x403ce710; /*bootloader_dram_seg_start - bootloader_iram_loader_seg_len + iram_dram_offset;*/
 bootloader_iram_seg_start = 0x40380000; /*bootloader_iram_loader_seg_start - bootloader_iram_seg_len; */
 
-MPU_REGION_ALIGNMENT = 4;
-
-MPU_TEXT_REGION_SIZE = 128K; /* Must be a power of two */
+STACK_POINTER_ALIGNMENT = 4;
+CACHE_LINE_ALIGNMENT = 32;    /* Must match the cache-line size for cache flushing */
+MPU_TEXT_REGION_SIZE = 256K;  /* Must be a power of two */
 MPU_RODATA_REGION_SIZE = 32K; /* Must be a power of two */
 
 MEMORY
@@ -69,12 +69,11 @@ SECTIONS
 
   .iram.text :
   {
-     . = ALIGN(MPU_REGION_ALIGNMENT);
-    __global_text_region_start = .;
+     . = ALIGN(MPU_TEXT_REGION_SIZE);
+    __global_text_region_start = .;  /* NAPOT PMP region start boundary */
 
     *(.text.privileged.*)
 
-    . = ALIGN(MPU_REGION_ALIGNMENT);
     __privileged_text_region_end = .;
     PROVIDE (__unprivileged_text_start = .);
 
@@ -90,7 +89,7 @@ SECTIONS
 
     . = ALIGN(MPU_TEXT_REGION_SIZE);
     PROVIDE (__visible_text_end = .);
-    __global_text_region_end = .;
+    __global_text_region_end = .; /* NAPOT PMP region end boundary */
   } > iram_seg
 
   /**
@@ -104,8 +103,8 @@ SECTIONS
 
   .rodata :
   {
-    . = ALIGN(MPU_REGION_ALIGNMENT);
-    PROVIDE_HIDDEN (__rodata_start = .);
+    . = ALIGN(MPU_RODATA_REGION_SIZE);
+    PROVIDE_HIDDEN (__rodata_start = .);  /* NAPOT PMP region start boundary */
     *(.rdata)
     *(.rodata .rodata.*)
     *(.gnu.linkonce.r.*)
@@ -115,13 +114,13 @@ SECTIONS
     *(.srodata.cst2)
     *(.srodata .srodata.*)
     . = ALIGN(MPU_RODATA_REGION_SIZE);
-    PROVIDE_HIDDEN (__rodata_end = .);
+    PROVIDE_HIDDEN (__rodata_end = .);   /* NAPOT PMP region end boundary */
     PROVIDE( __data_load = . );
   } > dram_seg
 
   .data :  AT (__data_load)
   {
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(CACHE_LINE_ALIGNMENT); /* Start boundary for data cache flushing */
     __global_data_region_start = .;
     PROVIDE( __data_start = . );
 
@@ -145,7 +144,7 @@ SECTIONS
 
   .globals_initialized_at_load_time :
   {
-    . = ALIGN(MPU_REGION_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
+    . = ALIGN(CACHE_LINE_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
     *(.globals_initialized_at_load_time)
   } > dram_seg
 
@@ -157,7 +156,7 @@ SECTIONS
     *(EXCLUDE_FILE(*hirtos*.o).bss.*)
     *(.gnu.linkonce.b.*)
     *(COMMON)
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(CACHE_LINE_ALIGNMENT); /* End boundary for data cache flushing */
     PROVIDE( __bss_end = . );
     __global_data_region_end = .;
   } > dram_seg
@@ -167,30 +166,28 @@ SECTIONS
    /*
     * Privileged uninitialized global variables (only accessible in privileged mode)
     */
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(CACHE_LINE_ALIGNMENT); /* Start boundary for data cache flushing */
     __privileged_bss_start = .;
     *hirtos*.o (.bss.*)
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(CACHE_LINE_ALIGNMENT); /* End boundary for data cache flushing */
     __privileged_bss_end = .;
   } > dram_seg
 
   .stack (NOLOAD)  :
   {
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(STACK_POINTER_ALIGNMENT);
     _stacks_start = .;
     *(.isr_stack)
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(STACK_POINTER_ALIGNMENT);
     *(.thread_stacks)
-    . = ALIGN(MPU_REGION_ALIGNMENT);
+    . = ALIGN(STACK_POINTER_ALIGNMENT);
     _stacks_end = .;
   } > dram_seg
 
   .thread_local (NOLOAD)  :
   {
-    . = ALIGN(MPU_REGION_ALIGNMENT);
     _thread_local_start = .;
     *(.thread_local)
-    . = ALIGN(MPU_REGION_ALIGNMENT);
     _thread_local_end = .;
   } > dram_seg
 }

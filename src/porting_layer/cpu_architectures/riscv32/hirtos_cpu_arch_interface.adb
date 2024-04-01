@@ -10,29 +10,18 @@
 --
 
 with System.Machine_Code;
-with System.Storage_Elements;
 with HiRTOS_Cpu_Arch_Interface_Private;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
-with HiRTOS_Cpu_Multi_Core_Interface;
 with Bit_Sized_Integer_Types;
 
 package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
    use HiRTOS_Cpu_Arch_Interface_Private;
-   use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface.Thread_Context;
    use type Bit_Sized_Integer_Types.Bit_Type;
 
    function Get_Cpu_Status_Register return Cpu_Register_Type is
-      Reg_Value : Cpu_Register_Type;
-   begin
-      System.Machine_Code.Asm (
-         "csrr  %0, mstatus",
-         Outputs => Cpu_Register_Type'Asm_Output ("=r", Reg_Value),
-         Volatile => True);
-
-      return Reg_Value;
-   end Get_Cpu_Status_Register;
+      (Cpu_Register_Type (Get_MSTATUS.Value));
 
    procedure Set_Cpu_Status_Register (Cpu_Status_Register : Cpu_Register_Type) is
    begin
@@ -75,9 +64,17 @@ package body HiRTOS_Cpu_Arch_Interface is
    end Set_Stack_Pointer;
 
    function Cpu_Interrupting_Disabled return Boolean is
-      MSTATUS_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
+      MSTATUS_Value : MSTATUS_Type;
    begin
-      return (MSTATUS_Value and (MSTATUS_UIE_Bit_Mask or MSTATUS_MIE_Bit_Mask)) = 0;
+      --
+      --  NOTE: MSTATUS cannot be accessed from U-mode:
+      --
+      if not Cpu_In_Privileged_Mode then
+         return False;
+      end if;
+
+      MSTATUS_Value := Get_MSTATUS;
+      return MSTATUS_Value.MIE = 0;
    end Cpu_Interrupting_Disabled;
 
    function Disable_Cpu_Interrupting return Cpu_Register_Type
@@ -118,66 +115,12 @@ package body HiRTOS_Cpu_Arch_Interface is
    function Cpu_In_Hypervisor_Mode return Boolean is
       (False);
 
-   --
-   --  Transitions the CPU from user-mode to sys-mode with interrupts
-   --  enabled.
-   --
-   procedure Switch_Cpu_To_Privileged_Mode is
+   procedure Break_Point is
    begin
-      --
-      --  Switch to privileged mode:
-      --
       System.Machine_Code.Asm (
-         "ecall",
+         "ebreak",
          Volatile => True);
-
-      --
-      --  NOTE: We returned here in privileged mode.
-      --
-      declare
-         Thread_Pointer : Thread_Pointer_Type := Get_Thread_Pointer;
-      begin
-         Thread_Pointer.Cpu_Running_In_Privileged_Mode := True;
-         Set_Thread_Pointer (Thread_Pointer);
-      end;
-   end Switch_Cpu_To_Privileged_Mode;
-
-   --
-   --  Transitions the CPU from machine-mode to user-mode with interrupts enabled.
-   --
-   procedure Switch_Cpu_To_Unprivileged_Mode -- with Inline_Never
-   is
-      use type Interfaces.Unsigned_32;
-      Thread_Pointer : Thread_Pointer_Type := Get_Thread_Pointer;
-   begin
-      Thread_Pointer.Cpu_Running_In_Privileged_Mode := False;
-      Set_Thread_Pointer (Thread_Pointer);
-
-      --  Switch to unprivileged mode:
-      System.Machine_Code.Asm (
-         --  Update mscratch to remember that we are going to be in unprivileged mode:
-         "csrci mscratch, 0x1" & LF &
-         --  Set exception return address to be the caller's return address:
-         "csrw mepc, ra" & LF &
-         --  Set mstatus.MPP to U-mode (00) and mstatus.MPIE to 1:
-         "csrr t0, mstatus" & LF &
-         "li   t1, %0" & LF &
-         "and  t0, t0, t1" & LF &
-         "li   t1, %1" & LF &
-         "or   t0, t0, t1" & LF &
-         "csrw mstatus, t0" & LF &
-         --  return from exception:
-        "mret",
-         Inputs =>
-            [Interfaces.Unsigned_32'Asm_Input ("g",
-                                               not MSTATUS_MPP_Bit_Mask), -- %0
-             Interfaces.Unsigned_32'Asm_Input ("g",
-               Interfaces.Shift_Left (Interfaces.Unsigned_32 (
-                  HiRTOS_Cpu_Arch_Interface.Thread_Context.Mstatus_Mpp_User_Mode'Enum_Rep),
-                  MSTATUS_MPP_Bit_Offset) or MSTATUS_MPIE_Bit_Mask)], -- %1
-         Clobber => "t0, t1",
-         Volatile => True);
-   end Switch_Cpu_To_Unprivileged_Mode;
+   end Break_Point;
 
    function Ldrex_Word (Word_Address : System.Address) return Cpu_Register_Type is
       MISA_Value : constant MISA_Type := Get_MISA;
