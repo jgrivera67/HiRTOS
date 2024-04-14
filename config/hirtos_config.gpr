@@ -47,6 +47,6 @@ abstract project Hirtos_Config is
    Build_Profile : Build_Profile_Kind := "development";
 
    type Platform_Kind is ("arm_fvp", "esp32_c3");
-   Platform : Platform_Kind := "esp32_c3";
+   Platform : Platform_Kind := "arm_fvp";
 
 end Hirtos_Config;

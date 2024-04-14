@@ -11,7 +11,6 @@ with HiRTOS.Thread_Private;
 with HiRTOS.Timer_Private;
 with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Interrupt_Handling_Private;
-with HiRTOS.Memory_Protection;
 with HiRTOS_Platform_Parameters;
 with HiRTOS_Low_Level_Debug_Interface;
 with HiRTOS_Cpu_Startup_Interface;
@@ -62,7 +61,10 @@ is
    begin
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          HiRTOS_Lib_Elaboration;
-         HiRTOS_Platform_Interface.Initialize_Platform;
+         if not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
+            HiRTOS_Platform_Interface.Initialize_Platform;
+         end if;
+
          Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          Memory_Utils.Flush_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
@@ -87,7 +89,7 @@ is
    is
       use type System.Storage_Elements.Integer_Address;
 
-      procedure Print_HiRTOS_Greeting (Cpu_Id : Valid_Cpu_Core_Id_Type) is
+      procedure Print_Greeting (Cpu_Id : Valid_Cpu_Core_Id_Type) is
       begin
          HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS running on CPU ");
          HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Cpu_Id));
@@ -95,7 +97,7 @@ is
          " (built on " &
          GNAT.Source_Info.Compilation_Date &
          " at " & GNAT.Source_Info.Compilation_Time & ")" & ASCII.LF);
-      end Print_HiRTOS_Greeting;
+      end Print_Greeting;
 
       Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type :=
@@ -110,7 +112,7 @@ is
       --  Per-cpu initializations:
       --
       HiRTOS_Low_Level_Debug_Interface.Initialize;
-      Print_HiRTOS_Greeting (Cpu_Id);
+      Print_Greeting (Cpu_Id);
 
       HiRTOS.Memory_Protection_Private.Initialize;
       HiRTOS.Interrupt_Handling_Private.Initialize;

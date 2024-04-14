@@ -36,7 +36,8 @@ package body App_Threads is
       Turn_LED_On : Boolean := True;
       Heart_Beat_Timer_Id : HiRTOS.Timer_Id_Type := HiRTOS.Invalid_Timer_Id;
       Mutex_Id : HiRTOS.Mutex_Id_Type := HiRTOS.Invalid_Mutex_Id;
-   end record with Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment;
+   end record with
+      Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment;
 
    Per_Cpu_Data : array (HiRTOS.Cpu_Id_Type) of My_Cpu_Data_Type;
 

@@ -10,9 +10,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
-with Memory_Utils;
 with System.Machine_Code;
-with System.Storage_Elements;
 with HiRTOS_Cpu_Arch_Interface_Private;
 
 package body HiRTOS_Cpu_Arch_Interface is
@@ -279,8 +277,8 @@ package body HiRTOS_Cpu_Arch_Interface is
       SCTLR_Value : SCTLR_Type;
    begin
       Memory_Barrier;
-      Memory_Utils.Invalidate_Data_Cache;
-      Memory_Utils.Invalidate_Instruction_Cache;
+      Invalidate_Data_Cache;
+      Invalidate_Instruction_Cache;
       SCTLR_Value := Get_SCTLR;
       SCTLR_Value.C := Cacheable;
       SCTLR_Value.I := Instruction_Access_Cacheable; --  TODO: This too slow in ARM FVP simulator
@@ -337,5 +335,10 @@ package body HiRTOS_Cpu_Arch_Interface is
             Clobber => "r0",
             Volatile => True);
    end Hypercall;
+
+   procedure Break_Point is
+   begin
+      System.Machine_Code.Asm ("bkpt #0", Volatile => True);
+   end Break_Point;
 
 end HiRTOS_Cpu_Arch_Interface;

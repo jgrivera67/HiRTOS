@@ -20,6 +20,8 @@ is
    --
    Num_Cpu_Cores : constant := 1;
 
+   Cpu_Clock_Frequency_Hz : constant := 160_000_000;
+
    Timer_Counter_Clock_Frequency_Hz : constant := 16_000_000;
 
    GICD_Base_Address : constant System.Address :=

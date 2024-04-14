@@ -20,6 +20,6 @@
 #define PLATFORM_ARM_FVP 1
 #define PLATFORM_ESP32_C3 2
 
-#define PLATFORM  2
+#define PLATFORM  1
 
 #endif

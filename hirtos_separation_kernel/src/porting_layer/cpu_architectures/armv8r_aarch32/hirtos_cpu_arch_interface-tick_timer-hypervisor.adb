@@ -45,7 +45,6 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => 
    end Initialize;
 
    procedure Start_Timer (Expiration_Time_Us : HiRTOS.Relative_Time_Us_Type) is
-      use System.Storage_Elements;
       CNTP_CTL_Value : CNTP_CTL_Type;
       CNTP_TVAL_Value : constant CNTP_TVAL_Type :=
          CNTP_TVAL_Type (Expiration_Time_Us * Timer_Counter_Cycles_Per_Us);
@@ -146,7 +145,6 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => 
 
    procedure Tick_Timer_Interrupt_Handler (Arg : System.Address)
    is
-      use System.Storage_Elements;
       CNTP_TVAL_Value : constant CNTP_TVAL_Type := CNTP_TVAL_Type (To_Integer (Arg));
    begin
       --

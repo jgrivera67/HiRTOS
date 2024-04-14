@@ -35,7 +35,7 @@ project Hello_Partitions is
           "-nostdlib",
         --"-nolibc",
           "-lgcc", -- needed for __aeabi_uldivmod
-          "-Wl,-Map=" & Executable_Prefix & ".map",
+          "-Wl,-Map=" & "../../bin/" & Executable_Prefix & ".map",
           "-Xlinker", "--gc-sections",
 	  "-T../../memory_layout.ld");
    end Linker;

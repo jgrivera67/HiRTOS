@@ -47,6 +47,18 @@ project HiRTOS is
    for Library_Kind use Library_Type;
 
    for Library_Standalone use "standard";
+
+   Platform_Specific_Interfaces := ();
+   case Hirtos_Config.Platform is
+      when "arm_fvp" =>
+         Platform_Specific_Interfaces := (
+            "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific",
+            "HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU",
+            "HiRTOS_Cpu_Arch_Interface.System_Registers");
+      when others =>
+         null;
+   end case;
+
    for Library_Interface use ("Hirtos",
                               "HiRTOS_Config",
                               "HiRTOS_Config_Parameters",
@@ -72,8 +84,6 @@ project HiRTOS is
                               "HiRTOS_Cpu_Arch_Interface.Thread_Context",
                               "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling",
                               "HiRTOS_Cpu_Arch_Interface.Memory_Protection",
-                              --"HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU",
-                              --"HiRTOS_Cpu_Arch_Interface.System_Registers",
                               "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller",
                               "HiRTOS_Cpu_Arch_Interface.Interrupts",
                               "HiRTOS_Cpu_Arch_Interface.Tick_Timer",
@@ -84,7 +94,8 @@ project HiRTOS is
                               "Bit_Sized_Integer_Types",
                               "Memory_Utils",
                               "Number_Conversion_Utils",
-                              "Uart_Driver");
+                              "Uart_Driver") &
+                              Platform_Specific_Interfaces;
 
    for Library_Auto_Init use "False";
 

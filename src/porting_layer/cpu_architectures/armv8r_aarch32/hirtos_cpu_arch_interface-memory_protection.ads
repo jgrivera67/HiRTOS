@@ -19,7 +19,6 @@ with Bit_Sized_Integer_Types;
 package HiRTOS_Cpu_Arch_Interface.Memory_Protection
    with SPARK_Mode => On
 is
-   use System.Storage_Elements;
    use type System.Address;
 
    type Memory_Region_Descriptor_Type is limited private;
@@ -499,9 +498,9 @@ private
    --  Data fault status register
    type DFSR_Type is record
       Status : DFSR_Status_Type := No_Fault;
-      WnR : Write_Not_Read_Bit_Type;
-      ExT : External_Abort_Kind_Type;
-      CM : Cache_Maintenance_Fault_Type;
+      WnR : Write_Not_Read_Bit_Type := Write_Not_Read_Bit_Type'First;
+      ExT : External_Abort_Kind_Type := External_Abort_Kind_Type'First;
+      CM : Cache_Maintenance_Fault_Type := Cache_Maintenance_Fault_Type'First;
    end record
    with Size => 32,
         Bit_Order => System.Low_Order_First;
@@ -521,7 +520,7 @@ private
    --  Instruction fault status register
    type IFSR_Type is record
       Status : IFSR_Status_Type := No_Fault;
-      ExT : External_Abort_Kind_Type;
+      ExT : External_Abort_Kind_Type := External_Abort_Kind_Type'First;
    end record
    with Size => 32,
         Bit_Order => System.Low_Order_First;
@@ -605,4 +604,3 @@ private
    end record;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;
-

@@ -10,6 +10,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface_Private;
@@ -214,7 +215,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    procedure EL2_Undefined_Instruction_Exception_Handler is
    begin
       Interrupt_Handler_Prolog;
-      Handle_Undefined_Instruction_Exception;
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific.Handle_Undefined_Instruction_Exception;
       Interrupt_Handler_Epilog;
    end EL2_Undefined_Instruction_Exception_Handler;
 
@@ -284,7 +285,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    begin
       Interrupt_Handler_Prolog;
 
-      pragma Assert(Cpu_In_Hypervisor_Mode);
+      pragma Assert (Cpu_In_Hypervisor_Mode);
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.GIC_Interrupt_Handler (
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Fiq);
 

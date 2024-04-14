@@ -15,13 +15,14 @@ package body Memory_Utils is
       Num_Words : constant Integer_Address :=
          (To_Integer (End_Address) - To_Integer (Start_Address)) /
          (Unsigned_32'Size / System.Storage_Unit);
-
-      Word_Array : Words_Array_Type (1 .. Num_Words) with
-        Address => Start_Address;
    begin
       if Num_Words /= 0 then
-         Word_Array := [others => 0];
-         --???Flush_Data_Cache_Range (Word_Array'Address, Word_Array'Size / System.Storage_Unit);
+         declare
+            Word_Array : Words_Array_Type (1 .. Num_Words) with
+            Import, Address => Start_Address;
+         begin
+            Word_Array := [others => 0];
+         end;
       end if;
    end Clear_Address_Range;
 
@@ -54,15 +55,16 @@ package body Memory_Utils is
          (To_Integer (HiRTOS_Platform_Parameters.Data_Section_End_Address) -
           To_Integer (HiRTOS_Platform_Parameters.Data_Section_Start_Address)) /
          (Interfaces.Unsigned_32'Size / System.Storage_Unit);
-
-      Data_Section : Words_Array_Type (1 .. Num_Data_Words) with
-         Address => HiRTOS_Platform_Parameters.Data_Section_Start_Address;
-      Data_Section_Initializers : Words_Array_Type (1 .. Num_Data_Words) with
-         Address => HiRTOS_Platform_Parameters.Data_Load_Section_Start_Address;
    begin
       if Num_Data_Words /= 0 then
-         Data_Section := Data_Section_Initializers;
-         --???Flush_Data_Cache_Range (Data_Section'Address, Data_Section'Size / System.Storage_Unit);
+         declare
+            Data_Section : Words_Array_Type (1 .. Num_Data_Words) with
+               Import, Address => HiRTOS_Platform_Parameters.Data_Section_Start_Address;
+            Data_Section_Initializers : Words_Array_Type (1 .. Num_Data_Words) with
+               Import, Address => HiRTOS_Platform_Parameters.Data_Load_Section_Start_Address;
+         begin
+            Data_Section := Data_Section_Initializers;
+         end;
       end if;
    end Copy_Data_Section;
 

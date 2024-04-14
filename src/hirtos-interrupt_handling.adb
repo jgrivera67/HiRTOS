@@ -235,8 +235,7 @@ package body HiRTOS.Interrupt_Handling is
       Cpu_Context : HiRTOS_Cpu_Arch_Interface.Thread_Context.Cpu_Context_Type with
          Import, Address => Saved_Stack_Pointer;
    begin
-      HiRTOS_Cpu_Arch_Interface.Thread_Context.Set_Saved_PC (
-         Cpu_Context, HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type (To_Integer (PC_Value)));
+      HiRTOS_Cpu_Arch_Interface.Thread_Context.Set_Saved_PC (Cpu_Context, PC_Value);
    end Set_Interrupted_PC;
 
 end HiRTOS.Interrupt_Handling;

@@ -18,6 +18,6 @@ package Hirtos_Config is
    Build_Profile : constant Build_Profile_Kind := development;
 
    type Platform_Kind is (arm_fvp, esp32_c3);
-   Platform : constant Platform_Kind := esp32_c3;
+   Platform : constant Platform_Kind := arm_fvp;
 
 end Hirtos_Config;

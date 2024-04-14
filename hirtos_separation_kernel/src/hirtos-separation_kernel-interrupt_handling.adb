@@ -92,16 +92,21 @@ package body HiRTOS.Separation_Kernel.Interrupt_Handling is
    procedure Tick_Timer_Interrupt_Handler is
       Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
          Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
-      Current_Partition_Id : constant Valid_Partition_Id_Type :=
-               Separation_Kernel_Cpu_Instance.Current_Partition_Id;
-      Current_Partition_Obj : Partition_Type renames
-         Separation_Kernel_Cpu_Instance.Partition_Instances (Current_Partition_Id);
+      Current_Partition_Id : constant Partition_Id_Type :=
+         Separation_Kernel_Cpu_Instance.Current_Partition_Id;
    begin
-      pragma Assert (Current_Partition_Obj.Time_Slice_Left_Us >=
-                     HiRTOS_Separation_Kernel_Config_Parameters.Tick_Timer_Period_Us);
       Separation_Kernel_Cpu_Instance.Timer_Ticks_Since_Boot := @ + 1;
-      Current_Partition_Obj.Time_Slice_Left_Us :=
-         @ - HiRTOS_Separation_Kernel_Config_Parameters.Tick_Timer_Period_Us;
+      if Current_Partition_Id /= Invalid_Partition_Id then
+         declare
+            Current_Partition_Obj : Partition_Type renames
+               Separation_Kernel_Cpu_Instance.Partition_Instances (Current_Partition_Id);
+         begin
+            pragma Assert (Current_Partition_Obj.Time_Slice_Left_Us >=
+                           HiRTOS_Separation_Kernel_Config_Parameters.Tick_Timer_Period_Us);
+            Current_Partition_Obj.Time_Slice_Left_Us :=
+               @ - HiRTOS_Separation_Kernel_Config_Parameters.Tick_Timer_Period_Us;
+         end;
+      end if;
    end Tick_Timer_Interrupt_Handler;
 
    procedure Hypervisor_Trap_Handler (

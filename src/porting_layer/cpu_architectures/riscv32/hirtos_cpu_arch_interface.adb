@@ -23,14 +23,6 @@ package body HiRTOS_Cpu_Arch_Interface is
    function Get_Cpu_Status_Register return Cpu_Register_Type is
       (Cpu_Register_Type (Get_MSTATUS.Value));
 
-   procedure Set_Cpu_Status_Register (Cpu_Status_Register : Cpu_Register_Type) is
-   begin
-      System.Machine_Code.Asm (
-         "csrs mstatus, %0",
-         Inputs => Cpu_Register_Type'Asm_Input ("r", Cpu_Status_Register),
-         Volatile => True);
-   end Set_Cpu_Status_Register;
-
    function Get_Call_Address return System.Address is
       Reg_Value : Cpu_Register_Type;
    begin
@@ -315,39 +307,39 @@ package body HiRTOS_Cpu_Arch_Interface is
       Memory_Barrier;
       Invalidate_Data_Cache;
       Invalidate_Instruction_Cache;
-      null; --??? TODO: Enable i-cache and d-cache
+      --  TODO: Enable i-cache and d-cache
       Strong_Memory_Barrier;
    end Enable_Caches;
 
    procedure Disable_Caches is
    begin
       Strong_Memory_Barrier;
-      null; --??? TODO: Disable i-cache and d-cache
+      --  TODO: Disable i-cache and d-cache
       Strong_Memory_Barrier;
    end Disable_Caches;
 
    procedure Invalidate_Data_Cache is
    begin
       Strong_Memory_Barrier;
-      null; --??? TODO: invalidate d-cache
+      --  TODO: invalidate d-cache
       Strong_Memory_Barrier;
    end Invalidate_Data_Cache;
 
    procedure Invalidate_Instruction_Cache is
    begin
       Strong_Memory_Barrier;
-      null; --??? TODO: invalidate i-cache
+      --  TODO: invalidate i-cache
       Strong_Memory_Barrier;
    end Invalidate_Instruction_Cache;
 
    procedure Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is
    begin
-      null; --???
+      null; --  TODO
    end Invalidate_Data_Cache_Line;
 
    procedure Flush_Data_Cache_Line (Cache_Line_Address : System.Address) is
    begin
-      null; --???
+      null; --  TODO
    end Flush_Data_Cache_Line;
 
    procedure Flush_Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is

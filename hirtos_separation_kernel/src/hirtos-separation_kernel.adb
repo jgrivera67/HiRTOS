@@ -13,6 +13,7 @@ with HiRTOS_Cpu_Arch_Interface.Partition_Context;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor;
 with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS_Platform_Interface;
 with HiRTOS_Platform_Parameters;
 with HiRTOS.Memory_Protection_Private;
 with HiRTOS.Separation_Kernel.SK_Private;
@@ -20,6 +21,7 @@ with HiRTOS.Separation_Kernel.Interrupt_Handling;
 with HiRTOS.Separation_Kernel.Memory_Protection_Private;
 with System.Storage_Elements;
 with Memory_Utils;
+with GNAT.Source_Info;
 
 package body HiRTOS.Separation_Kernel is
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -42,6 +44,7 @@ package body HiRTOS.Separation_Kernel is
    begin
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          HiRTOS_Separation_Kernel_Lib_Elaboration;
+         HiRTOS_Platform_Interface.Initialize_Platform;
          Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          Memory_Utils.Flush_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
@@ -66,6 +69,17 @@ package body HiRTOS.Separation_Kernel is
    --
    procedure Initialize_Separation_Kernel is
       use type System.Storage_Elements.Integer_Address;
+
+      procedure Print_Greeting (Cpu_Id : Valid_Cpu_Core_Id_Type) is
+      begin
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("HiRTOS Separation Kernel running on CPU ");
+         HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Cpu_Id));
+         HiRTOS_Low_Level_Debug_Interface.Print_String (
+         " (built on " &
+         GNAT.Source_Info.Compilation_Date &
+         " at " & GNAT.Source_Info.Compilation_Time & ")" & ASCII.LF);
+      end Print_Greeting;
+
       Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
       Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
          HiRTOS.Separation_Kernel.SK_Private.Separation_Kernel_Cpu_Instances (Cpu_Id);
@@ -74,6 +88,8 @@ package body HiRTOS.Separation_Kernel is
    begin
       HiRTOS_Cpu_Arch_Interface.Hypervisor.Initialize;
       HiRTOS_Low_Level_Debug_Interface.Initialize;
+      Print_Greeting (Cpu_Id);
+
       HiRTOS.Separation_Kernel.Memory_Protection_Private.Initialize;
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor.Initialize;

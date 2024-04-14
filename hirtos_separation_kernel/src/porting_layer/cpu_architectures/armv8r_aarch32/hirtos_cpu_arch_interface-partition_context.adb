@@ -17,7 +17,6 @@ with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
    use ASCII;
-   use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
 
    procedure Partition_Unintended_Exit_Catcher is

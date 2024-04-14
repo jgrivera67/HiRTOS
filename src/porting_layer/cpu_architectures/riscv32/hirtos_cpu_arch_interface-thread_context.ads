@@ -59,7 +59,7 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
 
    function  Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address;
 
-   procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : Cpu_Register_Type);
+   procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : System.Address);
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
 

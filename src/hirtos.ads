@@ -106,7 +106,7 @@ is
    function Cpu_Interrupting_Disabled return Boolean renames
       HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
-      --
+   --
    --  Get current time in microseconds since boot
    --
    function Get_Current_Time_Us return Absolute_Time_Us_Type;

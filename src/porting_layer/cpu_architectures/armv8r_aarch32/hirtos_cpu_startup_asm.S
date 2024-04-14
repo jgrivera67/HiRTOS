@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2022-2023, German Rivera
- * 
+ *
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -323,6 +323,20 @@ hirtos_booted_as_partition:
 reset_handler:
         INIT_CPU_REGS
 
+        /*
+         * Check if we booted as a partition (guest)
+         *
+         * NOTE: The physical machine boots at EL2, but a partition (guest)
+         * boots at EL1.
+         */
+        mrs    r0, cpsr
+        and    r0, r0, #CPSR_MODE_MASK
+        cmp    r0, #CPSR_HYPERVISOR_MODE
+        ldrne  r0, =hirtos_booted_as_partition
+        movne  r1, #1
+        strbne r1, [r0]
+        bne    reset_handler_el1
+
 #if defined(ARM_FVP_SIMULATOR)
         /*
          * Enable use of generic timer for ARM FVP platform:
@@ -332,20 +346,6 @@ reset_handler:
         orr r1, r1, #0x3u
         str r1, [r0]
 #endif
-
-        /*
-         * Check if we booted as a partition (guest)
-         *
-         * NOTE: The physical machine boots at EL2, but a partition (guest)
-         * boots at EL1.
-         */
-        mrs     r0, cpsr
-        and     r0, r0, #CPSR_MODE_MASK
-        cmp     r0, #CPSR_HYPERVISOR_MODE
-        ldrne  r0, =hirtos_booted_as_partition
-        movne  r1, #1
-        strbne r1, [r0]
-        bne     reset_handler_el1
 
         /*
          * Set generic timer's CNTFRQ register to the system clock frequency, while in EL2,

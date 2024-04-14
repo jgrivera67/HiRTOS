@@ -16,7 +16,6 @@ with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    use ASCII;
-   use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
 
    procedure Thread_Unintended_Exit_Catcher is
@@ -119,4 +118,9 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
          Volatile => True);
    end Switch_Cpu_To_Unprivileged_Mode;
 
+   procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : System.Address)
+   is
+   begin
+      Cpu_Context.Integer_Registers.PC := Cpu_Register_Type (To_Integer (PC_Value));
+   end Set_Saved_PC;
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

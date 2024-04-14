@@ -207,10 +207,10 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
       return MSCRATCH_Value;
    end Get_MSCRATCH;
 
-   procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : Cpu_Register_Type)
+   procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : System.Address)
    is
    begin
-      Cpu_Context.MEPC := PC_Value;
+      Cpu_Context.MEPC := Cpu_Register_Type (To_Integer (PC_Value));
    end Set_Saved_PC;
 
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

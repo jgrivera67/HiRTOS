@@ -65,7 +65,10 @@ is
    --
    --  RTOS tick timer period in microseconds
    --
-   Tick_Timer_Period_Us : constant := 500;
+   Tick_Timer_Period_Us : constant :=
+      (if HiRTOS_Platform_Parameters.Cpu_Clock_Frequency_Hz >= 500_000_000
+       then 500
+       else 1000);
 
    --
    --  Longest time that a thread can request to be delayed (by calling Thread_Delay_Until)

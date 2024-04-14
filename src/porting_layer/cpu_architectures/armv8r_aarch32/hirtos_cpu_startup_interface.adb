@@ -82,6 +82,7 @@ package body HiRTOS_Cpu_Startup_Interface is
          To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_End_Address) -
          To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address);
    begin
+      --  This does not work on ARM FVP:
       --??? HiRTOS_Cpu_Arch_Interface.Enable_Caches;
       Enable_FPU;
 

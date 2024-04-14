@@ -12,7 +12,6 @@
 
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU;
-with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with HiRTOS_Low_Level_Debug_Interface;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
@@ -27,12 +26,28 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
    function Is_Memory_Region_Enabled (Region_Id : Memory_Region_Id_Type) return Boolean is
       (Get_PRLAR (Region_Id).EN = Region_Enabled);
 
-   procedure Load_Memory_Attributes_Lookup_Table is
-      MAIR_Pair : MAIR_Pair_Type;
+   procedure Initialize is
+      procedure Load_Memory_Attributes_Lookup_Table is
+         MAIR_Pair : MAIR_Pair_Type;
+      begin
+         --
+         --  Load all memory attributes supported into the EL1-controlled MPU's MAIR0/MAIR1
+         --  registers:
+         --
+         MAIR_Pair.Attr_Array := Memory_Attributes_Lookup_Table;
+         Set_MAIR_Pair (MAIR_Pair);
+      end Load_Memory_Attributes_Lookup_Table;
    begin
-      MAIR_Pair.Attr_Array := Memory_Attributes_Lookup_Table;
-      Set_MAIR_Pair (MAIR_Pair);
-   end Load_Memory_Attributes_Lookup_Table;
+      Disable_Memory_Protection;
+      Load_Memory_Attributes_Lookup_Table;
+
+      --
+      --  Disable all region descriptors:
+      --
+      for Region_Id in Memory_Region_Id_Type loop
+         Disable_Memory_Region (Region_Id);
+      end loop;
+   end Initialize;
 
    procedure Enable_Memory_Protection (Enable_Background_Region : Boolean) is
       SCTLR_Value : SCTLR_Type;

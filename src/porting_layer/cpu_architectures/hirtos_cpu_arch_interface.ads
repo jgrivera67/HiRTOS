@@ -37,8 +37,6 @@ is
    function Get_Cpu_Status_Register return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
 
-   procedure Set_Cpu_Status_Register (Cpu_Status_Register : Cpu_Register_Type);
-
    function Cpu_Interrupting_Disabled return Boolean with
     Inline_Always, Suppress => All_Checks;
 

@@ -24,22 +24,14 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
       Cpu_Id : constant Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type := Get_ISR_Stack_Info (Cpu_Id);
    begin
-      Hypervisor.Disable_Memory_Protection;
-      Hypervisor.Load_Memory_Attributes_Lookup_Table;
-
-      --
-      --  Disable all region descriptors:
-      --
-      for Region_Id in Memory_Region_Id_Type loop
-         Hypervisor.Disable_Memory_Region (Region_Id);
-      end loop;
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.Initialize;
 
       --
       --  Set NULL pointer de-reference guard region:
       --
       if HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor.Get_HVBAR /= System.Null_Address then
          Hypervisor.Configure_Memory_Region (
-            Memory_Region_Id_Type (Null_Pointer_Dereference_Guard'Enum_Rep),
+            Memory_Region_Id_Type (Hypervisor.Null_Pointer_Dereference_Guard'Enum_Rep),
             System.Null_Address,
             HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment,
             Unprivileged_Permissions => None,
@@ -122,7 +114,7 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
          To_Integer (Global_Mmio_Region_End_Address) - To_Integer (Global_Mmio_Region_Start_Address);
    begin
       Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array := [others => False];
-      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize_Global_Registers (
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize_Fault_Status_Registers (
          Memory_Protection_Context.Fault_Status_Registers);
 
       --
