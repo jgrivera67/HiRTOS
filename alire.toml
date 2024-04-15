@@ -17,7 +17,7 @@ Platform = {type = "Enum", values = ["arm_fvp", "esp32_c3"], default = "arm_fvp"
 
 [[depends-on]]
 gnat_arm_elf = "^13.2.1"
-gnat_riscv64_elf = "^13.2.1"
+#gnat_riscv64_elf = "^13.2.1"
 gnatprove = "^13.2.1"
 
 [gpr-set-externals]

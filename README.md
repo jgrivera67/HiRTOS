@@ -29,7 +29,6 @@ be found [here](doc/HiRTOS.pdf).
 ### Prerequisites
 
 * Install the [`alr`](https://alire.ada.dev/docs/) Ada package manager and meta-build tool
-* Install the latest `gnat_arm_elf` cross-compiler by running `alr toolchain --select`
 * Install the [ARM Fixed Virtual Platform (FVP) Simulator](https://developer.arm.com/downloads/-/arm-ecosystem-models)
   for ARMv8-R (scroll down to Armv8-R AEM FVP)
 
@@ -92,6 +91,45 @@ To run it on the ARM FVP simulator, do:
 ```
 
 An ARM FVP run for the "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
+
+## Building and Running the HiRTOS Sample Application for the ESP32-C3 board
+
+### Prerequisites
+
+* Install the [`alr`](https://alire.ada.dev/docs/) Ada package manager and meta-build tool
+* Install the [esptool[(https://docs.espressif.com/projects/esptool/en/latest/esp32/) flashing tool
+  by doing `pip3 install esptool`.
+* Make the following changes in the HiRTOS crate's `alire.toml` file:
+```
+[[depends-on]]
+#gnat_arm_elf = "^13.2.1"
+gnat_riscv64_elf = "^13.2.1"
+gnatprove = "^13.2.1"
+
+[gpr-set-externals]
+#CPU_Core = "arm_cortex_r52"
+CPU_Core = "riscv32"
+```
+
+### "Hello World" HiRTOS Sample Application
+
+This sample application the HiRTOS real-time kernel. It launches a set of application threads.
+
+To build it, do:
+
+```
+cd sample_apps/esp32_c3_hello
+alr build
+```
+
+To run it on an ESP32-C3 board, copy it to the board's flash by doing:
+
+```
+esptool.py --chip esp32c3 -p <tty device (e.g., /dev/ttyUSB0)> -b 460800 \
+      --before=default_reset --after=hard_reset write_flash \
+      --flash_mode dio --flash_freq 80m --flash_size 2MB 0x00000 \
+      bin/esp32_c3_hello.bin
+```
 
 [![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/hirtos.json)](https://alire.ada.dev/crates/hirtos.html)
 [![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/hirtos_separation_kernel.json)](https://alire.ada.dev/crates/hirtos_separation_kernel.html)
