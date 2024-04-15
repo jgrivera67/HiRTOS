@@ -41,6 +41,7 @@ abstract project Hirtos_Separation_Kernel_Config is
            ,"-gnatyt" -- Check token spacing
            ,"-gnatyu" -- Check unnecessary blank lines
            ,"-gnatyx" -- Check extra parentheses
+           ,"-gnatW8" -- UTF-8 encoding for wide characters
           );
 
    type Platform_Kind is ("arm_fvp");
