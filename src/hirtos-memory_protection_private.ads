@@ -19,45 +19,8 @@ private package HiRTOS.Memory_Protection_Private
 is
    use System.Storage_Elements;
 
-   --
-   --  Mapping of logical memory protection regions to memory protection descriptor
-   --  indices
-   --
-   type Memory_Region_Role_Type is
-     (Global_Interrupt_Stack_Region,
-      Global_Interrupt_Stack_Overflow_Guard,
-      Null_Pointer_Dereference_Guard,
-      Global_Code_Region,
-      Global_Privileged_Code_Region,
-      Global_Rodata_Region,
-      Global_Data_Region,
-      Global_Mmio_Region,
-      Thread_Stack_Data_Region,
-      Thread_Stack_Overflow_Guard,
-      Thread_Private_Data_Region,
-      Thread_Private_Mmio_Region,
-      Thread_Private_Code_Region,
-
-      --  Valid region roles must be added before this entry:
-      Invalid_Region_Role);
-
-   for Memory_Region_Role_Type use
-     (Global_Interrupt_Stack_Region => 0,
-      Global_Interrupt_Stack_Overflow_Guard => 1,
-      Null_Pointer_Dereference_Guard => 2,
-      Global_Code_Region => 3,
-      Global_Privileged_Code_Region => 4,
-      Global_Rodata_Region => 5,
-      Global_Data_Region => 6,
-      Global_Mmio_Region => 7,
-      Thread_Stack_Data_Region => 8,
-      Thread_Stack_Overflow_Guard => 9,
-      Thread_Private_Data_Region => 10,
-      Thread_Private_Mmio_Region => 11,
-      Thread_Private_Code_Region => 12,
-
-      --  Valid region roles must be added before this entry:
-      Invalid_Region_Role => HiRTOS_Cpu_Arch_Interface.Memory_Protection.Max_Num_Memory_Regions);
+   subtype Memory_Region_Role_Type is
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Memory_Region_Role_Type;
 
    type Thread_Memory_Regions_Type is limited private;
 
@@ -109,7 +72,6 @@ private
       Stack_Region : Memory_Region_Descriptor_Type;
       Private_Data_Region : Memory_Region_Descriptor_Type;
       Private_Mmio_Region : Memory_Region_Descriptor_Type;
-      Private_Code_Region : Memory_Region_Descriptor_Type;
    end record;
 
    Global_Text_Region_Size_In_Bytes : constant Integer_Address :=

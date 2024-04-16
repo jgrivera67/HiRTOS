@@ -12,7 +12,7 @@
 with System;
 
 package HiRTOS_Cpu_Arch_Parameters
-   with SPARK_Mode => On
+   with SPARK_Mode => On, No_Elaboration_Code_All
 is
    --
    --  Width in bits of CPUs interger registers
@@ -22,7 +22,7 @@ is
    --
    --  Cache line size in bytes
    --
-   Cache_Line_Size_Bytes : constant := 32;
+   Cache_Line_Size_Bytes : constant := 64;
 
    --
    --  Alignment in bytes for a memory protection region
@@ -42,7 +42,7 @@ is
    --
    --  Size in bytes of the 'BL' machine instruction
    --
-   Call_Instruction_Size : constant := 4;
+   Call_Instruction_Size_In_Bytes : constant := 4;
 
    --
    --  Number of usable external interrupt priorities (levels) in

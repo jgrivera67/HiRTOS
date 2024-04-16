@@ -11,6 +11,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Parameters;
+private with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with System.Storage_Elements;
 with Interfaces;
 with Bit_Sized_Integer_Types;
@@ -18,9 +19,7 @@ with Bit_Sized_Integer_Types;
 package HiRTOS_Cpu_Arch_Interface.Memory_Protection
    with SPARK_Mode => On
 is
-   use System.Storage_Elements;
    use type System.Address;
-   use type System.Storage_Elements.Integer_Address;
 
    type Memory_Region_Descriptor_Type is limited private;
 
@@ -42,6 +41,41 @@ is
 
    type Memory_Region_Id_Type is mod Max_Num_Memory_Regions;
 
+   --
+   --  Mapping of logical memory protection regions to MPU region Ids
+   --
+   type Memory_Region_Role_Type is
+     (
+      Global_Code_Region,
+      Global_Rodata_Region,
+      Null_Pointer_Dereference_Guard,
+      Global_Interrupt_Stack_Overflow_Guard,
+      Global_Interrupt_Stack_Region,
+      Thread_Stack_Overflow_Guard,
+      Thread_Stack_Data_Region,
+      Thread_Private_Data_Region,
+      Thread_Private_Data2_Region,
+      Thread_Private_Mmio_Region,
+
+      --  Valid region roles must be added before this entry:
+      Invalid_Region_Role);
+
+   for Memory_Region_Role_Type use
+     (
+      Global_Code_Region => 0,
+      Global_Rodata_Region => 1,
+      Null_Pointer_Dereference_Guard => 2,
+      Global_Interrupt_Stack_Overflow_Guard => 3,
+      Global_Interrupt_Stack_Region => 4,
+      Thread_Stack_Overflow_Guard => 5,
+      Thread_Stack_Data_Region => 6,
+      Thread_Private_Data_Region => 7,
+      Thread_Private_Data2_Region => 8,
+      Thread_Private_Mmio_Region => 9,
+
+      --  Valid region roles must be added before this entry:
+      Invalid_Region_Role => Max_Num_Memory_Regions);
+
    type Mpu_Regions_Count_Type is (Mpu_16_Regions,
                                    Mpu_20_Regions,
                                    Mpu_24_Regions,
@@ -58,11 +92,7 @@ is
       with Pre => Cpu_In_Privileged_Mode,
            Post => Get_Num_Regions_Supported'Result'Enum_Rep <= Max_Num_Memory_Regions;
 
-   --
-   --  Load all memory attributes supported into the EL1-controlled MPU's MAIR0/MAIR1
-   --  registers
-   --
-   procedure Load_Memory_Attributes_Lookup_Table
+   procedure Initialize
       with Pre => Cpu_In_Privileged_Mode;
 
    --
@@ -176,6 +206,20 @@ is
 
    procedure Handle_Data_Abort_Exception
       with Pre => Cpu_In_Privileged_Mode;
+
+   type Fault_Status_Registers_Type is limited private;
+
+   procedure Initialize_Fault_Status_Registers (
+      Fault_Status_Registers : out Fault_Status_Registers_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
+   procedure Save_Fault_Status_Registers (
+      Fault_Status_Registers : out Fault_Status_Registers_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
+
+   procedure Restore_Fault_Status_Registers (
+      Fault_Status_Registers : Fault_Status_Registers_Type)
+      with Pre => Cpu_In_Hypervisor_Mode;
 
 private
    use type Interfaces.Unsigned_32;
@@ -454,9 +498,9 @@ private
    --  Data fault status register
    type DFSR_Type is record
       Status : DFSR_Status_Type := No_Fault;
-      WnR : Write_Not_Read_Bit_Type;
-      ExT : External_Abort_Kind_Type;
-      CM : Cache_Maintenance_Fault_Type;
+      WnR : Write_Not_Read_Bit_Type := Write_Not_Read_Bit_Type'First;
+      ExT : External_Abort_Kind_Type := External_Abort_Kind_Type'First;
+      CM : Cache_Maintenance_Fault_Type := Cache_Maintenance_Fault_Type'First;
    end record
    with Size => 32,
         Bit_Order => System.Low_Order_First;
@@ -476,7 +520,7 @@ private
    --  Instruction fault status register
    type IFSR_Type is record
       Status : IFSR_Status_Type := No_Fault;
-      ExT : External_Abort_Kind_Type;
+      ExT : External_Abort_Kind_Type := External_Abort_Kind_Type'First;
    end record
    with Size => 32,
         Bit_Order => System.Low_Order_First;
@@ -513,7 +557,7 @@ private
       (Region_Descriptor.PRLAR_Value.EN = Region_Enabled);
 
    Memory_Attributes_Lookup_Table : constant MAIR_Attr_Array_Type :=
-      [ Device_Memory_Mapped_Io'Enum_Rep =>
+       [Device_Memory_Mapped_Io'Enum_Rep =>
             (Memory_Kind => Device_Memory,
              Device_Memory_Subkind => Device_Memory_nGnRnE),
         Normal_Memory_Non_Cacheable'Enum_Rep =>
@@ -525,7 +569,7 @@ private
         Normal_Memory_Write_Back_Cacheable'Enum_Rep =>
             (Memory_Kind => Normal_Memory_Outer_Write_Back,
              Normal_Memory_Subkind => Normal_Memory_Inner_Write_Back),
-        others => <> ];
+        others => <>];
 
    No_Fault_Str : aliased constant String := "None";
    Translation_Fault_Level0_Str : aliased constant String := "Translation_Fault_Level0";
@@ -552,5 +596,11 @@ private
          Alignment_Fault => Alignment_Fault_Str'Access,
          Debug_Event => Debug_Event_Str'Access,
          Unsupported_Exclusive_Access_Fault => Unsupported_Exclusive_Access_Fault_Str'Access];
+
+   type Fault_Status_Registers_Type is limited record
+      DFSR_Value : DFSR_Type;
+      IFSR_Value : IFSR_Type;
+      SCTLR_Value : HiRTOS_Cpu_Arch_Interface.System_Registers.SCTLR_Type;
+   end record;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection;

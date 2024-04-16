@@ -1,6 +1,6 @@
 --
 --  Copyright (c) 2022-2023, German Rivera
---  
+--
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
@@ -13,7 +13,6 @@ abstract project Hirtos_Compiler_Flags is
    Mode := External ("GPR_TOOL", "");
 
    CPU_Arch := "";
-   Platform := "";
    Target_Compiler_Selector := "";
    CPU_Core_Switches := ();
    Build_Profile_Switches := ();
@@ -53,7 +52,6 @@ abstract project Hirtos_Compiler_Flags is
 
       when "arm_cortex_r52" =>
               CPU_Arch := "armv8r_aarch32";
-              Platform := "arm_fvp";
               Target_Compiler_Selector := "arm-eabi";
               CPU_Core_Switches := ("-mcpu=cortex-r52",
                                   --"-march=armv8-r",
@@ -65,8 +63,10 @@ abstract project Hirtos_Compiler_Flags is
 
       when "riscv32" =>
               CPU_Arch := "riscv32";
-              Target_Compiler_Selector := "riscv32-elf";
-              CPU_Core_Switches := ("-march=rv32imac",
+              Target_Compiler_Selector := "riscv64-elf";
+              --  ‘g’ will expand to ‘i’, ‘m’, ‘a’, ‘f’, ‘d’, ‘zicsr’ and ‘zifencei’.
+              --  'zbb' Basic bit manipulation extension.
+              CPU_Core_Switches := ("-march=rv32imc_zicsr_zifencei", --  rv32gc_zbb
                                     "-mabi=ilp32",
                                     "-mcmodel=medany");
       when others =>

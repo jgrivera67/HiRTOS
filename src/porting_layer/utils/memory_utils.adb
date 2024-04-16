@@ -6,24 +6,23 @@
 --
 
 with HiRTOS_Platform_Parameters;
-with HiRTOS_Cpu_Arch_Interface.System_Registers;
+with HiRTOS_Cpu_Arch_Interface;
 
 package body Memory_Utils is
-
-   use type System.Storage_Elements.Integer_Address;
 
    procedure Clear_Address_Range (Start_Address : System.Address; End_Address : System.Address) is
       --  Size in 32-bit words of the address range
       Num_Words : constant Integer_Address :=
          (To_Integer (End_Address) - To_Integer (Start_Address)) /
          (Unsigned_32'Size / System.Storage_Unit);
-
-      Word_Array : Words_Array_Type (1 .. Num_Words) with
-        Address => Start_Address;
    begin
       if Num_Words /= 0 then
-         Word_Array := [others => 0];
-         --???Flush_Data_Cache_Range (Word_Array'Address, Word_Array'Size / System.Storage_Unit);
+         declare
+            Word_Array : Words_Array_Type (1 .. Num_Words) with
+            Import, Address => Start_Address;
+         begin
+            Word_Array := [others => 0];
+         end;
       end if;
    end Clear_Address_Range;
 
@@ -56,15 +55,16 @@ package body Memory_Utils is
          (To_Integer (HiRTOS_Platform_Parameters.Data_Section_End_Address) -
           To_Integer (HiRTOS_Platform_Parameters.Data_Section_Start_Address)) /
          (Interfaces.Unsigned_32'Size / System.Storage_Unit);
-
-      Data_Section : Words_Array_Type (1 .. Num_Data_Words) with
-         Address => HiRTOS_Platform_Parameters.Data_Section_Start_Address;
-      Data_Section_Initializers : Words_Array_Type (1 .. Num_Data_Words) with
-         Address => HiRTOS_Platform_Parameters.Data_Load_Section_Start_Address;
    begin
       if Num_Data_Words /= 0 then
-         Data_Section := Data_Section_Initializers;
-         --???Flush_Data_Cache_Range (Data_Section'Address, Data_Section'Size / System.Storage_Unit);
+         declare
+            Data_Section : Words_Array_Type (1 .. Num_Data_Words) with
+               Import, Address => HiRTOS_Platform_Parameters.Data_Section_Start_Address;
+            Data_Section_Initializers : Words_Array_Type (1 .. Num_Data_Words) with
+               Import, Address => HiRTOS_Platform_Parameters.Data_Load_Section_Start_Address;
+         begin
+            Data_Section := Data_Section_Initializers;
+         end;
       end if;
    end Copy_Data_Section;
 
@@ -96,20 +96,13 @@ package body Memory_Utils is
       return CRC;
    end Compute_Checksum;
 
-   procedure Invalidate_Data_Cache is
-   begin
-      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
-      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIM_ALL;
-      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
-   end Invalidate_Data_Cache;
-
    procedure Invalidate_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address) is
       Num_Cache_Lines : constant Integer_Address := Size / HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes;
       Cache_Line_Address : System.Address := Start_Address;
    begin
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
       for Cache_Line_Count in 1 .. Num_Cache_Lines loop
-         HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIMVAC (Cache_Line_Address);
+         HiRTOS_Cpu_Arch_Interface.Invalidate_Data_Cache_Line (Cache_Line_Address);
          Cache_Line_Address := To_Address (To_Integer (@) +
                                            HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes);
       end loop;
@@ -123,7 +116,7 @@ package body Memory_Utils is
    begin
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
       for Cache_Line_Count in 1 .. Num_Cache_Lines loop
-         HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCMVAC (Cache_Line_Address);
+         HiRTOS_Cpu_Arch_Interface.Flush_Data_Cache_Line (Cache_Line_Address);
          Cache_Line_Address := To_Address (To_Integer (@) +
                                            HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes);
       end loop;
@@ -137,7 +130,7 @@ package body Memory_Utils is
    begin
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
       for Cache_Line_Count in 1 .. Num_Cache_Lines loop
-         HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCIMVAC (Cache_Line_Address);
+         HiRTOS_Cpu_Arch_Interface.Flush_Invalidate_Data_Cache_Line (Cache_Line_Address);
          Cache_Line_Address := To_Address (To_Integer (@) +
                                            HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes);
       end loop;
@@ -145,10 +138,4 @@ package body Memory_Utils is
       HiRTOS_Cpu_Arch_Interface.Memory_Barrier;
    end Flush_Invalidate_Data_Cache_Range;
 
-   procedure Invalidate_Instruction_Cache is
-   begin
-      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
-      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_ICIALLU;
-      HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
-   end Invalidate_Instruction_Cache;
 end Memory_Utils;

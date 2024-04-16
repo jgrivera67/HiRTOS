@@ -14,6 +14,9 @@ hirtos = "*"
 [[pins]]
 hirtos = { path='../../..' }
 
+[gpr-set-externals]
+CPU_Core = "arm_cortex_r52"
+
 [build-profiles]
 hirtos = "development"
 
@@ -21,3 +24,8 @@ hirtos = "development"
 type = "post-build"
 command = ["arm-none-eabi-objcopy", "-O", "binary", "-S", "bin/hello_partition1.elf",
            "bin/hello_partition1.bin"]
+
+[[actions]]
+type = "post-build"
+command = ["sh", "-c", "arm-none-eabi-objdump -dSstl bin/hello_partition1.elf > bin/hello_partition1.lst"]
+

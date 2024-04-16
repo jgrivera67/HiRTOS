@@ -10,6 +10,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor;
 with HiRTOS_Cpu_Arch_Interface_Private;
@@ -78,9 +79,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
            External_Name => "el2_fiq_interrupt_handler";
    pragma Machine_Attribute (EL2_Fiq_Interrupt_Handler, "naked");
 
-   procedure Interrupt_Handler_Prolog
-      with Inline_Always;
-
    --
    --  Inline subprogram to be invoked at the beginning of top-level EL2 interrupt
    --  handlers from which the partition scheduler can be called upon exit.
@@ -89,6 +87,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    --  @pre  sp_hyp points to bottom of current partition's hypervisor stack
    --  @pre  CPU is in HYP mode
    --  @post CPU is in HYP mode
+   --  @post sp_hyp points to bottom of EL2 esception stack
    --
    --  NOTE: We cannot check preconditions, as that would insert code
    --  at the beginning of this subprogram, which would clobber the CPU registers
@@ -110,7 +109,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          --  Save elr_hyp and spsr_hyp:
          --
          "mrs     r0, elr_hyp" & LF &
-         "mrs     r1, spsr" & LF &
+         "mrs     r1, spsr_hyp" & LF &
          "push    {r0-r1}" & LF &
 
          --
@@ -131,7 +130,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          --  sp points to the current partition's CPU_Context.
          --
          "ldr sp, [sp]" & LF &
-
+         --
+         --  sp = Cpu_Context.Interrupt_Stack_End_Address
          --
          --  Set frame pointer to be the same as stack pointer:
          --  (needed for stack unwinding across interrupted contexts)
@@ -162,7 +162,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
       System.Machine_Code.Asm (
          --
          --  Set sp to value returned by HiRTOS.Separation_Kernel.Interrupt_Handling.Exit_Interrupt_Context,
-         --  which is the address of the new current partitions' CPU_Context.
+         --  which is the address of the new current partition's CPU_Context.
          --
          "bl hirtos_separation_kernel_exit_interrupt_context" & LF &
          "add sp, r0, #4" & LF & -- skip Interrupt_Stack_End_Address field
@@ -180,7 +180,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
          --
          "pop     {r0-r1}" & LF &
          "msr     elr_hyp, r0" & LF &
-         "msr     spsr, r1" & LF &
+         "msr     spsr_hyp, r1" & LF &
 
          --
          --  Restore general-purpose registers saved on the stack:
@@ -215,7 +215,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    procedure EL2_Undefined_Instruction_Exception_Handler is
    begin
       Interrupt_Handler_Prolog;
-      Handle_Undefined_Instruction_Exception;
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific.Handle_Undefined_Instruction_Exception;
       Interrupt_Handler_Epilog;
    end EL2_Undefined_Instruction_Exception_Handler;
 
@@ -285,6 +285,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor is
    begin
       Interrupt_Handler_Prolog;
 
+      pragma Assert (Cpu_In_Hypervisor_Mode);
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.GIC_Interrupt_Handler (
          HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Fiq);
 

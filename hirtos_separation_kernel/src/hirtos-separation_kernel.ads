@@ -19,14 +19,23 @@ is
    --
    --  Initialize HiRTOS separation kernel library
    --
+   --  NOTE: The HiRTOS separation kernel requires that CPU interrupts are disabled before
+   --  before starting the hypervisor tick timer interrupts, so that the timer interrupt does
+   --  not fire before the first partition is switched in.
+   --
    procedure Initialize with
-     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode,
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+     Post => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+             HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export,
      Convention => C,
      External_Name => "hirtos_separation_kernel_initialize";
 
    procedure Start_Partition_Scheduler with
-     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+     No_Return;
 
    type Partition_Id_Type is
      range 0 .. Max_Num_Partitions;
@@ -73,6 +82,9 @@ private
       Null_Element_Id => Invalid_Partition_Id);
 
    procedure Initialize_Separation_Kernel with
-     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
+     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+     Post => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
+            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
 end HiRTOS.Separation_Kernel;

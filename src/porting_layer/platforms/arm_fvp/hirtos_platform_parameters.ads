@@ -13,14 +13,19 @@ with Interfaces;
 with System;
 
 package HiRTOS_Platform_Parameters
-   with SPARK_Mode => On
+   with SPARK_Mode => On, No_Elaboration_Code_All
 is
    --
    --  Number of CPU cores
    --
    Num_Cpu_Cores : constant := 4;
 
+   Cpu_Clock_Frequency_Hz : constant := 500_000_000;
+
    System_Clock_Frequency_Hz : constant := 100_000_000;
+
+   GICD_Base_Address : constant System.Address :=
+     System'To_Address (16#8000_0000# + 16#2F00_0000#);
 
    --
    --  Linker-script symbols defined in

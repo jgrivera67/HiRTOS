@@ -21,12 +21,12 @@ procedure Fvp_Armv8r_Aarch32_Hello is
       Cpu_Id : constant HiRTOS.Cpu_Id_Type := HiRTOS.Get_Current_Cpu_Id;
    begin
       HiRTOS.Debug.Print_String (
-        "FVP ARMv8-R Hello (Written in Ada 2012, built on " &
+        "FVP ARMv8-R Hello running on CPU ");
+      HiRTOS.Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Cpu_Id));
+      HiRTOS.Debug.Print_String (
+        " (built on " &
         GNAT.Source_Info.Compilation_Date &
         " at " & GNAT.Source_Info.Compilation_Time & ")" & ASCII.LF);
-
-      HiRTOS.Debug.Print_String ("CPU ");
-      HiRTOS.Debug.Print_Number_Decimal (Interfaces.Unsigned_32 (Cpu_Id), End_Line => True);
    end Print_Console_Greeting;
 
 begin -- Main

@@ -41,11 +41,13 @@ abstract project Hirtos_Config is
            ,"-gnatyt" -- Check token spacing
            ,"-gnatyu" -- Check unnecessary blank lines
            ,"-gnatyx" -- Check extra parentheses
+           ,"-gnatW8" -- UTF-8 encoding for wide characters
           );
-
-   Separation_Kernel_Debug_Tracing_On := "False";
 
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := "development";
+
+   type Platform_Kind is ("arm_fvp", "esp32_c3");
+   Platform : Platform_Kind := "arm_fvp";
 
 end Hirtos_Config;

@@ -5,7 +5,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 
-with System;
+with System.Storage_Elements;
 with Interfaces;
 with HiRTOS_Config_Parameters;
 with HiRTOS_Cpu_Arch_Parameters;
@@ -21,6 +21,11 @@ package HiRTOS with
   SPARK_Mode => On
 is
    use type Interfaces.Unsigned_16;
+
+   pragma Compile_Time_Error (
+      System.Storage_Elements.Integer_Address'Size /= HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits,
+      "Unexpected size of Integer_Address type"
+   );
 
    -----------------------------------------------------------------------------
    --  Application interface public declarations                              --
@@ -51,8 +56,11 @@ is
    --
    --  Initialize HiRTOS library
    --
+   --  NOTE: We cannot check pre-conditions in this subprogram, as it is invoked
+   --  before Ada package elaboration for the HiRTOS library is performed. Indeed,
+   --  this subprogram invokes the Ada package elaboration code for the HiRTOS library.
+   --
    procedure Initialize with
-     Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
      Export, Convention => C,
      External_Name => "hirtos_initialize";
@@ -61,7 +69,8 @@ is
    --  Start RTOS tick timer and RTOS thread scheduler for the calling CPU
    --
    procedure Start_Thread_Scheduler with
-     Pre => Current_Execution_Context_Is_Interrupt,
+     Pre => Cpu_In_Privileged_Mode and then
+            Current_Execution_Context_Is_Interrupt,
      Export, Convention => C, External_Name => "hirtos_start_thread_scheduler",
      No_Return;
 
@@ -283,7 +292,7 @@ is
 
    package Small_Thread_Stack_Package is new Generic_Execution_Stack
      (Stack_Size_In_Bytes =>
-        HiRTOS_Config_Parameters.Thread_Stack_Min_Size_In_Bytes);
+        2 * HiRTOS_Config_Parameters.Thread_Stack_Min_Size_In_Bytes);
 
    package Medium_Thread_Stack_Package is new Generic_Execution_Stack
      (Stack_Size_In_Bytes =>
@@ -310,6 +319,29 @@ is
      Interrupt_Nesting_Counter_Type range
        Interrupt_Nesting_Counter_Type'First + 1 ..
          Interrupt_Nesting_Counter_Type'Last;
+
+   -----------------------------------------------------------------------------
+   --  Hypervisor call interface                                              --
+   -----------------------------------------------------------------------------
+
+   type Hypercall_Op_Code_Type is (Hypercall_Stop_Partition,
+                                   Hypercall_Start_Failover_Partition,
+                                   Hypercall_Reboot_Partition,
+                                   Hypercall_Trace_Value)
+      with Size => Interfaces.Unsigned_8'Size;
+
+   for Hypercall_Op_Code_Type use (
+     Hypercall_Stop_Partition => 0,
+     Hypercall_Start_Failover_Partition => 1,
+     Hypercall_Reboot_Partition => 2,
+     Hypercall_Trace_Value => 3
+   );
+
+   procedure Hypercall (Op_Code : Hypercall_Op_Code_Type) with
+     Pre => not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode,
+     Export,
+     Convention => C,
+     External_Name => "hirtos_hypercall";
 
 private
 
@@ -339,7 +371,7 @@ private
       with Component_Size => 1, Size => HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size;
 
    type Thread_Priority_Queue_Type is record
-      Non_Empty_Thread_Queues_Map : Boolean_Bit_Map_Type := [ others => False ];
+      Non_Empty_Thread_Queues_Map : Boolean_Bit_Map_Type := [others => False];
       Thread_Queues_Array : Per_Priority_Thread_Queues_Array_Type;
    end record;
 
@@ -378,9 +410,7 @@ private
    procedure Initialize_RTOS with
      Pre => Current_Execution_Context_Is_Interrupt
             and then
-            HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode
-            and then
-            HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled,
+            HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode,
      Post => not HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled
              and then
              HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;

@@ -8,7 +8,6 @@ with Interfaces;
 
 package Number_Conversion_Utils
 is
-   pragma Pure;
    use Interfaces;
 
    procedure Decimal_String_To_Unsigned (Decimal_Str : String;

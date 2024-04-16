@@ -197,14 +197,19 @@ package body HiRTOS.Interrupt_Handling is
    procedure RTOS_Tick_Timer_Interrupt_Handler is
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
          HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-      Current_Thread_Id : constant Valid_Thread_Id_Type :=
-               RTOS_Cpu_Instance.Current_Thread_Id;
-      Current_Thread_Obj : Thread_Type renames
-         RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
+      Current_Thread_Id : constant Thread_Id_Type := RTOS_Cpu_Instance.Current_Thread_Id;
    begin
-      pragma Assert (Current_Thread_Obj.Time_Slice_Left_Us >= HiRTOS_Config_Parameters.Tick_Timer_Period_Us);
       RTOS_Cpu_Instance.Timer_Ticks_Since_Boot := @ + 1;
-      Current_Thread_Obj.Time_Slice_Left_Us := @ - HiRTOS_Config_Parameters.Tick_Timer_Period_Us;
+      if Current_Thread_Id /= Invalid_Thread_Id then
+         declare
+            Current_Thread_Obj : Thread_Type renames
+               RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
+         begin
+            pragma Assert (Current_Thread_Obj.Time_Slice_Left_Us >= HiRTOS_Config_Parameters.Tick_Timer_Period_Us);
+            Current_Thread_Obj.Time_Slice_Left_Us := @ - HiRTOS_Config_Parameters.Tick_Timer_Period_Us;
+         end;
+      end if;
+
       HiRTOS.Timer_Private.Do_Software_Timers_Bookkeeping;
    end RTOS_Tick_Timer_Interrupt_Handler;
 
@@ -219,5 +224,18 @@ package body HiRTOS.Interrupt_Handling is
    begin
       return HiRTOS_Cpu_Arch_Interface.Thread_Context.Get_Saved_PC (Cpu_Context);
    end Get_Interrupted_PC;
+
+   procedure Set_Interrupted_PC (PC_Value : System.Address)
+   is
+      use System.Storage_Elements;
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Saved_Stack_Pointer : constant System.Address :=
+         Get_Current_Interrupt_Nesting_Saved_Stack_Pointer (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
+      Cpu_Context : HiRTOS_Cpu_Arch_Interface.Thread_Context.Cpu_Context_Type with
+         Import, Address => Saved_Stack_Pointer;
+   begin
+      HiRTOS_Cpu_Arch_Interface.Thread_Context.Set_Saved_PC (Cpu_Context, PC_Value);
+   end Set_Interrupted_PC;
 
 end HiRTOS.Interrupt_Handling;

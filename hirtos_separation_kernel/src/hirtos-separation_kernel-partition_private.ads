@@ -9,8 +9,7 @@ with HiRTOS_Separation_Kernel_Config_Parameters;
 with HiRTOS.Separation_Kernel.Partition;
 with HiRTOS.Separation_Kernel.Memory_Protection_Private;
 with HiRTOS_Cpu_Arch_Interface.Partition_Context;
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
-with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
+with HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor;
 
 private package HiRTOS.Separation_Kernel.Partition_Private with
   SPARK_Mode => On
@@ -32,6 +31,9 @@ is
    --  @field Failover_Partition_Id: partition Id of the partition to failover to if this
    --  partition crashes.
    --  @field State: current state of the partition
+   --  @field Reset_Handler_Address: Address of the partition's boot entry point.
+   --  @field Interrupt_Vector_Table_Address: base address of the partition's interrupt vector table.
+   --  @field Boot_Count: Number of times the paertittion hasd been booted.
    --  @field Time_Slice_Left_Us: partition's current time slice left in microseconds.
    --  @field Executed_WFI Flag indicating that the partition has executed a WFI instruction
    --  @field Hypervisor_Enabled_Regions_Bit_Mask: partition's hypervisor-controlled
@@ -50,10 +52,11 @@ is
       Id : Partition_Id_Type := Invalid_Partition_Id;
       Failover_Partition_Id : Partition_Id_Type := Invalid_Partition_Id;
       State : Partition_State_Type := Partition_Not_Created;
+      Reset_Handler_Address : System.Address := System.Null_Address;
+      Interrupt_Vector_Table_Address : System.Address := System.Null_Address;
+      Boot_Count : Interfaces.Unsigned_32 := 0;
       Time_Slice_Left_Us : Relative_Time_Us_Type := Partition_Time_Slice_Us;
       Executed_WFI : Boolean := False;
-      Hypervisor_Enabled_Regions_Bit_Mask :
-         HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.Memory_Regions_Enabled_Bit_Mask_Type;
       Cpu_Context :
          HiRTOS_Cpu_Arch_Interface.Partition_Context.Cpu_Context_Type;
       Extended_Cpu_Context :
@@ -61,9 +64,9 @@ is
       Interrupt_Handling_Context :
          HiRTOS_Cpu_Arch_Interface.Partition_Context.Interrupt_Handling_Context_Type;
       Timer_Context :
-         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Timer_Context_Type;
-      Internal_Memory_Regions :
-         HiRTOS.Separation_Kernel.Memory_Protection_Private.Partition_Internal_Memory_Regions_Type;
+         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor.Timer_Context_Type;
+      Memory_Protection_Context :
+         HiRTOS.Separation_Kernel.Memory_Protection_Private.Memory_Protection_Context_Type;
       Stats : Partition_Stats_Type;
    end record with
      Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;

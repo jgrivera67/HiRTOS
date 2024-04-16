@@ -10,9 +10,7 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
-with Memory_Utils;
 with System.Machine_Code;
-with System.Storage_Elements;
 with HiRTOS_Cpu_Arch_Interface_Private;
 
 package body HiRTOS_Cpu_Arch_Interface is
@@ -49,7 +47,7 @@ package body HiRTOS_Cpu_Arch_Interface is
 
       return System.Storage_Elements.To_Address (
                System.Storage_Elements.Integer_Address (
-                  Reg_Value - HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size));
+                  Reg_Value - HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size_In_Bytes));
    end Get_Call_Address;
 
    function Get_Stack_Pointer return Cpu_Register_Type is
@@ -158,50 +156,6 @@ package body HiRTOS_Cpu_Arch_Interface is
    begin
       return (CPSR_Value and CPSR_Mode_Mask) = CPSR_Hypervisor_Mode;
    end Cpu_In_Hypervisor_Mode;
-
-   --
-   --  Transitions the CPU from user-mode to sys-mode with interrupts
-   --  enabled.
-   --
-   procedure Switch_Cpu_To_Privileged_Mode is
-      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
-   begin
-         --
-         --  We are not in privileged mode, so interrupts must be enabled:
-         --
-         --  NOTE: It is a bug to be in non-privileged mode with interrupts disabled.
-         --
-         pragma Assert ((CPSR_Value and CPSR_I_Bit_Mask) = 0);
-
-         --
-         --  Switch to privileged mode:
-         --
-         --  NOTE: The SVC exception handler sets `Cpu_Privileged_Nesting_Counter` to 1
-         --
-         System.Machine_Code.Asm (
-            "mov r0, #1" & LF &
-            "svc #0",
-            Clobber => "r0",
-            Volatile => True);
-
-         --
-         --  NOTE: We returned here in privileged mode.
-         --
-   end Switch_Cpu_To_Privileged_Mode;
-
-   --
-   --  Transitions the CPU from sys-mode to user-mode with interrupts enabled.
-   --
-   procedure Switch_Cpu_To_Unprivileged_Mode
-   is
-   begin
-      --  Switch to unprivileged mode:
-      System.Machine_Code.Asm (
-         "cpsie i, %0" & LF &
-         "isb",
-         Inputs => Interfaces.Unsigned_8'Asm_Input ("g", CPSR_User_Mode), --  %0
-         Volatile => True);
-   end Switch_Cpu_To_Unprivileged_Mode;
 
    function Ldrex_Word (Word_Address : System.Address) return Cpu_Register_Type is
       Result : Cpu_Register_Type;
@@ -323,8 +277,8 @@ package body HiRTOS_Cpu_Arch_Interface is
       SCTLR_Value : SCTLR_Type;
    begin
       Memory_Barrier;
-      Memory_Utils.Invalidate_Data_Cache;
-      Memory_Utils.Invalidate_Instruction_Cache;
+      Invalidate_Data_Cache;
+      Invalidate_Instruction_Cache;
       SCTLR_Value := Get_SCTLR;
       SCTLR_Value.C := Cacheable;
       SCTLR_Value.I := Instruction_Access_Cacheable; --  TODO: This too slow in ARM FVP simulator
@@ -342,5 +296,49 @@ package body HiRTOS_Cpu_Arch_Interface is
       Set_SCTLR (SCTLR_Value);
       Strong_Memory_Barrier;
    end Disable_Caches;
+
+   procedure Invalidate_Data_Cache is
+   begin
+      Strong_Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIM_ALL;
+      Strong_Memory_Barrier;
+   end Invalidate_Data_Cache;
+
+   procedure Invalidate_Instruction_Cache is
+   begin
+      Strong_Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_ICIALLU;
+      Strong_Memory_Barrier;
+   end Invalidate_Instruction_Cache;
+
+   procedure Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is
+   begin
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIMVAC (Cache_Line_Address);
+   end Invalidate_Data_Cache_Line;
+
+   procedure Flush_Data_Cache_Line (Cache_Line_Address : System.Address) is
+   begin
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCMVAC (Cache_Line_Address);
+   end Flush_Data_Cache_Line;
+
+   procedure Flush_Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is
+   begin
+      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCIMVAC (Cache_Line_Address);
+   end Flush_Invalidate_Data_Cache_Line;
+
+   procedure Hypercall (Op_Code : Interfaces.Unsigned_8) is
+   begin
+      System.Machine_Code.Asm (
+            "mov r0, %0" & LF &
+            "hvc #0",
+            Inputs => Interfaces.Unsigned_8'Asm_Input ("r", Op_Code), --  %0
+            Clobber => "r0",
+            Volatile => True);
+   end Hypercall;
+
+   procedure Break_Point is
+   begin
+      System.Machine_Code.Asm ("bkpt #0", Volatile => True);
+   end Break_Point;
 
 end HiRTOS_Cpu_Arch_Interface;

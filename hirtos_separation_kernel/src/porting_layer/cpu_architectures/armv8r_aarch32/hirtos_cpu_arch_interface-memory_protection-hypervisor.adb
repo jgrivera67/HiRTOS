@@ -28,12 +28,28 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor with SPARK_M
    function Is_Memory_Region_Enabled (Region_Id : Memory_Region_Id_Type) return Boolean is
       (Get_HPRLAR (Region_Id).EN = Region_Enabled);
 
-   procedure Load_Memory_Attributes_Lookup_Table is
-      MAIR_Pair : MAIR_Pair_Type;
+   procedure Initialize is
+      procedure Load_Memory_Attributes_Lookup_Table is
+         MAIR_Pair : MAIR_Pair_Type;
+      begin
+         --
+         --  Load all memory attributes supported into the EL2-controlled MPU's HMAIR0/HMAIR1
+         --  registers:
+         --
+         MAIR_Pair.Attr_Array := Memory_Attributes_Lookup_Table;
+         Set_HMAIR_Pair (MAIR_Pair);
+      end Load_Memory_Attributes_Lookup_Table;
    begin
-      MAIR_Pair.Attr_Array := Memory_Attributes_Lookup_Table;
-      Set_HMAIR_Pair (MAIR_Pair);
-   end Load_Memory_Attributes_Lookup_Table;
+      Disable_Memory_Protection;
+      Load_Memory_Attributes_Lookup_Table;
+
+      --
+      --  Disable all region descriptors:
+      --
+      for Region_Id in Memory_Region_Id_Type loop
+         Disable_Memory_Region (Region_Id);
+      end loop;
+   end Initialize;
 
    procedure Enable_Memory_Protection (Enable_Background_Region : Boolean) is
       HSCTLR_Value : HSCTLR_Type;
@@ -42,8 +58,6 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor with SPARK_M
       HSCTLR_Value := Get_HSCTLR;
       HSCTLR_Value.M := Mpu_Enabled;
       HSCTLR_Value.A := Alignment_Check_Disabled; -- To allow unaligned accesses
-      --  ???SCTLR_Value.C := Cacheable; --TODO
-      --  ???SCTLR_Value.I := Instruction_Access_Cacheable; --TODO: This too slow in ARM FVP simulator
       if Enable_Background_Region then
          HSCTLR_Value.BR := Background_Region_Enabled;
       else

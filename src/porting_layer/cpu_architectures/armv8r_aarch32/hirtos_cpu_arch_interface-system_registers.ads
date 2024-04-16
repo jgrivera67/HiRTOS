@@ -14,8 +14,6 @@ with System.Storage_Elements;
 package HiRTOS_Cpu_Arch_Interface.System_Registers
    with SPARK_Mode => On
 is
-   use type System.Storage_Elements.Integer_Address;
-
    type Mpu_Enable_Type is (Mpu_Disabled, Mpu_Enabled)
       with Size => 1;
 

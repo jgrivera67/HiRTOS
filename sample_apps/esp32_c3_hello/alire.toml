@@ -1,0 +1,33 @@
+name = "esp32_c3_hello"
+description = "Hello world app for ESP32-C3 platform"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["esp32_c3_hello"]
+
+[[depends-on]]
+hirtos = "*"
+
+[configuration.values]
+hirtos.Platform = "esp32_c3"
+
+[[pins]]
+hirtos = { path='../..' }
+
+[gpr-set-externals]
+CPU_Core = "riscv32"
+
+[build-profiles]
+hirtos = "development"
+
+[[actions]]
+type = "post-build"
+command = ["sh", "-c", "riscv64-unknown-elf-objdump -dSstl bin/esp32_c3_hello.elf > bin/esp32_c3_hello.lst"]
+
+[[actions]]
+type = "post-build"
+command = ["./generate_bin_image.sh", "bin/esp32_c3_hello.elf"]
+

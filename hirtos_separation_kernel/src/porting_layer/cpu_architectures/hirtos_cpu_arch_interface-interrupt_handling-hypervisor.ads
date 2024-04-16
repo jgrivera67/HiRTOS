@@ -12,6 +12,9 @@
 package HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Hypervisor
    with SPARK_Mode => On
 is
+   procedure Interrupt_Handler_Prolog
+      with Inline_Always;
+
    procedure Interrupt_Handler_Epilog
       with Inline_Always, No_Return;
 

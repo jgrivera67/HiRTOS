@@ -75,10 +75,16 @@ is
    function Get_DFSR return DFSR_Type
       with Inline_Always;
 
+   procedure Set_DFSR (DFSR_Value : DFSR_Type)
+      with Inline_Always;
+
    function Get_IFAR return IFAR_Type
       with Inline_Always;
 
    function Get_IFSR return IFSR_Type
+      with Inline_Always;
+
+   procedure Set_IFSR (IFSR_Value : IFSR_Type)
       with Inline_Always;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU;

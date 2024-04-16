@@ -11,6 +11,7 @@
 --
 
 with HiRTOS_Cpu_Multi_Core_Interface;
+private with HiRTOS_Platform_Parameters;
 private with HiRTOS.Memory_Protection;
 private with System;
 private with Interfaces;
@@ -56,6 +57,11 @@ is
    Lowest_Interrupt_Priority : constant Interrupt_Priority_Type :=
      Interrupt_Priority_Type'Last - 1;
 
+   subtype Valid_Interrupt_Priority_Type is Interrupt_Priority_Type range
+      Highest_Interrupt_Priority .. Lowest_Interrupt_Priority;
+
+   Invalid_Interrupt_Priority : constant Interrupt_Priority_Type := Interrupt_Priority_Type'Last;
+
    type Interrupt_Handler_Entry_Point_Type is
      access procedure (Arg : System.Address);
 
@@ -86,7 +92,7 @@ is
    --
    procedure Configure_Internal_Interrupt
      (Internal_Interrupt_Id         : Internal_Interrupt_Id_Type;
-      Priority                      : Interrupt_Priority_Type;
+      Priority                      : Valid_Interrupt_Priority_Type;
       Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
       Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
@@ -99,7 +105,7 @@ is
    --
    procedure Configure_External_Interrupt
      (External_Interrupt_Id         : External_Interrupt_Id_Type;
-      Priority                      : Interrupt_Priority_Type;
+      Priority                      : Valid_Interrupt_Priority_Type;
       Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
       Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
@@ -714,11 +720,8 @@ private
           ((16#18_0000# - 16#10_0000#) * System.Storage_Unit) - 1;
    end record;
 
-   GICD_Base_Address : constant System.Address :=
-     System'To_Address (16#8000_0000# + 16#2F00_0000#);
-
    GICD : aliased GICD_Type with
-     Import, Address => GICD_Base_Address;
+     Import, Address => HiRTOS_Platform_Parameters.GICD_Base_Address;
 
    ----------------------------------------------------------------------------
    --  GIC CPU intterface registers
@@ -1167,15 +1170,6 @@ private
       GICC_HPPIR at 16#0018# range 0 .. 31;
       GICC_DIR   at 16#1000# range 0 .. 31;
    end record;
-
-   --
-   --  NOTE: All CPU cores use the same (banked) base address for the GICC
-   --
-   GICC_Base_Address : constant System.Address :=
-     System'To_Address (16#8000_0000# + 16#2C00_0000#);
-
-   GICC : aliased GICC_Type with
-     Import, Address => GICC_Base_Address;
 
    ----------------------------------------------------------------------------
    --  Interrupt controller state variables

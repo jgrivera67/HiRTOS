@@ -65,7 +65,10 @@ is
    --
    --  RTOS tick timer period in microseconds
    --
-   Tick_Timer_Period_Us : constant := 500;
+   Tick_Timer_Period_Us : constant :=
+      (if HiRTOS_Platform_Parameters.Cpu_Clock_Frequency_Hz >= 500_000_000
+       then 500
+       else 1000);
 
    --
    --  Longest time that a thread can request to be delayed (by calling Thread_Delay_Until)
@@ -86,24 +89,5 @@ is
 
    Software_Timers_Bookkeeping_Method : constant Software_Timers_Bookkeeping_Method_Type :=
       Software_Timers_Bookkeeping_In_Timer_ISR;
-
-   --
-   --  Global variables default access
-   --
-   type Global_Data_Default_Access_Type is
-      (Global_Data_Privileged_Unprivileged_No_Access,
-       Global_Data_Privileged_Access_Unprivileged_No_Access,
-       Global_Data_Privileged_Unprivileged_Access);
-
-   Global_Data_Default_Access : constant Global_Data_Default_Access_Type :=
-      Global_Data_Privileged_Unprivileged_Access;
-
-   type Global_Mmio_Default_Access_Type is
-      (Global_Mmio_Privileged_Unprivileged_No_Access,
-       Global_Mmio_Privileged_Access_Unprivileged_No_Access,
-       Global_Mmio_Privileged_Unprivileged_Access);
-
-   Global_Mmio_Default_Access : constant Global_Mmio_Default_Access_Type :=
-      Global_Mmio_Privileged_Access_Unprivileged_No_Access;
 
 end HiRTOS_Config_Parameters;

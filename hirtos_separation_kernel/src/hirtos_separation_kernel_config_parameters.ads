@@ -21,7 +21,7 @@ is
    --
    --  Separation kernel's tick timer period in microseconds
    --
-   Tick_Timer_Period_Us : constant := 10_000; --??? 1000
+   Tick_Timer_Period_Us : constant := 10_000; --500;
 
    --
    --  Partition time slice in timer ticks

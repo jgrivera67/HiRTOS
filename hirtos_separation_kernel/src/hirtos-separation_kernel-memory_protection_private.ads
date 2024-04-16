@@ -11,77 +11,14 @@
 
 with HiRTOS_Cpu_Arch_Interface;
 with System.Storage_Elements;
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
 
 private package HiRTOS.Separation_Kernel.Memory_Protection_Private
    with SPARK_Mode => On
 is
    use HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+   use HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
    use System.Storage_Elements;
-
-   --
-   --  Mapping of logical memory protection regions to hypervisor memory protection descriptor
-   --  indices
-   --
-   type Memory_Region_Role_Type is
-     (Null_Pointer_Dereference_Guard,
-      Hypervisor_Code_Region,
-      Hypervisor_Rodata_Region,
-      Hypervisor_Interrupt_Stack_Overflow_Guard,
-      Hypervisor_Mmio_Region,
-
-      Partition0_Sram_Region,
-      Partition0_Tcm_Region,
-      Partition0_Mmio_Region,
-      Partition0_Reserved1_Region,
-
-      Partition1_Sram_Region,
-      Partition1_Tcm_Region,
-      Partition1_Mmio_Region,
-      Partition1_Reserved1_Region,
-
-      Partition2_Sram_Region,
-      Partition2_Tcm_Region,
-      Partition2_Mmio_Region,
-      Partition2_Reserved1_Region,
-
-      Partition3_Sram_Region,
-      Partition3_Tcm_Region,
-      Partition3_Mmio_Region,
-      Partition3_Reserved1_Region,
-
-      --  Valid region roles must be added before this entry:
-      Invalid_Region_Role);
-
-   for Memory_Region_Role_Type use
-     (Null_Pointer_Dereference_Guard => 0,
-      Hypervisor_Code_Region => 1,
-      Hypervisor_Rodata_Region => 2,
-      Hypervisor_Interrupt_Stack_Overflow_Guard => 3,
-      Hypervisor_Mmio_Region => 4,
-
-      Partition0_Sram_Region => 5,
-      Partition0_Tcm_Region => 6,
-      Partition0_Mmio_Region => 7,
-      Partition0_Reserved1_Region => 8,
-
-      Partition1_Sram_Region => 9,
-      Partition1_Tcm_Region => 10,
-      Partition1_Mmio_Region => 11,
-      Partition1_Reserved1_Region => 12,
-
-      Partition2_Sram_Region => 13,
-      Partition2_Tcm_Region => 14,
-      Partition2_Mmio_Region => 15,
-      Partition2_Reserved1_Region => 16,
-
-      Partition3_Sram_Region => 17,
-      Partition3_Tcm_Region => 18,
-      Partition3_Mmio_Region => 19,
-      Partition3_Reserved1_Region => 20,
-
-      --  Valid region roles must be added before this entry:
-      Invalid_Region_Role => Max_Num_Memory_Regions);
 
    procedure Initialize
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode,
@@ -121,35 +58,48 @@ is
    type Partition_Internal_Memory_Regions_Type is
       array (Memory_Region_Id_Type) of Memory_Region_Descriptor_Type;
 
+   type Memory_Protection_Context_Type is limited record
+      Hypervisor_Enabled_Regions_Bit_Mask :
+         HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.Memory_Regions_Enabled_Bit_Mask_Type;
+      Fault_Status_Registers : Fault_Status_Registers_Type;
+      Internal_Memory_Regions : Partition_Internal_Memory_Regions_Type;
+   end record;
+
    --
    --  Initializes a partition's memory protection region descriptors
    --
-   procedure Initialize_Partition_Memory_Regions (
-      Partition_Id : Valid_Partition_Id_Type;
+   procedure Initialize_Memory_Protection_Context (
       TCM_Base_Address : System.Address;
       TCM_Size_In_Bytes : System.Storage_Elements.Integer_Address;
       SRAM_Base_Address : System.Address;
       SRAM_Size_In_Bytes : System.Storage_Elements.Integer_Address;
       MMIO_Base_Address : System.Address;
       MMIO_Size_In_Bytes : System.Storage_Elements.Integer_Address;
-      Partition_Internal_Memory_Regions : out Partition_Internal_Memory_Regions_Type)
+      Partition_Hypervisor_Regions_Config : Partition_Hypervisor_Regions_Config_Type;
+      Memory_Protection_Context : out Memory_Protection_Context_Type)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
 
    --
    --  Restore a partition's memory protection regions
    --
-   procedure Restore_Partition_Memory_Regions (
-      Partition_Id : Valid_Partition_Id_Type;
-      Partition_Internal_Memory_Regions : Partition_Internal_Memory_Regions_Type)
+   procedure Restore_Memory_Protection_Context (
+      Memory_Protection_Context : Memory_Protection_Context_Type)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode and then
                   HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
    --
    --  Save a partition's memory protection regions
    --
-   procedure Save_Partition_Memory_Regions (
-      Partition_Id : Valid_Partition_Id_Type;
-      Partition_Internal_Memory_Regions : out Partition_Internal_Memory_Regions_Type)
+   procedure Save_Memory_Protection_Context (
+      Memory_Protection_Context : out Memory_Protection_Context_Type)
+      with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
+
+   --
+   --  Re-initializes a partition's internal memory region descriptors and
+   --  exception status registers
+   --
+   procedure Cleanup_Memory_Protection_Context (
+      Memory_Protection_Context : out Memory_Protection_Context_Type)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode;
 
 end HiRTOS.Separation_Kernel.Memory_Protection_Private;

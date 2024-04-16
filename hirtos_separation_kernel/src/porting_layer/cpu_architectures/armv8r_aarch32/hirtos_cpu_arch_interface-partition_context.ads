@@ -27,7 +27,8 @@ package HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
    --  Perform the first partittion context switch
    --
    procedure First_Partition_Context_Switch
-      with Pre => Cpu_In_Hypervisor_Mode,
+      with Pre => Cpu_In_Hypervisor_Mode and then
+                  Cpu_Interrupting_Disabled,
            No_Return;
 
    --
@@ -38,6 +39,10 @@ package HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
    function  Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address;
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
+
+   function Get_Saved_R0 (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
+
+   function Get_Saved_R1 (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
 
    function Get_Interrupt_Stack_End_Address (Cpu_Context : Cpu_Context_Type) return System.Address;
 
@@ -70,7 +75,7 @@ private
       with Convention => C;
 
    type Floating_Point_Registers_Type is record
-      Double_Precision_Registers : Double_Precision_Registers_Type := [ others => 0 ];
+      Double_Precision_Registers : Double_Precision_Registers_Type := [others => 0];
       Fpscr : Interfaces.Unsigned_32 := 0;
       Reserved : Interfaces.Unsigned_32 := 0; --  alignment hole
    end record
@@ -197,6 +202,12 @@ private
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
       (Cpu_Context.Integer_Registers.SPSR_HYP);
+
+   function Get_Saved_R0 (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
+      (Cpu_Context.Integer_Registers.R0);
+
+   function Get_Saved_R1 (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
+      (Cpu_Context.Integer_Registers.R1);
 
    function Get_Interrupt_Stack_End_Address (Cpu_Context : Cpu_Context_Type) return System.Address is
       (Cpu_Context.Interrupt_Stack_End_Address);

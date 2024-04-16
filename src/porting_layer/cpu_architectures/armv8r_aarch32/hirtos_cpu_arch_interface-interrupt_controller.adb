@@ -49,16 +49,12 @@ is
          end loop;
 
          GICD_TYPER_Value := GICD.GICD_TYPER;
-         pragma Assert
-           (GICD_TYPER_Value.IDBits = ARM_Cortex_R52_GICD_TYPER_IDbits);
+         pragma Assert (GICD_TYPER_Value.IDBits = ARM_Cortex_R52_GICD_TYPER_IDbits);
 
          Max_Number_Interrupt_Sources :=
            (32 * Interfaces.Unsigned_16 (GICD_TYPER_Value.ITLinesNumber)) + 1;
          pragma Assert
-           (Max_Number_Interrupt_Sources <=
-            Interfaces.Unsigned_16
-              (External_Interrupt_Id_Type'Last -
-               External_Interrupt_Id_Type'First + 1));
+           (Max_Number_Interrupt_Sources <= Interfaces.Unsigned_16 (Max_Num_Interrupts_Supported));
 
          --
          --  Disable and clear all SPIs:
@@ -192,7 +188,6 @@ is
          Set_ICC_PMR (ICC_PMR_Value);
       end Initialize_GIC_Cpu_Interface;
 
-      use type Valid_Cpu_Core_Id_Type;
       Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
       Old_Cpu_Interrupting_State : Cpu_Register_Type;
       Old_Data_Range             : HiRTOS.Memory_Protection.Memory_Range_Type;
@@ -205,7 +200,7 @@ is
         (Interrupt_Controller_Obj'Address, Interrupt_Controller_Obj'Size,
          Old_Data_Range);
 
-      if Cpu_In_Hypervisor_Mode or else not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
+      if not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
          Old_Cpu_Interrupting_State := Disable_Cpu_Interrupting;
 
          if Cpu_Id = Valid_Cpu_Core_Id_Type'First then
@@ -234,7 +229,7 @@ is
 
    procedure Configure_Internal_Interrupt
      (Internal_Interrupt_Id         : Internal_Interrupt_Id_Type;
-      Priority                      : Interrupt_Priority_Type;
+      Priority                      : Valid_Interrupt_Priority_Type;
       Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
       Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
@@ -314,7 +309,7 @@ is
 
    procedure Configure_External_Interrupt
      (External_Interrupt_Id         : External_Interrupt_Id_Type;
-      Priority                      : Interrupt_Priority_Type;
+      Priority                      : Valid_Interrupt_Priority_Type;
       Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
       Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
@@ -536,8 +531,9 @@ is
             Interrupt_Handler : Interrupt_Handler_Type renames
                Interrupt_Controller_Obj.Internal_Interrupt_Handlers (Cpu_Id, Internal_Interrupt_Id);
          begin
-            pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point /= null);
-            Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
+            if Interrupt_Handler.Interrupt_Handler_Entry_Point /= null then
+               Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
+            end if;
          end;
       elsif Interrupt_Id <= Interfaces.Unsigned_16 (External_Interrupt_Id_Type'Last) then
          declare

@@ -9,6 +9,7 @@ with HiRTOS.Thread;
 with HiRTOS.Mutex;
 with HiRTOS.Timer;
 with HiRTOS.Debug;
+with HiRTOS.Memory_Protection;
 with System.Storage_Elements;
 with Interfaces;
 
@@ -35,7 +36,8 @@ package body App_Threads is
       Turn_LED_On : Boolean := True;
       Heart_Beat_Timer_Id : HiRTOS.Timer_Id_Type := HiRTOS.Invalid_Timer_Id;
       Mutex_Id : HiRTOS.Mutex_Id_Type := HiRTOS.Invalid_Mutex_Id;
-   end record;
+   end record with
+      Alignment => HiRTOS.Memory_Protection.Memory_Range_Alignment;
 
    Per_Cpu_Data : array (HiRTOS.Cpu_Id_Type) of My_Cpu_Data_Type;
 
@@ -84,14 +86,18 @@ package body App_Threads is
          HiRTOS.Get_Current_Time_Us + HiRTOS.Absolute_Time_Us_Type (Period_Us);
       Counter : Interfaces.Unsigned_32 := 1;
       My_Cpu_Data : My_Cpu_Data_Type renames Per_Cpu_Data (Cpu_Id);
+      Old_Data_Range : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
       pragma Assert (not HiRTOS.Cpu_In_Privileged_Mode);
       pragma Assert (not HiRTOS.Cpu_Interrupting_Disabled);
       pragma Assert (Arg_Value = Positive (Thread_Id) - 1);
-      --  HiRTOS.Enter_Cpu_Privileged_Mode;
-      --  HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
-      --  pragma Assert (not HiRTOS.Current_Execution_Context_Is_Interrupt);
-      --  HiRTOS.Exit_Cpu_Privileged_Mode;
+
+      HiRTOS.Enter_Cpu_Privileged_Mode;
+      pragma Assert (not HiRTOS.Cpu_Interrupting_Disabled);
+      HiRTOS.Exit_Cpu_Privileged_Mode;
+
+      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
+        (My_Cpu_Data'Address, My_Cpu_Data'Size, Old_Data_Range);
 
       loop
          HiRTOS.Mutex.Acquire (My_Cpu_Data.Mutex_Id);

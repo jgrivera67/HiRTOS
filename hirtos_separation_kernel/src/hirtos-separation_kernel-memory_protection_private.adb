@@ -13,38 +13,25 @@ with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor;
 with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Platform_Parameters;
-with HiRTOS.Separation_Kernel.SK_Private;
-with HiRTOS.Separation_Kernel.Partition_Private;
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor;
 with Memory_Utils;
 
 package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode => On is
    use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
-   use HiRTOS.Separation_Kernel.SK_Private;
-   use HiRTOS.Separation_Kernel.Partition_Private;
 
    procedure Initialize is
       use type System.Address;
       Cpu_Id : constant Cpu_Core_Id_Type := Get_Cpu_Id;
       ISR_Stack_Info : constant ISR_Stack_Info_Type := Get_ISR_Stack_Info (Cpu_Id);
    begin
-      Hypervisor.Disable_Memory_Protection;
-      Hypervisor.Load_Memory_Attributes_Lookup_Table;
-
-      --
-      --  Disable all region descriptors:
-      --
-      for Region_Id in Memory_Region_Id_Type loop
-         Hypervisor.Disable_Memory_Region (Region_Id);
-      end loop;
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.Initialize;
 
       --
       --  Set NULL pointer de-reference guard region:
       --
       if HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor.Get_HVBAR /= System.Null_Address then
          Hypervisor.Configure_Memory_Region (
-            Memory_Region_Id_Type (Null_Pointer_Dereference_Guard'Enum_Rep),
+            Memory_Region_Id_Type (Hypervisor.Null_Pointer_Dereference_Guard'Enum_Rep),
             System.Null_Address,
             HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment,
             Unprivileged_Permissions => None,
@@ -106,31 +93,29 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
       Hypervisor.Enable_Memory_Protection (Enable_Background_Region => True);
    end Initialize;
 
-   procedure Initialize_Partition_Memory_Regions (
-      Partition_Id : Valid_Partition_Id_Type;
+   procedure Initialize_Memory_Protection_Context (
       TCM_Base_Address : System.Address;
       TCM_Size_In_Bytes :  System.Storage_Elements.Integer_Address;
       SRAM_Base_Address : System.Address;
       SRAM_Size_In_Bytes :  System.Storage_Elements.Integer_Address;
       MMIO_Base_Address : System.Address;
       MMIO_Size_In_Bytes :  System.Storage_Elements.Integer_Address;
-      Partition_Internal_Memory_Regions : out Partition_Internal_Memory_Regions_Type)
+      Partition_Hypervisor_Regions_Config : Partition_Hypervisor_Regions_Config_Type;
+      Memory_Protection_Context : out Memory_Protection_Context_Type)
    is
       use HiRTOS_Platform_Parameters;
-      Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
-         Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
-      Partition_Obj : Partition_Type renames
-         Separation_Kernel_Cpu_Instance.Partition_Instances (Partition_Id);
       TCM_Region_Id : Memory_Region_Id_Type renames
-         Partition_Hypervisor_Regions_Config_Array (Partition_Id).Tcm_Region_Id;
+         Partition_Hypervisor_Regions_Config.Tcm_Region_Id;
       SRAM_Region_Id : Memory_Region_Id_Type renames
-         Partition_Hypervisor_Regions_Config_Array (Partition_Id).Sram_Region_Id;
+         Partition_Hypervisor_Regions_Config.Sram_Region_Id;
       MMIO_Region_Id : Memory_Region_Id_Type renames
-         Partition_Hypervisor_Regions_Config_Array (Partition_Id).Mmio_Region_Id;
+         Partition_Hypervisor_Regions_Config.Mmio_Region_Id;
       Global_Mmio_Region_Size_In_Bytes : constant Integer_Address :=
          To_Integer (Global_Mmio_Region_End_Address) - To_Integer (Global_Mmio_Region_Start_Address);
    begin
-      Partition_Obj.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array := [others => False];
+      Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array := [others => False];
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize_Fault_Status_Registers (
+         Memory_Protection_Context.Fault_Status_Registers);
 
       --
       --  Configure Hypervisor-controlled MPU regions for the partition:
@@ -147,7 +132,7 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
                                              Privileged_Permissions => Read_Write_Execute,
                                              Region_Attributes => Normal_Memory_Write_Back_Cacheable);
          Hypervisor.Disable_Memory_Region (TCM_Region_Id);
-         Partition_Obj.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array (TCM_Region_Id) := True;
+         Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array (TCM_Region_Id) := True;
       end if;
 
       if SRAM_Size_In_Bytes /= 0 then
@@ -158,7 +143,7 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
                                              Privileged_Permissions => Read_Write_Execute,
                                              Region_Attributes => Normal_Memory_Write_Back_Cacheable);
          Hypervisor.Disable_Memory_Region (SRAM_Region_Id);
-         Partition_Obj.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array (SRAM_Region_Id) := True;
+         Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array (SRAM_Region_Id) := True;
       end if;
 
       if MMIO_Size_In_Bytes /= 0 and then
@@ -173,41 +158,36 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
                                              Privileged_Permissions => Read_Write,
                                              Region_Attributes => Device_Memory_Mapped_Io);
          Hypervisor.Disable_Memory_Region (MMIO_Region_Id);
-         Partition_Obj.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array (MMIO_Region_Id) := True;
+         Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask.Bits_Array (MMIO_Region_Id) := True;
       end if;
 
-      for Region_Desc of Partition_Internal_Memory_Regions loop
+      for Region_Desc of Memory_Protection_Context.Internal_Memory_Regions loop
          Initialize_Memory_Region_Descriptor_Disabled (Region_Desc);
       end loop;
-   end Initialize_Partition_Memory_Regions;
+   end Initialize_Memory_Protection_Context;
 
-   procedure Restore_Partition_Memory_Regions (
-      Partition_Id : Valid_Partition_Id_Type;
-      Partition_Internal_Memory_Regions : Partition_Internal_Memory_Regions_Type)
+   procedure Restore_Memory_Protection_Context (
+      Memory_Protection_Context : Memory_Protection_Context_Type)
    is
-      Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
-         Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
-      Partition_Obj : Partition_Type renames Separation_Kernel_Cpu_Instance.Partition_Instances (Partition_Id);
    begin
       --
       --  NOTE: We don't need to physically restore the partition's hypervisor-controlled
       --  MPU regions here, we just need to enabled them.
       --
       HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.
-         Enable_Memory_Regions_Bit_Mask (Partition_Obj.Hypervisor_Enabled_Regions_Bit_Mask);
+         Enable_Memory_Regions_Bit_Mask (Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask);
 
-      for Region_Id in Partition_Internal_Memory_Regions'Range loop
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Restore_Fault_Status_Registers (
+         Memory_Protection_Context.Fault_Status_Registers);
+
+      for Region_Id in Memory_Protection_Context.Internal_Memory_Regions'Range loop
          HiRTOS_Cpu_Arch_Interface.Memory_Protection.Restore_Memory_Region_Descriptor (
-            Region_Id, Partition_Internal_Memory_Regions (Region_Id));
+            Region_Id, Memory_Protection_Context.Internal_Memory_Regions (Region_Id));
       end loop;
-   end Restore_Partition_Memory_Regions;
+   end Restore_Memory_Protection_Context;
 
-   procedure Save_Partition_Memory_Regions (
-      Partition_Id : Valid_Partition_Id_Type;
-      Partition_Internal_Memory_Regions : out Partition_Internal_Memory_Regions_Type) is
-      Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
-         Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
-      Partition_Obj : Partition_Type renames Separation_Kernel_Cpu_Instance.Partition_Instances (Partition_Id);
+   procedure Save_Memory_Protection_Context (
+      Memory_Protection_Context : out Memory_Protection_Context_Type) is
    begin
       --
       --  NOTE: We need to disable the partition's hypervisor-controlled
@@ -215,12 +195,26 @@ package body HiRTOS.Separation_Kernel.Memory_Protection_Private with SPARK_Mode 
       --  a partition.
       --
       HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor.
-         Disable_Memory_Regions_Bit_Mask (Partition_Obj.Hypervisor_Enabled_Regions_Bit_Mask);
+         Disable_Memory_Regions_Bit_Mask (Memory_Protection_Context.Hypervisor_Enabled_Regions_Bit_Mask);
 
-      for Region_Id in Partition_Internal_Memory_Regions'Range loop
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Save_Fault_Status_Registers (
+         Memory_Protection_Context.Fault_Status_Registers);
+
+      for Region_Id in Memory_Protection_Context.Internal_Memory_Regions'Range loop
          HiRTOS_Cpu_Arch_Interface.Memory_Protection.Save_Memory_Region_Descriptor (
-            Region_Id, Partition_Internal_Memory_Regions (Region_Id));
+            Region_Id, Memory_Protection_Context.Internal_Memory_Regions (Region_Id));
       end loop;
-   end Save_Partition_Memory_Regions;
+   end Save_Memory_Protection_Context;
+
+   procedure Cleanup_Memory_Protection_Context (
+      Memory_Protection_Context : out Memory_Protection_Context_Type) is
+   begin
+      HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize_Fault_Status_Registers (
+         Memory_Protection_Context.Fault_Status_Registers);
+
+      for Region_Desc of Memory_Protection_Context.Internal_Memory_Regions loop
+         HiRTOS_Cpu_Arch_Interface.Memory_Protection.Initialize_Memory_Region_Descriptor_Disabled (Region_Desc);
+      end loop;
+   end Cleanup_Memory_Protection_Context;
 
 end HiRTOS.Separation_Kernel.Memory_Protection_Private;

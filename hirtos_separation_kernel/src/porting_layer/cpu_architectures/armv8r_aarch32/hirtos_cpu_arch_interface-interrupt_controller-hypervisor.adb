@@ -10,15 +10,20 @@
 --  for ARMv8-R hypervisor
 --
 
+with HiRTOS_Cpu_Arch_Interface.Interrupts;
+
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Hypervisor with
   SPARK_Mode => Off
 is
    procedure Initialize_Interrupts_Enabled_Bitmap (
       Interrupts_Enabled_Bitmap : out Interrupts_Enabled_Bitmap_Type) is
    begin
-      Interrupts_Enabled_Bitmap := [0 => (As_Word => False,
-                                          Bits_Array => [26 => 1, others => 0]), --????
-                                    others => (As_Word => True, Value => 0)];
+      Interrupts_Enabled_Bitmap :=
+         [0 => (As_Word => False,
+                Bits_Array => [Integer (HiRTOS_Cpu_Arch_Interface.Interrupts.
+                                          Generic_Hypervisor_Timer_Interrupt_Id) => 1,
+                               others => 0]),
+          others => (As_Word => True, Value => 0)];
    end Initialize_Interrupts_Enabled_Bitmap;
 
    procedure Save_Interrupts_Enabled_Bitmap (

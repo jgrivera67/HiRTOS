@@ -22,6 +22,12 @@ is
    function Round_Up (M : Unsigned_32; N : Unsigned_32) return Unsigned_32
    is (How_Many (M, N) * N);
 
+   function Round_Down (M : Unsigned_32; N : Unsigned_32) return Unsigned_32
+   is ((M / N) * N);
+
+   function Round_Down (M : Integer_Address; N : Integer_Address) return Integer_Address
+   is ((M / N) * N);
+
    type Bytes_Array_Type is array (Positive range <>) of aliased Unsigned_8;
 
    --
@@ -65,6 +71,14 @@ is
     else
        True);
 
+   function Is_Subrange_Of_Address_Range (Subrange_Start_Address : System.Address;
+                                          Subrange_Size_In_Bytes : Integer_Address;
+                                          Range_Start_Address : System.Address;
+                                          Range_Size_In_Bytes : Integer_Address) return Boolean is
+      (Range_Start_Address <= Subrange_Start_Address and then
+                      To_Integer (Range_Start_Address) + Range_Size_In_Bytes >=
+                        To_Integer (Subrange_Start_Address) + Subrange_Size_In_Bytes);
+
    function C_Memcpy (Dest_Addr, Src_Addr : System.Address;
                       Num_Bytes : Interfaces.C.size_t) return System.Address
      with Import,
@@ -97,10 +111,6 @@ is
    --  (C global and static initialized variables)
    --
    procedure Copy_Data_Section;
-
-   procedure Invalidate_Data_Cache;
-
-   procedure Invalidate_Instruction_Cache;
 
    procedure Invalidate_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address)
       with Pre => To_Integer (Start_Address) mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0

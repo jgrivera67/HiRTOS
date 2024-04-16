@@ -28,10 +28,10 @@ is
    function Valid_ISR_Stack_Pointer (Cpu_Id : Cpu_Core_Id_Type; Stack_Pointer : System.Address)
       return Boolean;
 
+   procedure Interrupt_Handler_Prolog
+      with Inline_Always;
+
    procedure Interrupt_Handler_Epilog
       with Inline_Always, No_Return;
-
-   procedure Handle_Undefined_Instruction_Exception
-      with Pre => Cpu_In_Privileged_Mode;
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;

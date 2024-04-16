@@ -19,7 +19,7 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
    --  If the partition has consumed its time slice, enqueue it at the end of the
    --  given run queue.
    --
-   procedure Reschedule_Partition (Partition_Id : Valid_Partition_Id_Type)
+   procedure Reschedule_Partition (Partition_Obj : in out Partition_Type)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_Interrupting_Disabled;
 
    -----------------------------------------------------------------------------
@@ -78,20 +78,33 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
       Old_Cpu_Interrupt_Mask := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
       Old_Partition_Id := Separation_Kernel_Cpu_Instance.Current_Partition_Id;
       if Old_Partition_Id /= Invalid_Partition_Id then
-         Reschedule_Partition (Old_Partition_Id);
-         Separation_Kernel_Cpu_Instance.Current_Partition_Id := Invalid_Partition_Id;
+         declare
+            Old_Partition_Obj : Partition_Type renames
+               Separation_Kernel_Cpu_Instance.Partition_Instances (Old_Partition_Id);
+         begin
+            if Old_Partition_Obj.State = Partition_Running then
+               pragma Assert (Separation_Kernel_Cpu_Instance.Current_Partition_Id = Old_Partition_Id);
+               Old_Partition_Obj.State := Partition_Runnable;
+               Reschedule_Partition (Old_Partition_Obj);
+            end if;
+
+            Separation_Kernel_Cpu_Instance.Current_Partition_Id := Invalid_Partition_Id;
+         end;
       end if;
 
       Dequeue_Runnable_Partition (Separation_Kernel_Cpu_Instance.Current_Partition_Id);
 
-      if Separation_Kernel_Cpu_Instance.Current_Partition_Id /= Old_Partition_Id then
-         declare
-            Current_Partition_Obj : Partition_Type renames
-               Separation_Kernel_Cpu_Instance.Partition_Instances (Separation_Kernel_Cpu_Instance.Current_Partition_Id);
-         begin
+      declare
+         Current_Partition_Obj : Partition_Type renames
+            Separation_Kernel_Cpu_Instance.Partition_Instances (Separation_Kernel_Cpu_Instance.Current_Partition_Id);
+      begin
+         if Separation_Kernel_Cpu_Instance.Current_Partition_Id /= Old_Partition_Id then
             Current_Partition_Obj.Stats.Times_Switched_In := @ + 1;
-         end;
-      end if;
+         end if;
+
+         pragma Assert (Current_Partition_Obj.State = Partition_Runnable);
+         Current_Partition_Obj.State := Partition_Running;
+      end;
 
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupt_Mask);
@@ -101,10 +114,7 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
    --  Private Subprograms                                                    --
    -----------------------------------------------------------------------------
 
-   procedure Reschedule_Partition (Partition_Id : Valid_Partition_Id_Type) is
-      Separation_Kernel_Cpu_Instance : Separation_Kernel_Cpu_Instance_Type renames
-         Separation_Kernel_Cpu_Instances (Get_Cpu_Id);
-      Partition_Obj : Partition_Type renames Separation_Kernel_Cpu_Instance.Partition_Instances (Partition_Id);
+   procedure Reschedule_Partition (Partition_Obj : in out Partition_Type) is
    begin
       if Partition_Obj.Time_Slice_Left_Us = 0 or else Partition_Obj.Executed_WFI then
          Partition_Obj.Stats.Times_Time_Slice_Consumed := @ + 1;
@@ -124,11 +134,12 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
       HiRTOS_Cpu_Arch_Interface.Partition_Context.Save_Interrupt_Handling_Context (
          Partition_Obj.Interrupt_Handling_Context);
       if HiRTOS_Separation_Kernel_Config_Parameters.Partitions_Share_Tick_Timer then
-         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Save_Timer_Context (Partition_Obj.Timer_Context);
+         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor.Save_Timer_Context (
+            Partition_Obj.Timer_Context);
       end if;
 
-      HiRTOS.Separation_Kernel.Memory_Protection_Private.Save_Partition_Memory_Regions (
-         Partition_Obj.Id, Partition_Obj.Internal_Memory_Regions);
+      HiRTOS.Separation_Kernel.Memory_Protection_Private.Save_Memory_Protection_Context (
+         Partition_Obj.Memory_Protection_Context);
    end Save_Partition_Extended_Context;
 
    procedure Restore_Partition_Extended_Context (Partition_Obj : Partition_Type) is
@@ -138,11 +149,12 @@ package body HiRTOS.Separation_Kernel.Partition_Private is
       HiRTOS_Cpu_Arch_Interface.Partition_Context.Restore_Interrupt_Handling_Context (
          Partition_Obj.Interrupt_Handling_Context);
       if HiRTOS_Separation_Kernel_Config_Parameters.Partitions_Share_Tick_Timer then
-         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Restore_Timer_Context (Partition_Obj.Timer_Context);
+         HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor.Restore_Timer_Context (
+            Partition_Obj.Timer_Context);
       end if;
 
-      HiRTOS.Separation_Kernel.Memory_Protection_Private.Restore_Partition_Memory_Regions (
-         Partition_Obj.Id, Partition_Obj.Internal_Memory_Regions);
+      HiRTOS.Separation_Kernel.Memory_Protection_Private.Restore_Memory_Protection_Context (
+         Partition_Obj.Memory_Protection_Context);
    end Restore_Partition_Extended_Context;
 
 end HiRTOS.Separation_Kernel.Partition_Private;

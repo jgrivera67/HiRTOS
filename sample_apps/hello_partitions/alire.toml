@@ -14,10 +14,17 @@ hirtos_separation_kernel = "*"
 [[pins]]
 hirtos_separation_kernel = { path='../../hirtos_separation_kernel' }
 
+[gpr-set-externals]
+CPU_Core = "arm_cortex_r52"
+
 [build-profiles]
 hirtos_separation_kernel = "development"
 
 [[actions]]
 type = "pre-build"
 command = ["./build_partitions.sh"]
+
+[[actions]]
+type = "post-build"
+command = ["sh", "-c", "arm-none-eabi-objdump -dSstl bin/hello_partitions.elf > bin/hello_partitions.lst"]
 

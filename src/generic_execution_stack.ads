@@ -18,14 +18,16 @@ package Generic_Execution_Stack with
   SPARK_Mode => On
 is
 
+   pragma Compile_Time_Error (
+      Stack_Size_In_Bytes mod HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment /= 0,
+      "Stack size must be a multiple of the memory region alignment"
+   );
+
    type Stack_Overflow_Guard_Type is
-     array
-       (1 ..
-            HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment) of Interfaces
-       .Unsigned_8 with
+     array (1 .. HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment) of Interfaces.Unsigned_8 with
      Size =>
-      HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment * System.Storage_Unit,
-     Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+      HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment * Interfaces.Unsigned_8'Size,
+      Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
 
    subtype Stack_Entry_Type is System.Storage_Elements.Integer_Address;
 

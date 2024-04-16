@@ -17,7 +17,6 @@ with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On is
    use ASCII;
-   use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
 
    procedure Partition_Unintended_Exit_Catcher is
@@ -30,7 +29,7 @@ package body HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On i
                                                Interrupt_Stack_End_Address : System.Address) is
    begin
       Partition_Cpu_Context.Interrupt_Stack_End_Address := Interrupt_Stack_End_Address;
-      Partition_Cpu_Context.Floating_Point_Registers := ( others => <> );
+      Partition_Cpu_Context.Floating_Point_Registers := (others => <>);
       Partition_Cpu_Context.Integer_Registers :=
          (ELR_HYP => Entry_Point_Address,
           SPSR_HYP => CPSR_Supervisor_Mode or CPSR_I_Bit_Mask,
@@ -63,7 +62,7 @@ package body HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On i
    procedure Synchronous_Partition_Context_Switch is
    begin
       --
-      --  Initiate a synchronous thread context switch by doing
+      --  Initiate a synchronous partition context switch by doing
       --  a Hypervisor call, passing 0 in r0
       --
       System.Machine_Code.Asm (
@@ -148,14 +147,13 @@ package body HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On i
 
          --
          --  NOTE: SYS mode and USR mode share the same sp and lr
-         --  and they don't have spsr.
+         --  and they don't have spsr. Also, we don't need to save
+         --  lr_usr here, as lr it is saved by Interrupt_Handler_Prolog
          --
          System.Machine_Code.Asm (
-         "mrs %0, sp_usr" & LF &
-         "mrs %1, lr_usr",
+         "mrs %0, sp_usr",
          Outputs => [
-            Cpu_Register_Type'Asm_Output ("=r", Extended_Cpu_Context.Sp_Usr),   --  %0
-            Cpu_Register_Type'Asm_Output ("=r", Extended_Cpu_Context.Lr_Usr)    --  %1
+            Cpu_Register_Type'Asm_Output ("=r", Extended_Cpu_Context.Sp_Usr)    --  %0
          ],
          Volatile => True);
    end Save_Extended_Cpu_Context;
@@ -235,14 +233,13 @@ package body HiRTOS_Cpu_Arch_Interface.Partition_Context with SPARK_Mode => On i
 
       --
       --  NOTE: SYS mode and USR mode share the same sp and lr
-      --  and they don't have spsr.
+      --  and they don't have spsr. Also, we don't need to restore
+         --  lr_usr here, as lr it is saved by Interrupt_Handler_Epilog
       --
       System.Machine_Code.Asm (
-         "msr sp_usr, %0" & LF &
-         "msr lr_usr, %1",
+         "msr sp_usr, %0",
          Inputs   => [
-            Cpu_Register_Type'Asm_Input ("r", Extended_Cpu_Context.Sp_Usr),   --  %0
-            Cpu_Register_Type'Asm_Input ("r", Extended_Cpu_Context.Lr_Usr)    --  %1
+            Cpu_Register_Type'Asm_Input ("r", Extended_Cpu_Context.Sp_Usr)    --  %0
          ],
          Volatile => True);
    end Restore_Extended_Cpu_Context;

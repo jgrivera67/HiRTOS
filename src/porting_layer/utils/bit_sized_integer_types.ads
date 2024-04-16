@@ -30,6 +30,9 @@ package Bit_Sized_Integer_Types  with No_Elaboration_Code_All is
    type Seven_Bits_Type is mod 2 ** 7
      with Size => 7;
 
+   type Eighteen_Bits_Type is mod 2 ** 18
+     with Size => 18;
+
    type Twenty_Seven_Bits_Type is mod 2 ** 27
      with Size => 27;
 

@@ -10,17 +10,15 @@
 --
 
 with Generic_Execution_Stack;
-with HiRTOS.Interrupt_Handling;
+with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 with HiRTOS_Cpu_Arch_Interface_Private;
-with HiRTOS_Low_Level_Debug_Interface;
 with System.Machine_Code;
 with Interfaces;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    use ASCII;
-   use System.Storage_Elements;
    use HiRTOS_Cpu_Arch_Interface_Private;
 
    --
@@ -71,9 +69,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
            External_Name => "el1_fiq_interrupt_handler";
    pragma Machine_Attribute (EL1_Fiq_Interrupt_Handler, "naked");
 
-   procedure Interrupt_Handler_Prolog
-      with Inline_Always;
-
    procedure Do_Synchronous_Context_Switch
       with Export,
            External_Name => "do_synchronous_context_switch";
@@ -95,7 +90,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       Generic_Execution_Stack (Stack_Size_In_Bytes => ISR_Stack_Size_In_Bytes);
 
    ISR_Stacks :
-      array (Cpu_Core_Id_Type) of ISR_Stacks_Package.Execution_Stack_Type
+      array (Valid_Cpu_Core_Id_Type) of ISR_Stacks_Package.Execution_Stack_Type
          with Linker_Section => ".isr_stack",
               Convention => C,
               Export,
@@ -108,7 +103,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    function Get_ISR_Stack_Info (Cpu_Id : Cpu_Core_Id_Type)
       return ISR_Stack_Info_Type
    is
-      use type System.Storage_Elements.Integer_Address;
       ISR_Stack_Info : constant ISR_Stack_Info_Type :=
          (Base_Address => ISR_Stacks (Cpu_Id).Stack_Entries'Address,
           Size_In_Bytes => ISR_Stacks (Cpu_Id).Stack_Entries'Size / System.Storage_Unit);
@@ -266,22 +260,9 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    procedure EL1_Undefined_Instruction_Exception_Handler is
    begin
       Interrupt_Handler_Prolog;
-      Handle_Undefined_Instruction_Exception;
+      HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific.Handle_Undefined_Instruction_Exception;
       Interrupt_Handler_Epilog;
    end EL1_Undefined_Instruction_Exception_Handler;
-
-   procedure Handle_Undefined_Instruction_Exception is
-      use type System.Storage_Elements.Integer_Address;
-      Faulting_PC : constant System.Storage_Elements.Integer_Address :=
-         System.Storage_Elements.To_Integer (HiRTOS.Interrupt_Handling.Get_Interrupted_PC) - 4;
-   begin
-      HiRTOS_Low_Level_Debug_Interface.Print_String (
-         "*** Undefined instruction exception (faulting PC: ");
-      HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Faulting_PC));
-      HiRTOS_Low_Level_Debug_Interface.Print_String (")" & ASCII.LF);
-
-      raise Program_Error;
-   end Handle_Undefined_Instruction_Exception;
 
    --
    --  SVC instruction exception handler
@@ -335,7 +316,6 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
          --
          --  Return from the exception:
-         --  (see Cortex-R5 Technical Reference Manual, section 3.8.1)
          --
          --  NOTE: For the SVC exception, lr points the instruction right
          --  after the svc instruction that brought us here.

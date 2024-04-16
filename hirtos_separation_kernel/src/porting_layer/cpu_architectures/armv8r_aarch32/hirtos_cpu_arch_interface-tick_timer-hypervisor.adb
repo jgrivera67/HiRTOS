@@ -45,7 +45,6 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => 
    end Initialize;
 
    procedure Start_Timer (Expiration_Time_Us : HiRTOS.Relative_Time_Us_Type) is
-      use System.Storage_Elements;
       CNTP_CTL_Value : CNTP_CTL_Type;
       CNTP_TVAL_Value : constant CNTP_TVAL_Type :=
          CNTP_TVAL_Type (Expiration_Time_Us * Timer_Counter_Cycles_Per_Us);
@@ -102,13 +101,50 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => 
       Set_CNTHP_CTL (CNTP_CTL_Value);
    end Stop_Timer;
 
+   procedure Initialize_Timer_Context (Timer_Context : out Timer_Context_Type) is
+   begin
+      --  Initialize CNTVCT to match the current CNTPCT
+      Timer_Context := (CNTVCT_Value => Get_CNTPCT, others => <>);
+   end Initialize_Timer_Context;
+
+   procedure Save_Timer_Context (Timer_Context : out Timer_Context_Type) is
+   begin
+      Timer_Context.CNTV_CTL_Value := Get_CNTV_CTL;
+      Timer_Context.CNTV_TVAL_Value := Get_CNTV_TVAL;
+      Timer_Context.CNTVCT_Value := Get_CNTVCT;
+   end Save_Timer_Context;
+
+   procedure Restore_Timer_Context (Timer_Context : Timer_Context_Type) is
+      use type Interfaces.Unsigned_64;
+      CNTPCT_Value : constant CNTPCT_Type := Get_CNTPCT;
+      CNTVOFF_Value : constant CNTVOFF_Type :=
+         (As_Two_Words => False, Value => CNTPCT_Value.Value - Timer_Context.CNTVCT_Value.Value);
+      CNTV_CTL_Value : CNTV_CTL_Type;
+   begin
+      --
+      --  Disable virtual timer before updating its registers
+      --
+      CNTV_CTL_Value := Get_CNTV_CTL;
+      CNTV_CTL_Value.ENABLE := Timer_Disabled;
+      CNTV_CTL_Value.IMASK := Timer_Interrupt_Masked;
+      Set_CNTV_CTL (CNTV_CTL_Value);
+
+      --
+      --  NOTE: CNTVCT cannot be restored directly as it is not writable. It is restored indirectly
+      --  by setting the CNTVOFF register. CNTV_TVAL must be set only after setting CNTVOFF, since
+      --  modifying CNTVOFF has the side effect of updating CNTVCT (CNTVCT = CNTPCT - CNTVOFF)
+      --
+      Set_CNTVOFF (CNTVOFF_Value);
+      Set_CNTV_TVAL (Timer_Context.CNTV_TVAL_Value);
+      Set_CNTV_CTL (Timer_Context.CNTV_CTL_Value);
+   end Restore_Timer_Context;
+
    ----------------------------------------------------------------------------
    --  Private Subprograms
    ----------------------------------------------------------------------------
 
    procedure Tick_Timer_Interrupt_Handler (Arg : System.Address)
    is
-      use System.Storage_Elements;
       CNTP_TVAL_Value : constant CNTP_TVAL_Type := CNTP_TVAL_Type (To_Integer (Arg));
    begin
       --
@@ -157,5 +193,27 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => 
          Inputs => CNTP_TVAL_Type'Asm_Input ("r", CNTP_TVAL_Value), --  %0
          Volatile => True);
    end Set_CNTHP_TVAL;
+
+   function Get_CNTVOFF return CNTVOFF_Type is
+      CNTVOFF_Value : CNTVOFF_Type;
+   begin
+      --  NOTE: Use "=&r" to ensure a different register is used
+      System.Machine_Code.Asm (
+         "mrrc p15, 4, %0, %1, c14",
+         Outputs => [Interfaces.Unsigned_32'Asm_Output ("=r", CNTVOFF_Value.Low_Word),    --  %0
+                     Interfaces.Unsigned_32'Asm_Output ("=&r", CNTVOFF_Value.High_Word)], --  %1
+         Volatile => True);
+
+      return CNTVOFF_Value;
+   end Get_CNTVOFF;
+
+   procedure Set_CNTVOFF (CNTVOFF_Value : CNTVOFF_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "mcrr p15, 4, %0, %1, c14",
+         Inputs => [Interfaces.Unsigned_32'Asm_Input ("r", CNTVOFF_Value.Low_Word),    --  %0
+                     Interfaces.Unsigned_32'Asm_Input ("r", CNTVOFF_Value.High_Word)], --  %1
+         Volatile => True);
+   end Set_CNTVOFF;
 
 end HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor;
