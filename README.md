@@ -92,12 +92,15 @@ To run it on the ARM FVP simulator, do:
 
 An ARM FVP run for the "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
 
-## Building and Running the HiRTOS Sample Application for the ESP32-C3 board
+## Building and Running the HiRTOS Sample Applications for RISC-V
+
+HiRTOS has been ported to the [ESP32-C3](https://www.espressif.com/en/products/socs/esp32-c3) RISC-V-based
+microcontroller.
 
 ### Prerequisites
 
 * Install the [`alr`](https://alire.ada.dev/docs/) Ada package manager and meta-build tool
-* Install the [esptool[(https://docs.espressif.com/projects/esptool/en/latest/esp32/) flashing tool
+* Install the [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/) flashing tool
   by doing `pip3 install esptool`.
 * Make the following changes in the HiRTOS crate's `alire.toml` file:
 ```
