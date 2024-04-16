@@ -4,7 +4,7 @@
 #
 name = "hirtos"
 description = "High-Integrity RTOS"
-version = "1.0.0"
+version = "2.0.0"
 licenses = "Apache-2.0"
 website = "https://github.com/jgrivera67/HiRTOS"
 tags = ["rtos"]
