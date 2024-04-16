@@ -12,7 +12,7 @@ in other languages, typically C, is not easy in a portable manner, as the availa
 baremetal GNAT cross-compilers require the availability of an Ada Runtime for the
 target micrcontroller or embedded platform, and such baremetal Ada runtimes are
 available only for a very limited number of platforms. HiRTOS solves this problem
-by being implemented on on top of a minimal platform-independent Ada runtime.
+by being implemented on top of a minimal platform-independent Ada runtime.
 Also, HiRTOS code itself has been written on top of a porting layer that provides
 a platform-agnostic interface to HiRTOS. Currently, only one porting layer for the
 ARM Cortex-R52 multi-core processor is provided. To port HiRTOS to a new target

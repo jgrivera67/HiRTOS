@@ -1,6 +1,7 @@
 #
-# NOTE: Before building for the first time with `alr build`, select the
-# corresponding cross compiler toolchain by running `alr toolchain --select`
+# Copyright (c) 2022-2024, German Rivera
+#
+# SPDX-License-Identifier: Apache-2.0
 #
 name = "hirtos"
 description = "High-Integrity RTOS"

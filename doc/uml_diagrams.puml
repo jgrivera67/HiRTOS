@@ -1,0 +1,200 @@
+'
+' UML diagrams for the built-in debugger
+'
+' NOTE: To generate .svg files for the diagrams run 'plantuml -tsvg' on this file.
+' To generate .latex files run 'plantuml -tlatex on this file.
+' To render the diagrams, run 'plantuml -gui' on this file.
+'
+' author: German Rivera
+'
+
+'
+' UML sequence diagram representing the HiRTOS scheduler invocation from interrupts
+'
+@startuml hirtos_scheduler_invocation_from_interrupt_part1
+
+'title HiRTOS Scheduler invocation from Interrupt Handler - part 1
+
+actor "Interrupt"
+"Interrupt" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : External_Interrupt_Handler
+activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+   "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Interrupt_Handler_Prolog
+   activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Save CPU registers to current stack
+      activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS.Interrupt_Handling" : Stack_Pointer := Enter_Interrupt_Context (Stack_Pointer)
+      activate "HiRTOS.Interrupt_Handling"
+         "HiRTOS.Interrupt_Handling" -> "HiRTOS.Interrupt_Handling" :   Increment interrupt nesting counter
+         activate "HiRTOS.Interrupt_Handling"
+         deactivate "HiRTOS.Interrupt_Handling"
+      deactivate "HiRTOS.Interrupt_Handling"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+   "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller" : Interrupt_Handler
+   activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Controller"
+   "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Interrupt_Handler_Epilog
+   activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS.Interrupt_Handling" : Stack_Pointer := Exit_Interrupt_Context (Stack_Pointer)
+      note right
+      see Exit_Interrupt_Context
+      sequence diagram
+      end note
+      activate "HiRTOS.Interrupt_Handling"
+      deactivate "HiRTOS.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Restore CPU registers from current stack
+      activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+@enduml
+
+@startuml hirtos_scheduler_invocation_from_interrupt_part2
+
+'title HiRTOS Scheduler invocation from Interrupt Handler - part 2
+
+actor "Exit_Interrupt_Context"
+activate "Exit_Interrupt_Context"
+   opt Current_Interrupt_Nesting_Counter = 1
+      "Exit_Interrupt_Context" -> "HiRTOS.Thread_Private" : Run_Thread_Scheduler
+      activate "HiRTOS.Thread_Private"
+      deactivate "HiRTOS.Thread_Private"
+      opt New_Current_Thread_Id /= Old_Current_Thread_Id
+         "Exit_Interrupt_Context" -> "HiRTOS.Thread_Private" : [Old_Current_Thread_Id /= Invalid_Thread_Id] Save_Thread_Extended_Context (Old_Current_Thread_Obj)
+         activate "HiRTOS.Thread_Private"
+         deactivate "HiRTOS.Thread_Private"
+         "Exit_Interrupt_Context" -> "HiRTOS.Thread_Private" : Restore_Thread_Extended_Context (New_Current_Thread_Obj)
+         activate "HiRTOS.Thread_Private"
+         deactivate "HiRTOS.Thread_Private"
+      end
+   end
+   "Exit_Interrupt_Context" -> "HiRTOS.Interrupt_Handling" : Decrement interrupt nesting counter
+   activate "HiRTOS.Interrupt_Handling"
+   deactivate "HiRTOS.Interrupt_Handling"
+deactivate "Exit_Interrupt_Context"
+@enduml
+
+@startuml hirtos_scheduler_invocation_from_thread_part1
+
+'title HiRTOS Scheduler invocation from Thread - Part 1
+
+actor "Thread"
+"Thread" -> "HiRTOS.Condvar" : HiRTOS.Condvar.Wait
+activate "HiRTOS.Condvar"
+   "HiRTOS.Condvar" -> "HiRTOS_Cpu_Arch_Interface.Thread_Context" : Synchronous_Thread_Context_Switch
+   activate "HiRTOS_Cpu_Arch_Interface.Thread_Context"
+      "HiRTOS_Cpu_Arch_Interface.Thread_Context" -> "HiRTOS_Cpu_Arch_Interface.Thread_Context" : svc instruction
+      activate "HiRTOS_Cpu_Arch_Interface.Thread_Context"
+         "HiRTOS_Cpu_Arch_Interface.Thread_Context" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : EL1_Supervisor_Call_Exception_Handler
+         activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+            "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Do_Synchronous_Context_Switch
+            note left
+            see Do_Synchronous_Context_Switch
+            sequence diagram
+            end note
+            activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+            deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+         deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      deactivate "HiRTOS_Cpu_Arch_Interface.Thread_Context"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Thread_Context"
+deactivate "HiRTOS.Condvar"
+@enduml
+
+@startuml hirtos_scheduler_invocation_from_thread_part2
+
+'title HiRTOS Scheduler invocation from Thread - Part 2
+
+actor "Do_Synchronous_Context_Switch"
+activate "Do_Synchronous_Context_Switch"
+   "Do_Synchronous_Context_Switch" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Interrupt_Handler_Prolog
+   activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Save CPU registers to current stack
+      activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS.Interrupt_Handling" : Stack_Pointer := Enter_Interrupt_Context (Stack_Pointer)
+      activate "HiRTOS.Interrupt_Handling"
+         "HiRTOS.Interrupt_Handling" -> "HiRTOS.Interrupt_Handling" :   Increment interrupt nesting counter
+         activate "HiRTOS.Interrupt_Handling"
+         deactivate "HiRTOS.Interrupt_Handling"
+      deactivate "HiRTOS.Interrupt_Handling"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+   "Do_Synchronous_Context_Switch" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Interrupt_Handler_Epilog
+   activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS.Interrupt_Handling" : Stack_Pointer := Exit_Interrupt_Context (Stack_Pointer)
+      note right
+      see Exit_Interrupt_Context
+      sequence diagram
+      end note
+      activate "HiRTOS.Interrupt_Handling"
+      deactivate "HiRTOS.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Restore CPU registers from current stack
+      activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+deactivate "Do_Synchronous_Context_Switch"
+@enduml
+
+@startuml hirtos_scheduler_initial_invocation_part1
+
+'title HiRTOS Initial Thread Context Switch - Part 1
+
+actor "Application Main"
+"Application Main" -> "HiRTOS" : HiRTOS.Initialize
+note right
+   Creates HiRTOS timer and idle threads
+end note
+activate "HiRTOS"
+deactivate "HiRTOS"
+"Application Main" -> "HiRTOS" : HiRTOS.Create_Thread
+note right
+   One or more calls to create application threads
+end note
+activate "HiRTOS"
+deactivate "HiRTOS"
+"Application Main" -> "HiRTOS" : HiRTOS.Start_Thread_Scheduler
+note right
+   Invoked in the reset handler context
+end note
+activate "HiRTOS"
+   "HiRTOS" -> "HiRTOS_Cpu_Arch_Interface.Tick_Timer" : Start_Timer
+   activate "HiRTOS_Cpu_Arch_Interface.Tick_Timer"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Tick_Timer"
+   "HiRTOS" -> "HiRTOS_Cpu_Arch_Interface.Thread_Context" : First_Thread_Context_Switch
+   note left
+   see First_Thread_Context_Switch
+   sequence diagram
+   end note
+   activate "HiRTOS_Cpu_Arch_Interface.Thread_Context"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Thread_Context"
+deactivate "HiRTOS"
+@enduml
+
+@startuml hirtos_scheduler_initial_invocation_part2
+
+'title HiRTOS Initial Thread Context Switch - Part 2
+
+actor "First_Thread_Context_Switch"
+activate "First_Thread_Context_Switch"
+   "First_Thread_Context_Switch" -> "HiRTOS_Cpu_Arch_Interface" : Disable_Cpu_Interrupting
+   activate "HiRTOS_Cpu_Arch_Interface"
+   deactivate "HiRTOS_Cpu_Arch_Interface"
+   "First_Thread_Context_Switch" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Interrupt_Handler_Epilog
+   note right
+   pretend that we are returning from an interrupt, since before RTOS
+   tasking is started, we have been executing in the reset exception
+   handler.
+   end note
+   activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS.Interrupt_Handling" : Stack_Pointer := Exit_Interrupt_Context (Stack_Pointer)
+      note left
+      see Exit_Interrupt_Context
+      sequence diagram
+      end note
+      activate "HiRTOS.Interrupt_Handling"
+      deactivate "HiRTOS.Interrupt_Handling"
+      "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" -> "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling" : Restore CPU registers from current stack
+      activate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+      deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+   deactivate "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling"
+deactivate "First_Thread_Context_Switch"
+@enduml

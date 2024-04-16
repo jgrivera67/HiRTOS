@@ -105,10 +105,9 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
       --  NOTE: When the switched-out thread is resumed in the future, it will
       --  start executing right here.
       --
-      --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** JGR: After Synchronous_context_Switch" & ASCII.LF); --???
    end Synchronous_Thread_Context_Switch;
 
---
+   --
    --  Transitions the CPU from user-mode to sys-mode with interrupts
    --  enabled.
    --

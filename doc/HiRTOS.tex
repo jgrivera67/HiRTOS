@@ -9,6 +9,7 @@
 %\usepackage{fancyvrb}
 \usepackage{zed-csp}
 \usepackage{tikz-uml}
+\usepackage{float}
 
 \lstset{language=Ada,
         basicstyle=\small}
@@ -1283,6 +1284,94 @@ specified by the $StopTimer$ schema:
    timerWheel'.wheelSpokesHashTable(wheelSpokeIndex) = \\
    \t1  timerWheel.wheelSpokesHashTable(wheelSpokeIndex) \setminus \{~ timerId? ~\}
 \end{schema}
+
+\section{HiRTOS Thread Context Switching}
+
+\subsection{Asynchronous Thread Context Switch}
+
+In HiRTOS, thread preemption is implemented by invoking the thread scheduler
+on the exit path of an interrupt handler. When an interrupt fires while
+a thread is running, the executing thread\'s CPU context is saved
+on thread\'s stack by the interrupt handler prolog. Then, before calling the
+actual interrupt handler, the stack is switched to the interrupt handling stack.
+After the interrupt handler returns, the interrupt handler epilog invokes
+the HiRTOS thread scheduler, to select the highest priority runnable thread.
+Then, if the newly selected thread is different from the
+
+\begin{figure}[H]
+   \centering
+   \scalebox{0.40} {
+      \input{uml_diagrams/hirtos_scheduler_invocation_from_interrupt_part1.latex}
+   }
+   \caption{HiRTOS Asynchronous Thread Context Switch - part 1}
+   \label{HiRTOSumlSeqDiagram1}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \scalebox{0.40} {
+      \input{uml_diagrams/hirtos_scheduler_invocation_from_interrupt_part2.latex}
+   }
+   \caption{HiRTOS Asynchronous Thread Context Switch - part 2}
+   \label{HiRTOSumlSeqDiagram2}
+\end{figure}
+
+\subsection{Synchronous Thread Context Switch}
+
+In HiRTOS, a synchronous thread context switch occurs in the following cases:
+\begin{itemize}
+\item When a thread calls \verb`HiRTOS.Condvar.Wait`
+\item When a thread calls \verb`HiRTOS.Condvar.Signal` or \verb`HiRTOS.Condvar.Broadcast`,
+      and there are threads waiting on the condition variable
+\item When a thread calls \verb`HiRTOS.Mutex.Acquire` and the mutex is not available
+\item When a thread calls \verb`HiRTOs.Mutex.Release` and there are threads waiting
+      to acquire the mutex
+\item When a thread calls \verb`HiRTOS.Thread.Thread_Delay_Until` (calls \verb`HiRTOS.Condvar.Wait`)
+\item When a thread calls \verb`HiRTOS.Thread.Suspend_Current_Thread`
+\item When a thread calls \verb`HiRTOS.Thread.Resume_Thread`
+\item When a thread calls \verb`HiRTOS.Restore_Atomic_Level` and the old atomic level is
+      \verb`Atomic_Level_None`
+\end{itemize}
+
+\begin{figure}[H]
+   \centering
+   \scalebox{0.40} {
+      \input{uml_diagrams/hirtos_scheduler_invocation_from_thread_part1.latex}
+   }
+   \caption{HiRTOS Synchronous Thread Context Switch - part 1}
+   \label{HiRTOSumlSeqDiagram3}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \scalebox{0.40} {
+      \input{uml_diagrams/hirtos_scheduler_invocation_from_thread_part2.latex}
+   }
+   \caption{HiRTOS Synchronous Thread Context Switch - part 2}
+   \label{HiRTOSumlSeqDiagram4}
+\end{figure}
+
+A special case is the initial thread context switch, which occurs when the
+HiRTOS thread scheduler is started, when the application calls
+\verb`HiRTOS.Start_Thread_Scheduler`.
+
+\begin{figure}[H]
+   \centering
+   \scalebox{0.40} {
+      \input{uml_diagrams/hirtos_scheduler_initial_invocation_part1.latex}
+   }
+   \caption{HiRTOS Initial Thread Context Switch - part 1}
+   \label{HiRTOSumlSeqDiagram5}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \scalebox{0.40} {
+      \input{uml_diagrams/hirtos_scheduler_initial_invocation_part2.latex}
+   }
+   \caption{HiRTOS Initial Thread Context Switch - part 2}
+   \label{HiRTOSumlSeqDiagram6}
+\end{figure}
 
 \clearpage
 \chapter{HiRTOS Separation Kernel Z Specification}
