@@ -17,11 +17,15 @@ maintainers-logins = ["jgrivera67"]
 Platform = {type = "Enum", values = ["arm_fvp", "esp32_c3"], default = "arm_fvp"}
 
 [[depends-on]]
-gnat_arm_elf = "^13.2.1"
-#gnat_riscv64_elf = "^13.2.1"
+gnat = "^13.2.1"
 gnatprove = "^13.2.1"
 
-[gpr-set-externals]
-CPU_Core = "arm_cortex_r52"
-#CPU_Core = "riscv32"
+[[actions]]
+type = "test"
+command = ["alr", "build"]
+directory = "sample_apps/fvp_armv8r_aarch32_hello"
 
+[[actions]]
+type = "test"
+command = ["alr", "build"]
+directory = "sample_apps/esp32_c3_hello"

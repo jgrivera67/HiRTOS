@@ -10,9 +10,13 @@ executables = ["fvp_armv8r_aarch32_hello"]
 
 [[depends-on]]
 hirtos = "*"
+gnat_arm_elf = "^13.2.1"
 
 [[pins]]
 hirtos = { path='../..' }
+
+[gpr-set-externals]
+CPU_Core = "arm_cortex_r52"
 
 [build-profiles]
 hirtos = "development"

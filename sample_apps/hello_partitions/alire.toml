@@ -10,6 +10,7 @@ executables = ["hello_partitions"]
 
 [[depends-on]]
 hirtos_separation_kernel = "*"
+gnat_arm_elf = "^13.2.1"
 
 [[pins]]
 hirtos_separation_kernel = { path='../../hirtos_separation_kernel' }

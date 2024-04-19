@@ -10,6 +10,7 @@ executables = ["hello_partition1"]
 
 [[depends-on]]
 hirtos = "*"
+gnat_arm_elf = "^13.2.1"
 
 [[pins]]
 hirtos = { path='../../..' }
