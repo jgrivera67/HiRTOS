@@ -3,6 +3,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+# NOTE: This crate is not meant to be built with the native compiler.
+# A dependency on a cross-compiler must be specified in the client
+# crate. See example client crates in the sample_apps folder.
+#
 name = "hirtos"
 description = "High-Integrity RTOS"
 version = "2.0.0"
@@ -17,7 +21,6 @@ maintainers-logins = ["jgrivera67"]
 Platform = {type = "Enum", values = ["arm_fvp", "esp32_c3"], default = "arm_fvp"}
 
 [[depends-on]]
-gnat = "^13.2.1"
 gnatprove = "^13.2.1"
 
 [[actions]]

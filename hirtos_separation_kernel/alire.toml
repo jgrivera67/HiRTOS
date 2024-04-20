@@ -3,6 +3,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+# NOTE: This crate is not meant to be built with the native compiler.
+# A dependency on a cross-compiler must be specified in the client
+# crate. See example client crates in the sample_apps folder.
+#
 name = "hirtos_separation_kernel"
 description = "High-Integrity RTOS Separation Kernel"
 version = "2.0.0"
@@ -18,7 +22,6 @@ Separation_Kernel_Debug_Tracing_On = {type = "Boolean", default = false}
 Platform = {type = "Enum", values = ["arm_fvp"], default = "arm_fvp"}
 
 [[depends-on]]
-gnat = "^13.2.1"
 gnatprove = "^13.1.1"
 
 [[actions]]
