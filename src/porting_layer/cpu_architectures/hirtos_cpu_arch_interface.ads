@@ -45,9 +45,11 @@ is
    --
    --  NOTE: Only the IRQ interrupt is disabled, not the FIQ interrupt.
    --
+   pragma Warnings (Off, "postcondition does not mention function result");
    function Disable_Cpu_Interrupting return Cpu_Register_Type with
     Pre => Cpu_In_Privileged_Mode,
     Post => Cpu_Interrupting_Disabled;
+   pragma Warnings (On, "postcondition does not mention function result");
 
    --
    --  Restore interrupt enablement at the CPU

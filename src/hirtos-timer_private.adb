@@ -91,6 +91,7 @@ package body HiRTOS.Timer_Private is
          Timer_Wheel.Current_Wheel_Spoke_Index := Valid_Timer_Wheel_Spoke_Index_Type'First;
       end if;
 
+      pragma Warnings (Off, "condition is always True");
       if HiRTOS_Config_Parameters.Software_Timers_Bookkeeping_Method =
          HiRTOS_Config_Parameters.Software_Timers_Bookkeeping_In_Timer_ISR
       then
@@ -114,6 +115,7 @@ package body HiRTOS.Timer_Private is
             HiRTOS.Condvar.Signal (Tick_timer_Thread_Obj.Builtin_Condvar_Id);
          end;
       end if;
+      pragma Warnings (On, "condition is always True");
 
       --  End critical section
       HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
@@ -145,6 +147,7 @@ package body HiRTOS.Timer_Private is
             --  End critical section
             HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
 
+            pragma Warnings (Off, "condition is always False");
             if HiRTOS_Config_Parameters.Software_Timers_Bookkeeping_Method =
                HiRTOS_Config_Parameters.Software_Timers_Bookkeeping_In_Timer_Thread
             then
@@ -159,6 +162,7 @@ package body HiRTOS.Timer_Private is
                   Process_Timer_Wheel_Hash_Chain (Timer_Wheel_Hash_Chain);
                end;
             end if;
+            pragma Warnings (On, "condition is always False");
          end loop;
       end;
 

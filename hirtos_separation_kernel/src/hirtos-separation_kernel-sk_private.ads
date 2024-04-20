@@ -43,6 +43,8 @@ is
    --  @field Partition_Instances: Array of all partition objects
    --  @field Partition_Queues_Nodes: Array of all linked-list nodes of partition queues
    --
+   pragma Warnings (Off,
+      "invariants cannot be checked on components of unchecked_union type ""Separation_Kernel_Cpu_Instance_Type""");
    type Separation_Kernel_Cpu_Instance_Type is limited record
       Last_Chance_Handler_Running : Boolean := False;
       Cpu_Id                      : Cpu_Core_Id_Type;

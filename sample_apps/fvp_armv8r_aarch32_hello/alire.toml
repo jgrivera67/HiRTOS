@@ -10,7 +10,8 @@ executables = ["fvp_armv8r_aarch32_hello"]
 
 [[depends-on]]
 hirtos = "*"
-gnat_arm_elf = "^13.2.1"
+gnat_arm_elf = "*"
+gnatprove = "*"
 
 [[pins]]
 hirtos = { path='../..' }

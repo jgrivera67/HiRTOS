@@ -21,9 +21,6 @@ maintainers-logins = ["jgrivera67"]
 Separation_Kernel_Debug_Tracing_On = {type = "Boolean", default = false}
 Platform = {type = "Enum", values = ["arm_fvp"], default = "arm_fvp"}
 
-[[depends-on]]
-gnatprove = "^13.1.1"
-
 [[actions]]
 type = "test"
 command = ["alr", "build"]

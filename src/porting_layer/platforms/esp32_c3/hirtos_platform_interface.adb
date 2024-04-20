@@ -648,7 +648,8 @@ is
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Mepc_Value));
       HiRTOS_Low_Level_Debug_Interface.Print_String (" accessing ");
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
-         Interfaces.Unsigned_32 (SENSITIVE_Periph.CORE_0_IRAM0_PMS_MONITOR_2.CORE_0_IRAM0_PMS_MONITOR_VIOLATE_STATUS_ADDR),
+         Interfaces.Unsigned_32 (
+            SENSITIVE_Periph.CORE_0_IRAM0_PMS_MONITOR_2.CORE_0_IRAM0_PMS_MONITOR_VIOLATE_STATUS_ADDR),
          End_Line => True);
 
       raise Program_Error;
@@ -668,7 +669,8 @@ is
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Mepc_Value));
       HiRTOS_Low_Level_Debug_Interface.Print_String (" accessing ");
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
-         Interfaces.Unsigned_32 (SENSITIVE_Periph.CORE_0_DRAM0_PMS_MONITOR_2.CORE_0_DRAM0_PMS_MONITOR_VIOLATE_STATUS_ADDR),
+         Interfaces.Unsigned_32 (
+            SENSITIVE_Periph.CORE_0_DRAM0_PMS_MONITOR_2.CORE_0_DRAM0_PMS_MONITOR_VIOLATE_STATUS_ADDR),
          End_Line => True);
 
       raise Program_Error;

@@ -10,7 +10,6 @@
 --
 
 with System.Storage_Elements;
-with Bit_Sized_Integer_Types;
 private with HiRTOS_Cpu_Arch_Interface_Private;
 
 package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
@@ -76,7 +75,8 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    TP_Cpu_Running_In_Privileged_Mode_Bit_Offset : constant := 0;
 
    for Thread_Pointer_Type use record
-      Cpu_Running_In_Privileged_Mode at 0 range TP_Cpu_Running_In_Privileged_Mode_Bit_Offset .. TP_Cpu_Running_In_Privileged_Mode_Bit_Offset;
+      Cpu_Running_In_Privileged_Mode at 0 range
+         TP_Cpu_Running_In_Privileged_Mode_Bit_Offset .. TP_Cpu_Running_In_Privileged_Mode_Bit_Offset;
       Thread_Id at 0 range 8 .. 15;
       Cpu_Id at 0 range 16 .. 23;
    end record;

@@ -13,7 +13,6 @@ with HiRTOS.Separation_Kernel.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with System.Machine_Code;
-with System.Storage_Elements;
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer.Hypervisor with SPARK_Mode => On is
 

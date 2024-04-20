@@ -1,28 +1,15 @@
 --
 --  Copyright (c) 2022-2023, German Rivera
 --
---
 --  SPDX-License-Identifier: Apache-2.0
 --
 
---
---  NOTE: Before building for the first time, make sure the path of
---  corresponding cross compiler toolchain is in $PATH. (After running
---  running `alr toolchain --select`, the cross compiler will be installed
---  at `~/.config/alire/cache/dependencies/gnat_arm_elf_<xxxx>/bin`.
---
 with "config/hirtos_config.gpr";
 with "hirtos_compiler_flags.gpr";
 with "third_party/portable_minimal_ada_rts/portable_minimal_ada_rts.gpr";
 
 project HiRTOS is
-   case HiRTOS_Compiler_Flags.Mode is
-      when "gnatprove" =>
-         null;
-      when others =>
-         for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
-   end case;
-
+   for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
    for Runtime ("Ada") use Portable_Minimal_Ada_Rts'Runtime ("Ada");
    for Languages use ("Ada", "C", "Asm_Cpp");
 
@@ -55,6 +42,10 @@ project HiRTOS is
             "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific",
             "HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU",
             "HiRTOS_Cpu_Arch_Interface.System_Registers");
+      when "esp32_c3" =>
+         Platform_Specific_Interfaces := (
+            "Esp32_C3",
+            "Esp32_C3.uart");
       when others =>
          null;
    end case;

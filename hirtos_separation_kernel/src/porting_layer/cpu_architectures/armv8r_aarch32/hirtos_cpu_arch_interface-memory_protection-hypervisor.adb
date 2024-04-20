@@ -20,6 +20,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.Hypervisor with SPARK_M
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
    use HiRTOS_Cpu_Arch_Interface.System_Registers.Hypervisor;
 
+   pragma Warnings (Off, "function ""Get_Num_Regions_Supported"" is not referenced");
    function Get_Num_Regions_Supported return Mpu_Regions_Count_Type is
    begin
       return Get_HMPUIR.REGION;

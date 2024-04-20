@@ -59,6 +59,7 @@ is
          External_Name => "HiRTOSinit";
 
    begin
+      pragma Warnings (Off, "condition can only be False if invalid values present");
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          HiRTOS_Lib_Elaboration;
          if not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
@@ -79,6 +80,7 @@ is
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
       end if;
+      pragma Warnings (On, "condition can only be False if invalid values present");
 
       pragma Assert (not HiRTOS_Cpu_Arch_Interface.Cpu_In_Hypervisor_Mode);
       Initialize_RTOS;

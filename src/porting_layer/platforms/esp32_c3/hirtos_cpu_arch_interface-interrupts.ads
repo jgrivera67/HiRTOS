@@ -15,7 +15,6 @@ package HiRTOS_Cpu_Arch_Interface.Interrupts
    with SPARK_Mode => On
 is
    use Interrupt_Controller;
-   use type Interrupt_Controller.Interrupt_Priority_Type;
 
    type External_Irq_Number_Type is range 0 .. 61;
 

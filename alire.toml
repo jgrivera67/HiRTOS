@@ -20,9 +20,6 @@ maintainers-logins = ["jgrivera67"]
 [configuration.variables]
 Platform = {type = "Enum", values = ["arm_fvp", "esp32_c3"], default = "arm_fvp"}
 
-[[depends-on]]
-gnatprove = "^13.2.1"
-
 [[actions]]
 type = "test"
 command = ["alr", "build"]

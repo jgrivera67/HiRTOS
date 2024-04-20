@@ -17,7 +17,7 @@ package body Uart_Driver is
    Tx_Fifo_Size_in_Bytes : constant := 128;
 
    procedure Initialize_Uart (Baud_Rate : Interfaces.Unsigned_32;
-                              UART_Clock_Frequency_Hz : Interfaces.Unsigned_32) is
+                              UART_Clock_Frequency_Hz : Interfaces.Unsigned_32 with Unreferenced) is
       use type ESP32_C3.UInt3;
       use type Interfaces.Unsigned_32;
       MEM_CONF_Value : MEM_CONF_Register;

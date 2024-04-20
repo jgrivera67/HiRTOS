@@ -54,7 +54,7 @@ is
       GIC_ISENABLER_Value : GIC_ISENABLER_Type;
       GIC_ICENABLER_Value : GIC_ICENABLER_Type;
       Cpu_Id              : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
-      GICR                : GICR_Type renames GICD.GICR_Array (Cpu_Id);
+      GICR                : GICR_Type renames GICD.GICR_Array (Cpu_Id) with Unreferenced;
       Negated_Bit_Mask    : Interrupt_Bitmap_Chunk_Type;
    begin
       --

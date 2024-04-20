@@ -5,14 +5,12 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 
-with HiRTOS_Cpu_Multi_Core_Interface;
 with HiRTOS_Cpu_Arch_Interface;
 with Uart_Driver;
 with Number_Conversion_Utils;
 with ESP32_C3.GPIO;
 
 package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
-   use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface;
 
    procedure Initialize_Led;

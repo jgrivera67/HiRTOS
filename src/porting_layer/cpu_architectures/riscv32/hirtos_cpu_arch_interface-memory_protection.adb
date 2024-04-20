@@ -293,6 +293,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       return System.Address
    is (To_Address (Encoded_Start_Address * Min_Region_Size_In_Bytes));
 
+   pragma Warnings (Off, "function ""Decode_Region_End_Address"" is not referenced");
    function Decode_Region_End_Address (Encoded_End_Address : Integer_Address)
       return System.Address
       renames Decode_Region_Start_Address;
@@ -550,6 +551,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On i
       null;
    end Disable_Memory_Protection;
 
+   pragma Warnings (Off, "procedure ""Get_NAPOT_Aligned_Range"" is not referenced");
    procedure Get_NAPOT_Aligned_Range (Start_Address : System.Address;
                                       Size_In_Bytes : Integer_Address;
                                       Aligned_Start_Address : out System.Address;

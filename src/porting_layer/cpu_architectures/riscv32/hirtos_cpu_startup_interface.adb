@@ -43,7 +43,8 @@ package body HiRTOS_Cpu_Startup_Interface is
             (As_Value => False,
              Mode => Vectored_Mode,
              Encoded_Base_Address => MTVEC_Encoded_Base_Address_Type (
-               To_Integer (Interrupt_Vector_Table_Address) / HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size_In_Bytes));
+               To_Integer (Interrupt_Vector_Table_Address) /
+               HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size_In_Bytes));
 
          pragma Compile_Time_Error (
             2 ** MTVEC_Mode_Type'Size /= HiRTOS_Cpu_Arch_Parameters.Call_Instruction_Size_In_Bytes,
@@ -66,6 +67,7 @@ package body HiRTOS_Cpu_Startup_Interface is
          Enable_FPU;
       end if;
 
+      pragma Warnings (Off, "condition can only be False if invalid values presen");
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          Watchdog_Driver.Disable_Watchdogs;
 
@@ -80,6 +82,7 @@ package body HiRTOS_Cpu_Startup_Interface is
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
             Global_Data_Region_Size_In_Bytes);
       end if;
+      pragma Warnings (On, "condition can only be False if invalid values presen");
 
       Set_Interrupt_Vector_Table (Interrupt_Vector_Jump_Table'Address);
 

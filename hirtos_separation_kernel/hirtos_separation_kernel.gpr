@@ -1,28 +1,15 @@
 --
 --  Copyright (c) 2022-2023, German Rivera
 --
---
 --  SPDX-License-Identifier: Apache-2.0
 --
 
---
---  NOTE: Before building for the first time, make sure the path of
---  corresponding cross compiler toolchain is in $PATH. (After running
---  running `alr toolchain --select`, the cross compiler will be installed
---  at `~/.config/alire/cache/dependencies/gnat_arm_elf_<xxxx>/bin`.
---
 with "config/hirtos_separation_kernel_config.gpr";
 with "../hirtos_compiler_flags.gpr";
 with "../third_party/portable_minimal_ada_rts/portable_minimal_ada_rts.gpr";
 
 project HiRTOS_Separation_Kernel is
-   case HiRTOS_Compiler_Flags.Mode is
-      when "gnatprove" =>
-         null;
-      when others =>
-         for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
-   end case;
-
+   for Target use HiRTOS_Compiler_Flags.Target_Compiler_Selector;
    for Runtime ("Ada") use Portable_Minimal_Ada_Rts'Runtime ("Ada");
    for Languages use ("Ada", "C", "Asm_Cpp");
 

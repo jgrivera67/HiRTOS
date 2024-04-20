@@ -10,8 +10,6 @@ abstract project Hirtos_Compiler_Flags is
 
    CPU_Core : CPU_Core_Type := External ("CPU_Core", "arm_cortex_r52");
 
-   Mode := External ("GPR_TOOL", "");
-
    CPU_Arch := "";
    Target_Compiler_Selector := "";
    CPU_Core_Switches := ();
@@ -116,7 +114,7 @@ abstract project Hirtos_Compiler_Flags is
                   ,"-gnatyM120" --  Check maximum line length
                   ,"-gnatef"    --  Print full path in error messages
                   ,"-gnata"     --  Enable assertions and contracts
-                --,"-gnatwe"    --  Warnings as errors
+                  ,"-gnatwe"    --  Warnings as errors
                   ,"-gnat2022"  --  Use Ada 2022
                   ,"-nostdinc"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) source files.
                   ,"-nostdlib"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) ALI files.

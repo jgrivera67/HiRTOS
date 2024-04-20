@@ -11,13 +11,10 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
-with HiRTOS_Cpu_Arch_Interface_Private;
-with HiRTOS_Low_Level_Debug_Interface; --???
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    use ASCII;
-   use HiRTOS_Cpu_Arch_Interface_Private;
 
    function Get_Global_Pointer return Cpu_Register_Type with
       Inline_Always, Suppress => All_Checks;
@@ -123,7 +120,6 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
       --
       --  NOTE: We returned here in privileged mode.
       --
-      --HiRTOS_Low_Level_Debug_Interface.Print_String ("*** After going to privileged mode" & ASCII.LF); --???
    end Switch_Cpu_To_Privileged_Mode;
 
    --

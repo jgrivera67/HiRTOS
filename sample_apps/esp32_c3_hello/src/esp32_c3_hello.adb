@@ -9,7 +9,6 @@ with App_Threads;
 with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS;
 with HiRTOS.Debug;
-with Interfaces;
 with GNAT.Source_Info;
 
 --  NOTE: This is needed to force the startup code to be linked-in
