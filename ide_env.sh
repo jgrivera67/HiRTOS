@@ -217,5 +217,32 @@ function flash_esp32c3
        $bin_file
 }
 
+function flash_esp32c6
+{
+    typeset bin_file
+    typeset tty_dev
+    typeset usage_msg
+
+    usage_msg="Usage: flash_esp32c6 <bin file> </dev/ttyXXX>"
+
+    if [ $# != 2 ]; then
+        echo $usage_msg
+        return 1
+    fi
+
+    bin_file=$1
+    tty_dev=$2
+    if [ ! -f $bin_file ]; then
+        echo "*** ERROR: file $bin_file does not exist"
+        return 1
+    fi
+
+   # Flash App image on ESPC32-C6 flash:
+   #$ESPTOOL_DIR/esptool.py --chip esp32c6 -p $tty_dev -b 460800 \
+   esptool.py --chip esp32c6 -p $tty_dev -b 460800 \
+      --before=default_reset --after=hard_reset write_flash \
+      --flash_mode dio --flash_freq 80m --flash_size 2MB 0x00000 \
+       $bin_file
+}
 
 . ~/my-projects/third-party/alire/scripts/alr-completion.bash

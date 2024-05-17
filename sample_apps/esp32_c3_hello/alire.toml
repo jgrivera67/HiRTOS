@@ -27,9 +27,9 @@ hirtos = "development"
 
 [[actions]]
 type = "post-build"
-command = ["sh", "-c", "riscv64-unknown-elf-objdump -dSstl bin/esp32_c3_hello.elf > bin/esp32_c3_hello.lst"]
+command = ["sh", "-c", "riscv64-elf-objdump -dSstl bin/esp32_c3_hello.elf > bin/esp32_c3_hello.lst"]
 
 [[actions]]
 type = "post-build"
-command = ["./generate_bin_image.sh", "bin/esp32_c3_hello.elf"]
+command = ["../../src/porting_layer/platforms/esp32_c3/generate_bin_image.sh", "esp32c3", "bin/esp32_c3_hello.elf"]
 
