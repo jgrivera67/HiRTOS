@@ -27,6 +27,8 @@ command = ["arm-eabi-objcopy", "-O", "binary", "-S", "bin/hello_partition1.elf",
            "bin/hello_partition1.bin"]
 
 [[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
 type = "post-build"
 command = ["sh", "-c", "arm-eabi-objdump -dSstl bin/hello_partition1.elf > bin/hello_partition1.lst"]
 

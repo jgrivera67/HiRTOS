@@ -6,6 +6,8 @@ authors = ["J. German Rivera"]
 maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
 maintainers-logins = ["jgrivera67"]
 
+available.'case(os)'.windows = false
+
 executables = ["hello_partitions"]
 
 [[depends-on]]
@@ -29,4 +31,3 @@ command = ["./build_partitions.sh"]
 [[actions]]
 type = "post-build"
 command = ["sh", "-c", "arm-eabi-objdump -dSstl bin/hello_partitions.elf > bin/hello_partitions.lst"]
-

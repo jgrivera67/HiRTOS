@@ -23,6 +23,8 @@ CPU_Core = "arm_cortex_r52"
 hirtos = "development"
 
 [[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
 type = "post-build"
 command = ["sh", "-c", "arm-eabi-objdump -dSstl bin/fvp_armv8r_aarch32_hello.elf > bin/fvp_armv8r_aarch32_hello.lst"]
 

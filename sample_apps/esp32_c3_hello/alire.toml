@@ -26,10 +26,14 @@ CPU_Core = "riscv32"
 hirtos = "development"
 
 [[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
 type = "post-build"
 command = ["sh", "-c", "riscv64-elf-objdump -dSstl bin/esp32_c3_hello.elf > bin/esp32_c3_hello.lst"]
 
 [[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
 type = "post-build"
 command = ["../../src/porting_layer/platforms/esp32_c3/generate_bin_image.sh", "esp32c3", "bin/esp32_c3_hello.elf"]
 
