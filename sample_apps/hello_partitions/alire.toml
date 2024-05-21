@@ -14,6 +14,7 @@ executables = ["hello_partitions"]
 hirtos_separation_kernel = "*"
 gnat_arm_elf = "*"
 gnatprove = "*"
+gprbuild = "^22" # needed by alire-index CI builds
 
 [[pins]]
 hirtos_separation_kernel = { path='../../hirtos_separation_kernel' }

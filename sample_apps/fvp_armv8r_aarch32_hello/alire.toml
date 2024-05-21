@@ -12,6 +12,7 @@ executables = ["fvp_armv8r_aarch32_hello"]
 hirtos = "*"
 gnat_arm_elf = "*"
 gnatprove = "*"
+gprbuild = "^22" # needed by alire-index CI builds
 
 [[pins]]
 hirtos = { path='../..' }

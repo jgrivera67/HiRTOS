@@ -11,6 +11,7 @@ executables = ["hello_partition2"]
 [[depends-on]]
 hirtos = "*"
 gnat_arm_elf = "*"
+gprbuild = "^22" # needed by alire-index CI builds
 
 [[pins]]
 hirtos = { path='../../..' }

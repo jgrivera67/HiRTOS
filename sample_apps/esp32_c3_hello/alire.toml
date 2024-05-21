@@ -12,6 +12,7 @@ executables = ["esp32_c3_hello"]
 hirtos = "*"
 gnat_riscv64_elf = "*"
 gnatprove = "*"
+gprbuild = "^22" # needed by alire-index CI builds
 
 [configuration.values]
 hirtos.Platform = "esp32_c3"
