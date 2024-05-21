@@ -24,6 +24,11 @@ platform.
 HiRTOS is formally specified using the Z notation. The HiRTOS Z specification can
 be found [here](doc/HiRTOS.pdf).
 
+## HiRTOS TLA+ Specification
+
+HiRTOS is also formally modeled in TLA+/Pluscal and verified using the TLC model checker.
+The HiRTOS TLA+/Pluscal specification can be found [here](doc/tla_model/HiRTOS.pdf).
+
 ## Building and Running the HiRTOS Multi-core Sample Applications for ARMv8-R
 
 ### Prerequisites
