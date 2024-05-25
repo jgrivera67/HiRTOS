@@ -22,8 +22,15 @@ the new target platform.
 
 ## HiRTOS Z Specification
 
-HiRTOS is formally specified using the Z notation. The HiRTOS Z specification can
+HiRTOS is formally specified using the Z notation. The Z specification can
 be found [here](doc/HiRTOS.pdf).
+
+## HiRTOS Thread Scheduler TLA+/Pluscal Specification
+
+The HiRTOS thread scheduler is formally specified in TLA+/Pluscal. The TLA+/Pluscal
+specification can be found [here](doc/tla_model/HiRTOS.pdf). It was model-checked using the
+TLC model checker. The sucessful [TLC run](doc/tla_model/HiRTOS_tla_tlc_run.log) took more than 7 hours:
+![](doc/tla_model/HiRTOS_tla_tlc_run.png)
 
 ## Building and Running the HiRTOS Multi-core Sample Applications for ARMv8-R
 
@@ -165,7 +172,8 @@ esptool.py --chip esp32c3 -p <tty device (e.g., /dev/ttyUSB0)> -b 460800 \
       bin/esp32_c3_hello.bin
 ```
 
-UART output for runnnig the "Hello World" HiRTOS sample application on the ESP32-C3 board looks like this: ![](doc/HiRTOS_Sample_App_Running_On_ESP32-C3.png)
+UART output for runnnig the "Hello World" HiRTOS sample application on the ESP32-C3 board looks like this after 1000
+hours of continuous execution: ![](doc/HiRTOS_Sample_App_Running_On_ESP32-C3.png)
 
 &copy; 2023-2024 J. German Rivera
 
