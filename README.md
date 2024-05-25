@@ -67,7 +67,7 @@ To run it on the ARM FVP simulator with 4 Cortex-R52 cores and 4 UARTs (one UART
 
 Once the ARM FVP simulator starts, an xterm for the UART output from each CPU core would be
 displayed.
-An ARM FVP run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running.png).
+An ARM FVP run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running.png)
 
 To run it on Renode with 2 Cortex-R52 cores and 2 UARTs (one UART per core), do:
 
@@ -97,7 +97,7 @@ start                                                                # <---- cha
 ```
 $ renode ./cortex-r52.resc
 ```
-A Renode run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running_On_Renode.png).
+A Renode run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running_On_Renode.png)
 
 ### "Hello World" HiRTOS Separation Kernel Sample Application
 
@@ -122,7 +122,7 @@ To run it on the ARM FVP simulator with 4 cores and 4 UARTs (one UART per core),
 	--application  bin/hello_partitions.elf
 ```
 
-An ARM FVP run for the "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
+An ARM FVP run for the "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png)
 
 To run it on Renode with 2 Cortex-R52 cores and 2 UARTs (one UART per core), do:
 
@@ -132,7 +132,7 @@ described for previous Renode example.
 ```
 $ renode ./cortex-r52.resc
 ```
-A Renode run for the "Hello partitions" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running_on_Renode.png).
+A Renode run for the "Hello partitions" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running_On_Renode.png)
 
 ## Building and Running the HiRTOS Sample Applications for RISC-V
 
@@ -164,6 +164,10 @@ esptool.py --chip esp32c3 -p <tty device (e.g., /dev/ttyUSB0)> -b 460800 \
       --flash_mode dio --flash_freq 80m --flash_size 2MB 0x00000 \
       bin/esp32_c3_hello.bin
 ```
+
+UART output for runnnig the "Hello World" HiRTOS sample application on the ESP32-C3 board looks like this: ![](doc/HiRTOS_Sample_App_Running_On_ESP32-C3.png)
+
+&copy; 2023-2024 J. German Rivera
 
 [![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/hirtos.json)](https://alire.ada.dev/crates/hirtos.html)
 [![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/hirtos_separation_kernel.json)](https://alire.ada.dev/crates/hirtos_separation_kernel.html)

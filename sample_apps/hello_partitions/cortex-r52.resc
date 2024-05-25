@@ -1,0 +1,20 @@
+:name: Cortex-R52
+:description: This script runs the Zephyr philosophers sample on a 32-bit ARM Cortex-R52.
+
+$bin?=@bin/hello_partitions.elf
+$name?="ARM Cortex-R52"
+
+using sysbus
+mach create $name
+
+machine LoadPlatformDescription @/opt/renode/platforms/cpus/cortex-r52_smp.repl
+
+showAnalyzer uart0
+showAnalyzer uart1
+
+macro reset
+"""
+    sysbus LoadELF $bin
+"""
+runMacro $reset
+start
