@@ -11,8 +11,8 @@
 \usepackage{tikz-uml}
 \usepackage{float}
 
-\lstset{language=Ada,
-        basicstyle=\small}
+%\lstset{basicstyle=\tiny}
+\lstset{basicstyle=\small}
 
 \addtolength{\textheight}{0.6in}
 %\addtolength{\textheight}{1.25in}
@@ -81,10 +81,10 @@ The code of \emph{HiRTOS} is written in SPARK Ada \cite{SparkAda}, a high integr
 subset of the Ada programming language. The code of HiRTOS is available in GitHub at
 \url{https://github.com/jgrivera67/HiRTOS}. HiRTOS data types were modeled in Z at a
 level of abstraction that can be mapped directly to corresponding data types in SPARK Ada.
-This guided design decision at the code level, resulting in a completely pointer-less
-implementation, that leverages the various Ada mechanism to avoid having to use pointers.
+This guided design decisions at the code level, resulting in a completely pointer-less
+implementation, that leverages the various Ada mechanisms to avoid having to use pointers.
 
-Also, the HiRTOS thread scheduler was modeled in TLA+/Pluscal \cite{tla1, tla2} and the
+Also, the HiRTOS thread scheduler was modeled in TLA+/PlusCal \cite{tla1, tla2} and the
 hiRTOS TLA+ model was verified using the TLC model checker \cite{tlc}.
 
 \chapter{HiRTOS Overview}
@@ -132,11 +132,9 @@ intentionally corrupted from application code. RTOS objects can only be manipula
 HiRTOS APIs.
 
 \item
-All application threads run in unprivileged mode. For each thread, the only writable memory,
-by default, is its own stack and global variables. Stacks of other threads are not accessible.
-MMIO space is only accessible to privileged code, by default. Application driver code, other
-than ISRs, must request access (read-only or read-write permission) to \emph{HiRTOS} via a
-system call.
+All application threads run in unprivileged mode by default. In unprivileged mode, a thread can only
+access its own stack. To access global variables or MMIO space, application threads must explicitly
+request either read-only or read-write permission to \emph{HiRTOS} via a system call.
 
 \item ISRs are seen as hardware-scheduled threads that have higher priority than all software-scheduled
 threads. They can only be preempted by higher-priority ISRs. They cannot block waiting on mutexes or
@@ -147,6 +145,10 @@ condition variables.
 \section{Separation Kernel Major Design Decisions}
 
 Besides being a fully functional RTOS, HiRTOS can be used as a separation kernel \cite{SepK1, SepK2}.
+A separation kernel can be seen as an RTOS that schedules partitions instead of threads. A partition
+is a spatial and temporal separation/isolation unit on which a bare-metal or RTOS-based firmware
+binary runs. A separation kernel requires that the target CPU supports hypervisor privilege mode
+and two-stage memory protection.
 
 \begin{itemize}
 
@@ -249,7 +251,7 @@ the platform-specific components of the porting layer would need to be implement
          \begin{tikzpicture}
             \umlemptypackage[x=0, y=0]{Bare Metal Ada Applications}
 
-            \umlemptypackage[x=0, y=-4]{Ada RTS Tasking Skin Library Crate}
+            \umlemptypackage[x=-6, y=-4]{Ada RTS Tasking Skin Library Crate}
 
             \begin{umlpackage}[x=0, y=-8]{HiRTOS Library Crate}
                \umlemptypackage[x=0, y=0]{HiRTOS}
@@ -257,13 +259,14 @@ the platform-specific components of the porting layer would need to be implement
                \umlemptypackage[x=-4, y=-4]{HiRTOS Porting Layer}
             \end{umlpackage}
 
-            \umlemptypackage[x=4, y=-16]{Portable Minimal Ada RTS Library Crate}
+            \umlemptypackage[x=+4, y=-16]{Portable Minimal Ada RTS Library Crate}
 
             \umlimport[]{Ada RTS Tasking Skin Library Crate}{HiRTOS}
             \umlimport[geometry=|-]{HiRTOS}{HiRTOS Porting Layer}
             \umlimport[]{HiRTOS}{Portable Minimal Ada RTS Library Crate}
             \umlimport[geometry=|-]{HiRTOS Porting Layer}{Portable Minimal Ada RTS Library Crate}
             \umlimport[]{Bare Metal Ada Applications}{Ada RTS Tasking Skin Library Crate}
+            \umlimport[]{Bare Metal Ada Applications}{HiRTOS}
             \umlimport[geometry=-|]{Bare Metal Ada Applications}{Portable Minimal Ada RTS Library Crate}
             \umlimport[geometry=|-]{HiRTOS}{HiRTOS Config Parameters}
          \end{tikzpicture}
@@ -370,7 +373,7 @@ Constants defined here represent compile-time configuration parameters for
     numThreadPriorities: \nat_1 \\
     numTimerWheelSpokes: \nat_1 \\
 \where
-    maxNumThreads \geq 2 * numCpus
+    maxNumThreads > 2
 \also
     maxNumCondvars \geq maxNumThreads
 \also
@@ -527,7 +530,7 @@ internally by HiRTOS.
 
 \begin{schema}{HiRtos}
     rtosCpuInstances: \\
-    \t1 ValidCpuIdType \finj HiRtosCpuInstanceType \\
+    \t1 ValidCpuIdType \inj HiRtosCpuInstanceType \\
     zAllCreatedThreadInstances: \finset ThreadType \\
 \where
     \# rtosCpuInstances \geq 1
@@ -589,8 +592,8 @@ are described below:
     tickTimerThreadId \neq idleThreadId
 \also
     threadSchedulerState = threadSchedulerRunning \implies \\
-    (\forall t: \ran (\{~ currentThreadId ~\} \ndres threads) @ \\
-\t1    t.currentPriority < (threads(currentThreadId)).currentPriority)
+    (\forall threadId: (\dom threads \setminus \{~ currentThreadId ~\}) @ \\
+\t1    (threads(threadId)).currentPriority \leq (threads(currentThreadId)).currentPriority)
 \also
     zCpuInterruptMaskingState = cpuInterruptsEnabled \iff \\
 \t1 currentAtomicLevel > atomicLevelNoInterrupts
@@ -1302,18 +1305,99 @@ specified by the $StopTimer$ schema:
    \t1  timerWheel.wheelSpokesHashTable(wheelSpokeIndex) \setminus \{~ timerId? ~\}
 \end{schema}
 
+\subsubsection{Pointer-less Linked list}
+
+Thread queues, mutex lists and timer sets are refined as pointer-less linked lists.
+Pointer-less linked lists use array indices instead of physical pointers. The $GenericLinkedLists$
+schema represents a generic pointer-less linked list in which the links that chain the
+list toegether are values of type $ElementIdType$ which corresponds to indices of some object array.
+
+\begin{schema}{GenericLinkedList}[ElementIdType]
+   head : ElementIdType \\
+   tail : ElementIdType \\
+   length : \nat \\
+   nextElement : ElementIdType \finj ElementIdType \\
+   prevElement : ElementIdType \finj ElementIdType
+\where
+   length \leq \# ElementIdType
+\also
+   length = \# (\dom nextElement)
+\also
+  \dom nextElement = \dom prevElement
+\also
+  \dom nextElement = \dom prevElement
+\also
+   length \leq 1 \iff head = tail
+\also
+   length \geq 2 \iff \\
+\t1   (nextElement^{length - 1}(head) = tail \land prevElement^{length - 1}(tail) = head)
+\also
+   nextElement\plus \cap \id ElementIdType = \emptyset
+\also
+   prevElement\plus \cap \id ElementIdType = \emptyset
+\also
+    \forall x: \dom nextElement @ \\
+\t1    (x \neq tail \implies prevElement(nextElement(x)) = x) \land \\
+\t1    (x \neq head \implies nextElement(prevElement(x)) = x)
+\end{schema}
+
+$ThreadQueueType$ which is an injective sequence is refined as the $RefinedThreadQueueType$ schema:
+
+\begin{schema}{RefinedThreadQueueType}
+   GenericLinkedList[ThreadIdType] \\
+\where
+   nextElement(tail) = invalidThreadId
+\also
+   prevElement(tail) = invalidThreadId
+\also
+  length = 0 \iff head = invalidThreadId
+\also
+  tail = invalidThreadId \iff head = invalidThreadId
+\end{schema}
+
+$MutexListType$ which is also an injective sequencce is refined as the $RefinedMutexListType$ schema:
+
+\begin{schema}{RefinedMutexListType}
+   GenericLinkedList[MutexIdType] \\
+\where
+   nextElement(tail) = invalidMutexId
+\also
+   prevElement(tail) = invalidMutexId
+\also
+  length = 0 \iff head = invalidMutexId
+\also
+  tail = invalidMutexId \iff head = invalidMutexId
+\end{schema}
+
+The set of timers associated with each timerwheel spoke is refined as the
+$TimerListType$ schema:
+
+\begin{schema}{TimerListType}
+   GenericLinkedList[TimerIdType] \\
+\where
+   nextElement(tail) = invalidTimerId
+\also
+   prevElement(tail) = invalidTimerId
+\also
+  length = 0 \iff head = invalidTimerId
+\also
+  tail = invalidTimerId \iff head = invalidTimerId
+\end{schema}
+
 \section{HiRTOS Thread Context Switching}
 
 \subsection{Asynchronous Thread Context Switch}
 
 In HiRTOS, thread preemption is implemented by invoking the thread scheduler
 on the exit path of an interrupt handler. When an interrupt fires while
-a thread is running, the executing thread\'s CPU context is saved
-on thread\'s stack by the interrupt handler prolog. Then, before calling the
+a thread is running, the executing thread's CPU context is saved
+on thread's stack by the interrupt handler prolog. Then, before calling the
 actual interrupt handler, the stack is switched to the interrupt handling stack.
 After the interrupt handler returns, the interrupt handler epilog invokes
 the HiRTOS thread scheduler, to select the highest priority runnable thread.
-Then, if the newly selected thread is different from the
+Then, if the newly selected thread is different from  the one that was running before
+the interrupt, the extended context of the old thread is saved and the extended
+context of the new thread is restored.
 
 \begin{figure}[H]
    \centering
@@ -1326,7 +1410,7 @@ Then, if the newly selected thread is different from the
 
 \begin{figure}[H]
    \centering
-   \scalebox{0.40} {
+   \scalebox{0.35} {
       \input{uml_diagrams/hirtos_scheduler_invocation_from_interrupt_part2.latex}
    }
    \caption{HiRTOS Asynchronous Thread Context Switch - part 2}
@@ -1390,140 +1474,156 @@ HiRTOS thread scheduler is started, when the application calls
    \label{HiRTOSumlSeqDiagram6}
 \end{figure}
 
-\subsection{TLA+/Pluscal Model of the HiRTOS Thread Scheduler}
+\subsection{TLA+/PlusCal Model of the HiRTOS Thread Scheduler}
 
-The HiRTOS thread scheduler has been modeled in TLA+/Pluscal \cite{tla1, tla2}.
-The HiRTOS TLA+/Pluscal model can be found \href{run:./tla_models/HiRTOS.pdf}{here}.
+The HiRTOS thread scheduler has been modeled in TLA+/PlusCal \cite{tla1, tla2}.
+The HiRTOS TLA+/PlusCal model can be found \href{run:./tla_models/HiRTOS.pdf}{here}.
 The following safety invariants were verified with the TLC model checker \cite{tlc}:
 
 \begin{itemize}
 \item There can be at most only one "running" thread
 
 \begin{lstlisting}
-    HiRTOS.Interrupts_Enabled =>
-        IF HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id" THEN
-           /\ Cardinality({ t \in Threads : Thread_Objects[t].State = "Running" }) = 1
-           /\ HiRTOS.Current_Thread_Id =
-               CHOOSE t \in Threads : Thread_Objects[t].State = "Running"
-        ELSE
-           { t \in Threads : Thread_Objects[t].State = "Running" } = {}
+HiRTOS.Interrupts_Enabled =>
+   IF HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id" THEN
+      /\ Cardinality({ t \in Threads : Thread_Objects[t].State = "Running" }) = 1
+      /\ HiRTOS.Current_Thread_Id =
+         CHOOSE t \in Threads : Thread_Objects[t].State = "Running"
+   ELSE
+      { t \in Threads : Thread_Objects[t].State = "Running" } = {}
 \end{lstlisting}
 
 \item The running thread is not in any queue
 \begin{lstlisting}
-    (HiRTOS.Interrupts_Enabled /\
-     HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id") =>
-       (/\ Thread_Objects[HiRTOS.Current_Thread_Id].State = "Running"
-        /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
-        /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
-        /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, HiRTOS.Current_Thread_Id)
-        /\ \A m \in Mutexes :
-             ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, HiRTOS.Current_Thread_Id)
-        /\ \A cv \in Condvars :
-             ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, HiRTOS.Current_Thread_Id)
-       )
+(HiRTOS.Interrupts_Enabled /\
+ HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id") =>
+   (/\ Thread_Objects[HiRTOS.Current_Thread_Id].State = "Running"
+    /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Condvar_Id =
+          "Invalid_Condvar_Id"
+    /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Mutex_Id =
+          "Invalid_Mutex_Id"
+    /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue,
+                                    HiRTOS.Current_Thread_Id)
+    /\ \A m \in Mutexes :
+         ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue,
+                                      HiRTOS.Current_Thread_Id)
+    /\ \A cv \in Condvars :
+         ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue,
+                                      HiRTOS.Current_Thread_Id)
+   )
 \end{lstlisting}
 
 \item All Runnable threads are in the Runnable threads queue and no other queue
 \begin{lstlisting}
-    HiRTOS.Interrupts_Enabled =>
-    \A t \in Threads : Thread_Objects[t].State = "Runnable" =>
-        /\ Thread_Objects[t].Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
-        /\ Thread_Objects[t].Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
-        /\ Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
-        /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(HiRTOS.Runnable_Threads_Queue, t)
-        /\ \A m \in Mutexes :
-             ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
-        /\ \A cv \in Condvars :
-             ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
+HiRTOS.Interrupts_Enabled =>
+\A t \in Threads : Thread_Objects[t].State = "Runnable" =>
+   /\ Thread_Objects[t].Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
+   /\ Thread_Objects[t].Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
+   /\ Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
+   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(
+         HiRTOS.Runnable_Threads_Queue, t)
+   /\ \A m \in Mutexes :
+         ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
+   /\ \A cv \in Condvars :
+         ~Is_Thread_In_Priority_Queue(
+            Condvar_Objects[cv].Waiting_Threads_Queue, t)
 \end{lstlisting}
 
 \item Each thread blocked on a mutex in only one mutex's wait queue and no other queue
 \begin{lstlisting}
-    HiRTOS.Interrupts_Enabled =>
-    \A t \in Threads :
-      LET
-         thread_obj == Thread_Objects[t]
-      IN
-         thread_obj.State = "Blocked_On_Mutex" =>
-            /\ thread_obj.Waiting_On_Mutex_Id /= "Invalid_Mutex_Id"
-            /\ thread_obj.Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
-            /\ (LET
-                   mutex_obj == Mutex_Objects[thread_obj.Waiting_On_Mutex_Id]
-                IN
-                   /\ Is_Thread_In_Priority_Queue(mutex_obj.Waiting_Threads_Queue, t)
-                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(mutex_obj.Waiting_Threads_Queue, t))
-            /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
-            /\ \A m \in Mutexes \ { thread_obj.Waiting_On_Mutex_Id } :
-                  ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
-            /\ \A cv \in Condvars :
-                  ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
+HiRTOS.Interrupts_Enabled =>
+\A t \in Threads :
+LET
+   thread_obj == Thread_Objects[t]
+IN
+   thread_obj.State = "Blocked_On_Mutex" =>
+   /\ thread_obj.Waiting_On_Mutex_Id /= "Invalid_Mutex_Id"
+   /\ thread_obj.Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
+   /\ (LET
+         mutex_obj == Mutex_Objects[thread_obj.Waiting_On_Mutex_Id]
+       IN
+         /\ Is_Thread_In_Priority_Queue(mutex_obj.Waiting_Threads_Queue, t)
+         /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(
+               mutex_obj.Waiting_Threads_Queue, t))
+   /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
+   /\ \A m \in Mutexes \ { thread_obj.Waiting_On_Mutex_Id } :
+         ~Is_Thread_In_Priority_Queue(
+            Mutex_Objects[m].Waiting_Threads_Queue, t)
+   /\ \A cv \in Condvars :
+         ~Is_Thread_In_Priority_Queue(
+            Condvar_Objects[cv].Waiting_Threads_Queue, t)
 \end{lstlisting}
 
 \item Each thread blocked on a condvar is in only one condvar\'s wait queue and no other queue
 \begin{lstlisting}
-    HiRTOS.Interrupts_Enabled =>
-    \A t \in Threads :
-      LET
-         thread_obj == Thread_Objects[t]
-      IN
-         thread_obj.State = "Blocked_On_Condvar" =>
-            /\ thread_obj.Waiting_On_Condvar_Id /= "Invalid_Condvar_Id"
-            /\ thread_obj.Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
-            /\ (LET
-                   condvar_obj == Condvar_Objects[thread_obj.Waiting_On_Condvar_Id]
-                IN
-                   /\ Is_Thread_In_Priority_Queue(condvar_obj.Waiting_Threads_Queue, t)
-                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(condvar_obj.Waiting_Threads_Queue, t))
-            /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
-            /\ \A cv \in Condvars \ { thread_obj.Waiting_On_Condvar_Id } :
-                  ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
-            /\ \A m \in Mutexes :
-                  ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
+HiRTOS.Interrupts_Enabled =>
+\A t \in Threads :
+LET
+   thread_obj == Thread_Objects[t]
+IN
+   thread_obj.State = "Blocked_On_Condvar" =>
+   /\ thread_obj.Waiting_On_Condvar_Id /= "Invalid_Condvar_Id"
+   /\ thread_obj.Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
+   /\ (LET
+        condvar_obj == Condvar_Objects[thread_obj.Waiting_On_Condvar_Id]
+       IN
+         /\ Is_Thread_In_Priority_Queue(
+               condvar_obj.Waiting_Threads_Queue, t)
+         /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(
+               condvar_obj.Waiting_Threads_Queue, t))
+   /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
+   /\ \A cv \in Condvars \ { thread_obj.Waiting_On_Condvar_Id } :
+         ~Is_Thread_In_Priority_Queue(
+            Condvar_Objects[cv].Waiting_Threads_Queue, t)
+   /\ \A m \in Mutexes :
+         ~Is_Thread_In_Priority_Queue(
+            Mutex_Objects[m].Waiting_Threads_Queue, t)
 \end{lstlisting}
 
 \item Each mutex that is currently owned by a thread must be in the list of mutexes owned by that thread
 \begin{lstlisting}
-    HiRTOS.Interrupts_Enabled =>
-    \A m \in Mutexes :
-      LET
-        t == Mutex_Objects[m].Owner_Thread_Id
-    IN
-        t /= "Invalid_Thread_Id" =>
-           m \in Range(Thread_Objects[t].Owned_Mutexes)
+HiRTOS.Interrupts_Enabled =>
+\A m \in Mutexes :
+LET
+   t == Mutex_Objects[m].Owner_Thread_Id
+IN
+   t /= "Invalid_Thread_Id" =>
+      m \in Range(Thread_Objects[t].Owned_Mutexes)
 \end{lstlisting}
 
 \item If a mutex is not owned by a thread, its wait queue should be empty
 \begin{lstlisting}
-   HiRTOS.Interrupts_Enabled =>
-   \A m \in Mutexes :
-      Mutex_Objects[m].Owner_Thread_Id = "Invalid_Thread_Id" =>
-        Is_Thread_Priority_Queue_Empty(Mutex_Objects[m].Waiting_Threads_Queue)
+HiRTOS.Interrupts_Enabled =>
+\A m \in Mutexes :
+   Mutex_Objects[m].Owner_Thread_Id = "Invalid_Thread_Id" =>
+      Is_Thread_Priority_Queue_Empty(Mutex_Objects[m].Waiting_Threads_Queue)
 \end{lstlisting}
 
 \item The thread owning a mutex can never have lower priority than any thread waiting
 for the mutex
 \begin{lstlisting}
-   (HiRTOS.Interrupts_Enabled /\
-    HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id") =>
-     \A m \in Mutexes :
-        LET
-            t == Mutex_Objects[m].Owner_Thread_Id
-            prio_queue == Mutex_Objects[m].Waiting_Threads_Queue
-        IN
-            (t /= "Invalid_Thread_Id" /\ ~Is_Thread_Priority_Queue_Empty(prio_queue)) =>
-                \A wt \in UNION { Range(q) : q \in Range(prio_queue) } :
-                Thread_Objects[wt].State = "Blocked_On_Mutex" /\
-                Thread_Objects[t].Current_Priority >= Thread_Objects[wt].Current_Priority
+(HiRTOS.Interrupts_Enabled /\
+ HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id") =>
+\A m \in Mutexes :
+LET
+   t == Mutex_Objects[m].Owner_Thread_Id
+   prio_queue == Mutex_Objects[m].Waiting_Threads_Queue
+IN
+   (t /= "Invalid_Thread_Id" /\
+    ~Is_Thread_Priority_Queue_Empty(prio_queue)) =>
+   \A wt \in UNION { Range(q) : q \in Range(prio_queue) } :
+      Thread_Objects[wt].State = "Blocked_On_Mutex" /\
+      Thread_Objects[t].Current_Priority >= Thread_Objects[wt].Current_Priority
 \end{lstlisting}
 
 \item A thread not owning any mutex and not waiting on a condvar always has its current
 priority set to its base priority
 \begin{lstlisting}
-    HiRTOS.Interrupts_Enabled =>
-    \A t \in Threads :
-       (Thread_Objects[t].Owned_Mutexes = <<>> /\ Thread_Objects[t].State /= "Blocked_On_Condvar") =>
-       Thread_Objects[t].Current_Priority = Thread_Objects[t].Base_Priority
+HiRTOS.Interrupts_Enabled =>
+\A t \in Threads :
+   (Thread_Objects[t].Owned_Mutexes = <<>> /\
+    Thread_Objects[t].State /= "Blocked_On_Condvar") =>
+   Thread_Objects[t].Current_Priority = Thread_Objects[t].Base_Priority
 \end{lstlisting}
 \end{itemize}
 
@@ -1532,19 +1632,21 @@ Also, the following liveness properties were verified with TLC:
 \begin{itemize}
 \item Interrupts are not disabled indefinitely
 \begin{lstlisting}
-    ~HiRTOS.Interrupts_Enabled => <>HiRTOS.Interrupts_Enabled
+~HiRTOS.Interrupts_Enabled => <>HiRTOS.Interrupts_Enabled
 \end{lstlisting}
 
 \item Every thread waiting to acquire a mutex, eventually gets it:
 \begin{lstlisting}
-    \A t \in Threads :
-        Thread_Objects[t].State = "Waiting_On_Mutex" => <>(Thread_Objects[t].State = "Runnable")
+\A t \in Threads :
+   Thread_Objects[t].State = "Waiting_On_Mutex" =>
+   <>(Thread_Objects[t].State = "Runnable")
 \end{lstlisting}
 
 \item Every thread waiting on a condvar is eventually awaken:
 \begin{lstlisting}
-    \A t \in Threads :
-        Thread_Objects[t].State = "Waiting_On_Mutex" => <>(Thread_Objects[t].State = "Runnable")
+\A t \in Threads :
+   Thread_Objects[t].State = "Waiting_On_Mutex" =>
+   <>(Thread_Objects[t].State = "Runnable")
 \end{lstlisting}
 \end{itemize}
 
@@ -1681,7 +1783,8 @@ are described below:
 
 \subsection{Separation Kernel Boot-time Initialization}
 
-At boot time, the HiRTOS separation kernel is initialized when the \verb`HiRTOS.Separation_Kernel.Initialize` \emph{HiRTOS} API is
+At boot time, the HiRTOS separation kernel is initialized when the \\
+\verb`HiRTOS.Separation_Kernel.Initialize` \emph{HiRTOS} API is
 called on every CPU core:
 
 \begin{schema}{HiRtosSeparationKernelInitialize}

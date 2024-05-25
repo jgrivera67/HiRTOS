@@ -5,8 +5,6 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 
-with Interfaces;
-
 --
 --  @summary Generic pointerless linked list
 --
@@ -18,8 +16,6 @@ generic
 package Generic_Linked_List with
   SPARK_Mode => On
 is
-   use type Interfaces.Unsigned_32;
-
    type List_Node_Type is limited private;
 
    type List_Anchor_Type is private;
@@ -31,7 +27,7 @@ is
      Ghost => True;
 
    function List_Length
-     (List_Anchor : List_Anchor_Type) return Interfaces.Unsigned_32 with
+     (List_Anchor : List_Anchor_Type) return Natural with
      Ghost => True;
 
    function Get_Containing_List (Element_Id : Element_Id_Type;
@@ -116,7 +112,7 @@ private
       List_Id : List_Id_Type := Null_List_Id;
       Head    : Element_Id_Type := Null_Element_Id;
       Tail    : Element_Id_Type := Null_Element_Id;
-      Length  : Interfaces.Unsigned_32 := 0;
+      Length  : Natural := 0;
    end record with
      Type_Invariant =>
       (if List_Anchor_Type.Length = 0 then
@@ -153,7 +149,7 @@ private
      (List_Anchor.List_Id /= Null_List_Id);
 
    function List_Length
-     (List_Anchor : List_Anchor_Type) return Interfaces.Unsigned_32 is
+     (List_Anchor : List_Anchor_Type) return Natural is
      (List_Anchor.Length);
 
    function Get_Containing_List (Element_Id : Element_Id_Type;

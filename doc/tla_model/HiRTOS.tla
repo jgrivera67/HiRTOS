@@ -22,7 +22,7 @@ Threads == { "Idle_Thread", "thread1", "thread2", "thread3" }
 Mutexes == { "mutex1" }
 Condvars == { "thread1_condvar", "thread2_condvar", "thread3_condvar", "condvar1" }
 Timers == { "thread1_timer", "thread2_timer", "thread3_timer" }
-Interrupts == { "Timer_Interrupt" }
+Interrupts == { "Timer_Interrupt", "Other_Interrupt" }
 
 Thread_Id_Type == Threads \cup { "Invalid_Thread_Id" }
 Mutex_Id_Type == Mutexes \cup { "Invalid_Mutex_Id" }
@@ -35,13 +35,13 @@ Thread_State_Type == { "Suspended", "Runnable", "Running",
 
 Timer_State_Type == { "Timer_Stopped", "Timer_Running" }
 
-No_Duplicates_List_Type(S) ==
+Injective_Sequence_Type(S) ==
     { x \in Seq(S) : Len(x) /= 0 =>
                      \A i, j \in 1 .. Len(x) : i /= j => x[i] /= x[j] }
 
 Range(f) == { f[x] : x \in DOMAIN f }
 
-Thread_Queue_Type == No_Duplicates_List_Type(Thread_Id_Type)
+Thread_Queue_Type == Injective_Sequence_Type(Thread_Id_Type)
 
 Thread_Priority_Queue_Type == [ Valid_Thread_Priority_Type -> Thread_Queue_Type ]
 
@@ -70,7 +70,7 @@ Thread_Object_Type == [
     Builtin_Condvar_Id : Condvar_Id_Type,
     Waiting_On_Condvar_Id : Condvar_Id_Type,
     Waiting_On_Mutex_Id : Mutex_Id_Type,
-    Owned_Mutexes : No_Duplicates_List_Type(Mutex_Id_Type),
+    Owned_Mutexes : Injective_Sequence_Type(Mutex_Id_Type),
     ghost_Time_Slice_Consumed : BOOLEAN,
     ghost_Condvar_Wait_Mutex_Id : Mutex_Id_Type
 ]
@@ -3777,14 +3777,17 @@ SafetyInvariant2 ==
        (/\ Thread_Objects[HiRTOS.Current_Thread_Id].State = "Running"
         /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
         /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
-        /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, HiRTOS.Current_Thread_Id)
+        /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue,
+                                        HiRTOS.Current_Thread_Id)
         /\ \A m \in Mutexes :
-             ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, HiRTOS.Current_Thread_Id)
+             ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue,
+                                          HiRTOS.Current_Thread_Id)
         /\ \A cv \in Condvars :
-             ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, HiRTOS.Current_Thread_Id)
+             ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue,
+                                          HiRTOS.Current_Thread_Id)
        )
 
-\* All Runnable threads are in the Runnable threads queue and no other queue
+\* All Runnable threads are in the Runnable threads queue and in no other queue
 SafetyInvariant3 ==
     HiRTOS.Interrupts_Enabled =>
     \A t \in Threads : Thread_Objects[t].State = "Runnable" =>
@@ -3797,7 +3800,7 @@ SafetyInvariant3 ==
         /\ \A cv \in Condvars :
              ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
 
-\* Each thread blocked on a mutex in only one mutex's wait queue and no other queue
+\* Each thread blocked on a mutex is in only one mutex's wait queue and in no other queue
 SafetyInvariant4 ==
     HiRTOS.Interrupts_Enabled =>
     \A t \in Threads :
@@ -3811,14 +3814,15 @@ SafetyInvariant4 ==
                    mutex_obj == Mutex_Objects[thread_obj.Waiting_On_Mutex_Id]
                 IN
                    /\ Is_Thread_In_Priority_Queue(mutex_obj.Waiting_Threads_Queue, t)
-                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(mutex_obj.Waiting_Threads_Queue, t))
+                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(
+                         mutex_obj.Waiting_Threads_Queue, t))
             /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
             /\ \A m \in Mutexes \ { thread_obj.Waiting_On_Mutex_Id } :
                   ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
             /\ \A cv \in Condvars :
                   ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
 
-\* Each thread blocked on a condvar is in only one condvar's wait queue and no other queue
+\* Each thread blocked on a condvar is in only one condvar's wait queue and in no other queue
 SafetyInvariant5 ==
     HiRTOS.Interrupts_Enabled =>
     \A t \in Threads :
@@ -3832,7 +3836,8 @@ SafetyInvariant5 ==
                    condvar_obj == Condvar_Objects[thread_obj.Waiting_On_Condvar_Id]
                 IN
                    /\ Is_Thread_In_Priority_Queue(condvar_obj.Waiting_Threads_Queue, t)
-                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(condvar_obj.Waiting_Threads_Queue, t))
+                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(
+                         condvar_obj.Waiting_Threads_Queue, t))
             /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
             /\ \A cv \in Condvars \ { thread_obj.Waiting_On_Condvar_Id } :
                   ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)

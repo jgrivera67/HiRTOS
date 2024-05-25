@@ -122,7 +122,7 @@ package body Generic_Linked_List with SPARK_Mode => On is
                             List_Nodes : in out List_Nodes_Type) is
       Element_Id : Element_Id_Type := List_Anchor.Head;
       Next_Element_Id : Element_Id_Type;
-      List_Length : constant Interfaces.Unsigned_32 := List_Anchor.Length;
+      List_Length : constant Natural := List_Anchor.Length;
    begin
       if List_Length /= 0 then
          for I in 0 .. List_Length - 1 loop

@@ -43,8 +43,7 @@ TLC model checker. The sucessful [TLC run](doc/tla_model/HiRTOS_tla_tlc_run.log)
 
 ### "Hello World" HiRTOS Sample Application
 
-This sample application the HiRTOS real-time kernel. It launches a set of application threads on
-each core of a Cortex-R52 processor.
+This HIRTOS sample application launches a set of application threads on each core of a Cortex-R52 processor.
 
 To build it, do:
 

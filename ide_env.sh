@@ -10,8 +10,8 @@ export GPR_FILE=hirtos.gpr
 export ARMFVP_DIR=/opt/FVP_Base_AEMv8R/AEMv8R_base_pkg
 export ARMFVP_BIN_PATH=$ARMFVP_DIR/models/Linux64_GCC-9.3
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ARMFVP_DIR/fmtplib
-export FUZZLIB=/usr/local/lib/fuzzlib
-#export FUZZLIB=/opt/fuzz/lib/fuzzlib
+#export FUZZLIB=/usr/local/lib/fuzzlib
+export FUZZLIB=/opt/fuzz/lib/fuzzlib
 
 export GIT_EXTERNAL_DIFF=tkdiff
 

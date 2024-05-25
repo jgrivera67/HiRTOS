@@ -20,14 +20,14 @@ is
    Max_Num_Threads : constant := 32;
 
    pragma Compile_Time_Error
-     (Max_Num_Threads < 2 * HiRTOS_Platform_Parameters.Num_Cpu_Cores,
+     (Max_Num_Threads <= 2,
       "Max_Num_Threads too small");
 
    --
    --  Maximum number of condition variables (not counting the condvar embedded
    --  in each thread)
    --
-   Max_Num_Condvars : constant := 32;
+   Max_Num_Condvars : constant := 48;
 
    pragma Compile_Time_Error
      (Max_Num_Condvars < Max_Num_Threads,
@@ -36,7 +36,7 @@ is
    --
    --  Maximum number of mutexes
    --
-   Max_Num_Mutexes : constant := 32;
+   Max_Num_Mutexes : constant := 16;
 
    --
    --  Maximum number of timers
