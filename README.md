@@ -14,20 +14,16 @@ target micrcontroller or embedded platform, and such baremetal Ada runtimes are
 available only for a very limited number of platforms. HiRTOS solves this problem
 by being implemented on top of a minimal platform-independent Ada runtime.
 Also, HiRTOS code itself has been written on top of a porting layer that provides
-a platform-agnostic interface to HiRTOS. Currently, only one porting layer for the
-ARM Cortex-R52 multi-core processor is provided. To port HiRTOS to a new target
-platform, all what it is needed is to implement the porting layer for the new target
-platform.
+a platform-agnostic interface to HiRTOS. Currently, two porting layers are provided.
+One for the ARM Cortex-R52 multi-core processor, and the other for the RISCV-based
+ESP32-C3 microcontroller. To port HiRTOS to a new target platform, the
+platform-specific components of the porting layer would need to be implemented for
+the new target platform.
 
 ## HiRTOS Z Specification
 
 HiRTOS is formally specified using the Z notation. The HiRTOS Z specification can
 be found [here](doc/HiRTOS.pdf).
-
-## HiRTOS TLA+ Specification
-
-HiRTOS is also formally modeled in TLA+/Pluscal and verified using the TLC model checker.
-The HiRTOS TLA+/Pluscal specification can be found [here](doc/tla_model/HiRTOS.pdf).
 
 ## Building and Running the HiRTOS Multi-core Sample Applications for ARMv8-R
 
@@ -36,6 +32,7 @@ The HiRTOS TLA+/Pluscal specification can be found [here](doc/tla_model/HiRTOS.p
 * Install the [`alr`](https://alire.ada.dev/docs/) Ada package manager and meta-build tool
 * Install the [ARM Fixed Virtual Platform (FVP) Simulator](https://developer.arm.com/downloads/-/arm-ecosystem-models)
   for ARMv8-R (scroll down to Armv8-R AEM FVP)
+* Or, install the [Renode simulator](https://github.com/renode/renode/blob/master/README.rst#installation)
 
 ### "Hello World" HiRTOS Sample Application
 
@@ -49,7 +46,7 @@ cd sample_apps/fvp_armv8r_aarch32_hello
 alr build
 ```
 
-To run it on the ARM FVP simulator, do:
+To run it on the ARM FVP simulator with 4 Cortex-R52 cores and 4 UARTs (one UART per core), do:
 
 ```
 #
@@ -72,6 +69,36 @@ Once the ARM FVP simulator starts, an xterm for the UART output from each CPU co
 displayed.
 An ARM FVP run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running.png).
 
+To run it on Renode with 2 Cortex-R52 cores and 2 UARTs (one UART per core), do:
+
+* Make a copy of `<renode install dir>/renode/scripts/single-node/cortex-r52.resc`, and modify it as follows:
+
+```
+$bin?=@bin/fvp_armv8r_aarch32_hello.elf                              # <---- change 1: HiRTOS execuable for ARMv8-R
+$name?="ARM Cortex-R52"
+
+using sysbus
+mach create $name
+
+machine LoadPlatformDescription @platforms/cpus/cortex-r52_smp.repl  # <---- change 2: Renode multi-core Cortex-R52
+
+showAnalyzer uart0
+showAnalyzer uart1                                                   # <---- change 3: CPU 1 output goes to UART1
+
+macro reset
+"""
+    sysbus LoadELF $bin
+"""
+runMacro $reset
+start                                                                # <---- change 4: To boot the Cortex-R52 automatically
+```
+
+* Run Renode:
+```
+$ renode ./cortex-r52.resc
+```
+A Renode run for the "Hello World" HiRTOS sample application looks like this: ![](doc/HiRTOS_Sample_App_Running_On_Renode.png).
+
 ### "Hello World" HiRTOS Separation Kernel Sample Application
 
 This sample application demonstrates the HiRTOS separation kernel. It launches two partitions
@@ -84,7 +111,7 @@ cd sample_apps/hello_partitions
 alr build
 ```
 
-To run it on the ARM FVP simulator, do:
+To run it on the ARM FVP simulator with 4 cores and 4 UARTs (one UART per core), do:
 ```
 <ARM FVP install dir>/models/Linux64_GCC-9.3/FVP_BaseR_AEMv8R \
    -C bp.pl011_uart0.uart_enable=1 \
@@ -97,6 +124,16 @@ To run it on the ARM FVP simulator, do:
 
 An ARM FVP run for the "Hello World" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running.png).
 
+To run it on Renode with 2 Cortex-R52 cores and 2 UARTs (one UART per core), do:
+
+* Make a copy of `<renode install dir>/renode/scripts/single-node/cortex-r52.resc`, and modify it as
+described for previous Renode example.
+* Run Renode:
+```
+$ renode ./cortex-r52.resc
+```
+A Renode run for the "Hello partitions" HiRTOS separation kernel sample application looks like this: ![](doc/HiRTOS_Separation_Kernel_Sample_App_Running_on_Renode.png).
+
 ## Building and Running the HiRTOS Sample Applications for RISC-V
 
 HiRTOS has been ported to the [ESP32-C3](https://www.espressif.com/en/products/socs/esp32-c3) RISC-V-based
@@ -107,17 +144,6 @@ microcontroller.
 * Install the [`alr`](https://alire.ada.dev/docs/) Ada package manager and meta-build tool
 * Install the [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/) flashing tool
   by doing `pip3 install esptool`.
-* Make the following changes in the HiRTOS crate's `alire.toml` file:
-```
-[[depends-on]]
-#gnat_arm_elf = "^13.2.1"
-gnat_riscv64_elf = "^13.2.1"
-gnatprove = "^13.2.1"
-
-[gpr-set-externals]
-#CPU_Core = "arm_cortex_r52"
-CPU_Core = "riscv32"
-```
 
 ### "Hello World" HiRTOS Sample Application
 

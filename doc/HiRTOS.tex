@@ -49,22 +49,23 @@ This document describes the design of \emph{HiRTOS} (\emph{``High Integrity''} R
 a real-time operating system kernel (RTOS) written in SPARK Ada. HiRTOS targets
 safety-critical and security-sensitive embedded software applications that run
 in small multi-core microcontrollers. HiRTOS was designed using the Z notation,
-as a methodical way to capture correctness assumptions that can be expressed
+as a methodical way to capture correctness properties that can be expressed
 as programming contracts in SPARK Ada. Z is a software modeling notation based
 on discrete mathematics structures (such as sets, relations and functions)
 and predicate logic.
 
 Although there are several popular RTOSes for embedded applications that run on small
 multi-core microcontrollers, most of them are not designed with high-integrity applications
-in mind, and as such are written in C, a notoriously unsafe language. So, it would be desirable
+in mind, and are typically written in C, a notoriously unsafe language. So, it would be desirable
 to have an RTOS specifically designed for high-integrity applications, and written in a safer
 language, like Ada or its subset SPARK Ada, even if application code is written in C/C++.
 Modern versions of the Ada and SPARK languages have programming-by-contract constructs built-in
-in the language, which allows the programmer to express correctness assumptions as part of the
-code. One challenge when doing programming-by-contract is to be aware of all the correctness
-assumptions that can be checked in programming contracts. Describing software design in a formal
+in the language, which allows the programmer to express correctness properties, such as
+preconditions, postconditions, object state invariants and loop invariants, as code.
+However, one challenge when doing programming-by-contract is to be aware of all the correctness
+conditions that can be asserted in programming contracts. Describing software design in a formal
 notation, such as the \href{http://en.wikipedia.org/wiki/Z_notation}{Z notation} \cite{Zref, Zrm, WayofZ},
-can help identify/elicit correctness assumptions in a more thorough and methodical way than just
+can help identify/elicit such correctness conditions in a more thorough and methodical way than just
 writing code.
 
 Z is a software modeling notation based on discrete mathematics structures (such as sets,
@@ -77,8 +78,14 @@ The \emph{HiRTOS} Z model described here was checked with the \verb'fuzz' tool~\
 Z type-checker, that catches Z type mismatches in predicates.
 
 The code of \emph{HiRTOS} is written in SPARK Ada \cite{SparkAda}, a high integrity
-subset of the Ada programming language. HiRTOS data types were modeled in Z at a level of
-abstraction that can be mapped directly to corresponding data types in SPARK Ada.
+subset of the Ada programming language. The code of HiRTOS is available in GitHub at
+\url{https://github.com/jgrivera67/HiRTOS}. HiRTOS data types were modeled in Z at a
+level of abstraction that can be mapped directly to corresponding data types in SPARK Ada.
+This guided design decision at the code level, resulting in a completely pointer-less
+implementation, that leverages the various Ada mechanism to avoid having to use pointers.
+
+Also, the HiRTOS thread scheduler was modeled in TLA+/Pluscal \cite{tla1, tla2} and the
+hiRTOS TLA+ model was verified using the TLC model checker \cite{tlc}.
 
 \chapter{HiRTOS Overview}
 
@@ -96,15 +103,17 @@ mutex. \emph{HiRTOS} mutexes support both priority inheritance and priority ceil
 
 \item Unlike C11 condition variables, \emph{HiRTOS} condition variables
 can also be waited on while having interrupts disabled, not just while holding a mutex.
+This prevents missing "thread wakeups", when signaling condition variables from interrupt
+service routines (ISRs), making it unnecessary to use semaphores for this purpose.
 
 \item \emph{HiRTOS} atomic levels can be used to disable the thread scheduler or to disable interrupts
 at and below a given priority or to disable all interrupts.
 
-\item In a multi-core platform, there is one \emph{HiRTOS} instance per CPU Core. Each \emph{HiRTOS} instance is
-independent of each other. No resources are shared between \emph{HiRTOS} instances. No communication between
-CPU cores is supported by \emph{HiRTOS}, so that the \emph{HiRTOS} API can stay the same for both single-core
-and multi-core platforms. Inter-core communication would need to be provided outside of \emph{HiRTOS},
-using doorbell interrupts and mailboxes or shared memory, for example.
+\item In a multi-core platform, there is one \emph{HiRTOS} instance per CPU Core. Each \emph{HiRTOS}
+instance is independent of each other. No resources are shared between \emph{HiRTOS} instances. No
+communication/synchronization between CPU cores is supported by the current version of \emph{HiRTOS}.
+If an application needs inter-core communication, that would need to be provided outside of
+\emph{HiRTOS}, using doorbell interrupts and mailboxes or shared memory, for example.
 
 \item
 Threads are bound to the CPU core in which they were created, for the lifetime of the thread. That is,
@@ -116,9 +125,11 @@ by \emph{HiRTOS} from statically allocated internal object pools.
 These object pools are just RTOS-private global arrays of the corresponding RTOS object types,
 sized at compile time via configuration parameters, whose values are application-specific.
 RTOS object handles provided to application code are just indices into these internal object arrays.
-No actual RTOS object pointers exposed to application code.
-No dynamic allocation/deallocation of RTOS objects is supported and no static allocation of RTOS
-objects in memory owned by application code is supported either.
+No actual RTOS object pointers exposed to application code. No dynamic allocation/deallocation of
+RTOS objects is supported and no static allocation of RTOS objects in memory owned by application
+code is supported either. All this prevents HiRTOS internal state from being accidentally or
+intentionally corrupted from application code. RTOS objects can only be manipulated through the
+HiRTOS APIs.
 
 \item
 All application threads run in unprivileged mode. For each thread, the only writable memory,
@@ -127,31 +138,33 @@ MMIO space is only accessible to privileged code, by default. Application driver
 than ISRs, must request access (read-only or read-write permission) to \emph{HiRTOS} via a
 system call.
 
-\item Interrupt service routines (ISRs) are seen as hardware-scheduled threads that have higher priority than all
-software-scheduled threads. They can only be preempted by higher-priority ISRs.
-They cannot block waiting on mutexes or condition variables.
+\item ISRs are seen as hardware-scheduled threads that have higher priority than all software-scheduled
+threads. They can only be preempted by higher-priority ISRs. They cannot block waiting on mutexes or
+condition variables.
 
 \end{itemize}
 
 \section{Separation Kernel Major Design Decisions}
 
-Besides being a fully functional RTOS, HiRTOS can be used as a separation kernel \cite{SepK}.
+Besides being a fully functional RTOS, HiRTOS can be used as a separation kernel \cite{SepK1, SepK2}.
 
 \begin{itemize}
 
 \item In a multi-core platform, there is one separation kernel instance per CPU Core. Each instance is
-independent of each other. No resources are shared between separation kernel instances. No communication between
-CPU cores is supported, so that the separation kernel API can stay the same for both single-core
-and multi-core platforms. Inter-core communication would need to be provided outside of HiRTOS,
-using doorbell interrupts and mailboxes or shared memory, for example.
+independent of each other. No resources are shared between separation kernel instances. No communication
+between CPU cores is supported yet. If needed by the application, inter-core communication would need to
+be provided outside of the HiRTOS separation kernel, using doorbell interrupts and mailboxes or shared
+memory, for example.
 
-\item Each separation-kernel instance consists of one or more partitions. A partition is a spatial and temporal
-separation/isolation unit on which a bare-metal or RTOS-based firmware binary runs. Each partition
-consists of one more disjoint address ranges covering portions of RAM and MMIO space that only that
-partition can access. Also, each partition has its own interrupt vector table, its own set of physical
-interrupts and its own global machine state. So, the firmware hosted in each partition has the illusion
-that it owns an entire physical machine, with is own set of of physical peripherals, dedicated memory
-and CPU core. The CPU core is time-sliced among the partitions running on the same separation kernel instance.
+\item Each separation-kernel instance consists of one or more partitions. A partition is a spatial and
+temporal separation/isolation unit on which a bare-metal or RTOS-based firmware binary runs. Each partition
+consists of one or more disjoint address ranges covering portions of RAM and MMIO space that only that
+partition can access. Isolation is enforced by a hypervisor-level memory protection unit (MPU). Also,
+each partition has its own interrupt vector table and its own set of physical interrupts. So, physical
+peripherals can be assigned to individual partitions (discrete device assignment). However,
+no device or memory virtualisation is supported, as the target machine for the HiRTOS separation kernel
+is not required to have neither an MMU nor an IOMMU.
+The CPU core is time-sliced among the partitions running on the same separation kernel instance.
 
 \item
 Partitions are bound to the CPU core in which they were created. That is, no partition migration between
@@ -179,17 +192,21 @@ a FreeRTOS skin and and a CMSIS RTOS2 skin. Both skins are implemented on top of
 The native C skin is just a thin C wrapper that consists of a C header file containing the C
 functions prototypes of the corresponding Ada subprograms of the SPARK Ada native interface of HiRTOS.
 
-In addition to the Ada native and  C/C++ interfaces, HiRTOS could also provide an Ada runtime library (RTS) skin,
+In addition to the Ada native and C/C++ interfaces, HiRTOS could also provide an Ada runtime library (RTS) skin,
 as shown on figure \ref{HiRTOSAchitecture2}, so that baremetal Ada applications that use Ada tasking
 features can run on top of HiRTOS. This can be especially useful, given the limited number of
-microcontroller platforms for which there is a bare-metal Ada runtime library available with the
-GNAT Ada compiler. an all platforms where is available now or in the future.
+microcontroller platforms for which an available bare-metal Ada runtime library is provided with the
+GNAT Ada compiler.
 
-HiRTOS has been architected to be easily portable to any multi-core microcontroller or bare metal
-platform for which a GNAT Ada cross compiler is available. All platform-dependent code is isolated in the
-HiRTOS porting layer, which provides platform-independent interfaces to the rest of the HiRTOS code.
+HiRTOS has been architected to be easily portable to any single-core or multi-core microcontroller or
+bare metal platform for which a GNAT Ada cross compiler is available. All platform-dependent code is
+isolated in the HiRTOS porting layer, which provides platform-independent interfaces to the rest of
+the HiRTOS code.
 To avoid any dependency on a platform-specific bare-metal Ada runtime library, provided by the
 compiler, HiRTOS sits on top of a platform-independent portable minimal Ada runtime library.
+Currently, two porting layers have been implemented: one for the ARM Cortex-R52 multi-core processor,
+and the other for the RISCV-based ESP32-C3 microcontroller. To port HiRTOS to a new target platform,
+the platform-specific components of the porting layer would need to be implemented for the new platform.
 
 \begin{figure}
    \begin{center}
@@ -1373,6 +1390,164 @@ HiRTOS thread scheduler is started, when the application calls
    \label{HiRTOSumlSeqDiagram6}
 \end{figure}
 
+\subsection{TLA+/Pluscal Model of the HiRTOS Thread Scheduler}
+
+The HiRTOS thread scheduler has been modeled in TLA+/Pluscal \cite{tla1, tla2}.
+The HiRTOS TLA+/Pluscal model can be found \href{run:./tla_models/HiRTOS.pdf}{here}.
+The following safety invariants were verified with the TLC model checker \cite{tlc}:
+
+\begin{itemize}
+\item There can be at most only one "running" thread
+
+\begin{lstlisting}
+    HiRTOS.Interrupts_Enabled =>
+        IF HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id" THEN
+           /\ Cardinality({ t \in Threads : Thread_Objects[t].State = "Running" }) = 1
+           /\ HiRTOS.Current_Thread_Id =
+               CHOOSE t \in Threads : Thread_Objects[t].State = "Running"
+        ELSE
+           { t \in Threads : Thread_Objects[t].State = "Running" } = {}
+\end{lstlisting}
+
+\item The running thread is not in any queue
+\begin{lstlisting}
+    (HiRTOS.Interrupts_Enabled /\
+     HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id") =>
+       (/\ Thread_Objects[HiRTOS.Current_Thread_Id].State = "Running"
+        /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
+        /\ Thread_Objects[HiRTOS.Current_Thread_Id].Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
+        /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, HiRTOS.Current_Thread_Id)
+        /\ \A m \in Mutexes :
+             ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, HiRTOS.Current_Thread_Id)
+        /\ \A cv \in Condvars :
+             ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, HiRTOS.Current_Thread_Id)
+       )
+\end{lstlisting}
+
+\item All Runnable threads are in the Runnable threads queue and no other queue
+\begin{lstlisting}
+    HiRTOS.Interrupts_Enabled =>
+    \A t \in Threads : Thread_Objects[t].State = "Runnable" =>
+        /\ Thread_Objects[t].Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
+        /\ Thread_Objects[t].Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
+        /\ Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
+        /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(HiRTOS.Runnable_Threads_Queue, t)
+        /\ \A m \in Mutexes :
+             ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
+        /\ \A cv \in Condvars :
+             ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
+\end{lstlisting}
+
+\item Each thread blocked on a mutex in only one mutex's wait queue and no other queue
+\begin{lstlisting}
+    HiRTOS.Interrupts_Enabled =>
+    \A t \in Threads :
+      LET
+         thread_obj == Thread_Objects[t]
+      IN
+         thread_obj.State = "Blocked_On_Mutex" =>
+            /\ thread_obj.Waiting_On_Mutex_Id /= "Invalid_Mutex_Id"
+            /\ thread_obj.Waiting_On_Condvar_Id = "Invalid_Condvar_Id"
+            /\ (LET
+                   mutex_obj == Mutex_Objects[thread_obj.Waiting_On_Mutex_Id]
+                IN
+                   /\ Is_Thread_In_Priority_Queue(mutex_obj.Waiting_Threads_Queue, t)
+                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(mutex_obj.Waiting_Threads_Queue, t))
+            /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
+            /\ \A m \in Mutexes \ { thread_obj.Waiting_On_Mutex_Id } :
+                  ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
+            /\ \A cv \in Condvars :
+                  ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
+\end{lstlisting}
+
+\item Each thread blocked on a condvar is in only one condvar\'s wait queue and no other queue
+\begin{lstlisting}
+    HiRTOS.Interrupts_Enabled =>
+    \A t \in Threads :
+      LET
+         thread_obj == Thread_Objects[t]
+      IN
+         thread_obj.State = "Blocked_On_Condvar" =>
+            /\ thread_obj.Waiting_On_Condvar_Id /= "Invalid_Condvar_Id"
+            /\ thread_obj.Waiting_On_Mutex_Id = "Invalid_Mutex_Id"
+            /\ (LET
+                   condvar_obj == Condvar_Objects[thread_obj.Waiting_On_Condvar_Id]
+                IN
+                   /\ Is_Thread_In_Priority_Queue(condvar_obj.Waiting_Threads_Queue, t)
+                   /\ Is_Thread_In_Priority_Queue_In_Only_One_Queue(condvar_obj.Waiting_Threads_Queue, t))
+            /\ ~Is_Thread_In_Priority_Queue(HiRTOS.Runnable_Threads_Queue, t)
+            /\ \A cv \in Condvars \ { thread_obj.Waiting_On_Condvar_Id } :
+                  ~Is_Thread_In_Priority_Queue(Condvar_Objects[cv].Waiting_Threads_Queue, t)
+            /\ \A m \in Mutexes :
+                  ~Is_Thread_In_Priority_Queue(Mutex_Objects[m].Waiting_Threads_Queue, t)
+\end{lstlisting}
+
+\item Each mutex that is currently owned by a thread must be in the list of mutexes owned by that thread
+\begin{lstlisting}
+    HiRTOS.Interrupts_Enabled =>
+    \A m \in Mutexes :
+      LET
+        t == Mutex_Objects[m].Owner_Thread_Id
+    IN
+        t /= "Invalid_Thread_Id" =>
+           m \in Range(Thread_Objects[t].Owned_Mutexes)
+\end{lstlisting}
+
+\item If a mutex is not owned by a thread, its wait queue should be empty
+\begin{lstlisting}
+   HiRTOS.Interrupts_Enabled =>
+   \A m \in Mutexes :
+      Mutex_Objects[m].Owner_Thread_Id = "Invalid_Thread_Id" =>
+        Is_Thread_Priority_Queue_Empty(Mutex_Objects[m].Waiting_Threads_Queue)
+\end{lstlisting}
+
+\item The thread owning a mutex can never have lower priority than any thread waiting
+for the mutex
+\begin{lstlisting}
+   (HiRTOS.Interrupts_Enabled /\
+    HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id") =>
+     \A m \in Mutexes :
+        LET
+            t == Mutex_Objects[m].Owner_Thread_Id
+            prio_queue == Mutex_Objects[m].Waiting_Threads_Queue
+        IN
+            (t /= "Invalid_Thread_Id" /\ ~Is_Thread_Priority_Queue_Empty(prio_queue)) =>
+                \A wt \in UNION { Range(q) : q \in Range(prio_queue) } :
+                Thread_Objects[wt].State = "Blocked_On_Mutex" /\
+                Thread_Objects[t].Current_Priority >= Thread_Objects[wt].Current_Priority
+\end{lstlisting}
+
+\item A thread not owning any mutex and not waiting on a condvar always has its current
+priority set to its base priority
+\begin{lstlisting}
+    HiRTOS.Interrupts_Enabled =>
+    \A t \in Threads :
+       (Thread_Objects[t].Owned_Mutexes = <<>> /\ Thread_Objects[t].State /= "Blocked_On_Condvar") =>
+       Thread_Objects[t].Current_Priority = Thread_Objects[t].Base_Priority
+\end{lstlisting}
+\end{itemize}
+
+Also, the following liveness properties were verified with TLC:
+
+\begin{itemize}
+\item Interrupts are not disabled indefinitely
+\begin{lstlisting}
+    ~HiRTOS.Interrupts_Enabled => <>HiRTOS.Interrupts_Enabled
+\end{lstlisting}
+
+\item Every thread waiting to acquire a mutex, eventually gets it:
+\begin{lstlisting}
+    \A t \in Threads :
+        Thread_Objects[t].State = "Waiting_On_Mutex" => <>(Thread_Objects[t].State = "Runnable")
+\end{lstlisting}
+
+\item Every thread waiting on a condvar is eventually awaken:
+\begin{lstlisting}
+    \A t \in Threads :
+        Thread_Objects[t].State = "Waiting_On_Mutex" => <>(Thread_Objects[t].State = "Runnable")
+\end{lstlisting}
+\end{itemize}
+
 \clearpage
 \chapter{HiRTOS Separation Kernel Z Specification}
 
@@ -1595,7 +1770,7 @@ Jonathan Jacky, ``The Way of Z'', Cambridge Press, 1997 \\
 
 \bibitem{Fuzz}
 Mike Spivey, ``The Fuzz checker'' \\
-\url{http://spivey.oriel.ox.ac.uk/mike/fuzz}
+\url{https://github.com/Spivoxity/fuzz}
 
 \bibitem{SparkAda}
 John W. McCormick, Peter C. Chapin,``Building High Integrity Applications with SPARK'', Cambridge University Press, 2015 \\
@@ -1623,9 +1798,13 @@ ISO, ``N2731: Working draft of the C23 standard, section 7.26'', October 2021 \\
 Lui Sha et al, ``Priority Inheritance Protocols: An Approach to Real-Time Synchronization'', IEEE Transactions on Computers, September 1990 \\
 \url{https://www.csie.ntu.edu.tw/~r95093/papers/Priority%20Inheritance%20Protocols%20An%20Approach%20to%20Real-Time%20Synchronization.pdf}
 
-\bibitem{SepK}
+\bibitem{SepK1}
 John Rushby, ``Design and Verification of Secure Systems'', ACM SIGOPS Operating Systems Review, 1981 \\
 \url{https://www.csl.sri.com/users/rushby/papers/sosp81.pdf}
+
+\bibitem{SepK2}
+John Rushby, ``Partitioning in Avionics Architectures: Requirements, Mechanisms, and Assurance'', Technical Report. 1999 \\
+\url{https://www.tc.faa.gov/its/worldpac/techrpt/ar99-58.pdf}
 
 \bibitem{freeRTOS}
 FreeRTOS \\
@@ -1634,6 +1813,18 @@ FreeRTOS \\
 \bibitem{cmsisRTOS}
 CMSIS-RTOS API v2 (CMSIS-RTOS2) \\
 \url{https://www.keil.com/pack/doc/CMSIS/RTOS2/html/group__CMSIS__RTOS.html}
+
+\bibitem{tla1}
+Leslie Lamport, ``Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers'', Addison Wesley, 2003
+\url{https://lamport.azurewebsites.net/tla/book.html?back-link=learning.html#book}
+
+\bibitem{tla2}
+`Hillel Wayne, `'`Practical TLA+: Planning Driven Development'', APress, 2018
+\url{https://link.springer.com/book/10.1007/978-1-4842-3829-5}
+
+\bibitem{tlc}
+Leslie Lamport, ``The TLA+ Toolbox''
+https://lamport.azurewebsites.net/tla/toolbox.html
 
 \end{thebibliography}
 
