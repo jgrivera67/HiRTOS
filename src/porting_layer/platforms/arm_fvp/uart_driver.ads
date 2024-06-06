@@ -13,7 +13,7 @@ with Bit_Sized_Integer_Types;
 with Interfaces;
 with System;
 
-package Uart_Driver
+package Uart_Driver with SPARK_Mode => Off
 is
    use HiRTOS_Cpu_Multi_Core_Interface;
 

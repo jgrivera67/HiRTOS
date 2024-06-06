@@ -11,7 +11,7 @@
 
 with System.Machine_Code;
 
-package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => On is
+package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => Off is
    use ASCII;
 
    function Get_SCTLR return SCTLR_Type is

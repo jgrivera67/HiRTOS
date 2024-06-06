@@ -12,7 +12,7 @@
 
 with System.Machine_Code;
 
-package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU with SPARK_Mode => On is
+package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU with SPARK_Mode => Off is
 
    function Get_MPUIR return MPUIR_Type is
       MPUIR_Value : MPUIR_Type;

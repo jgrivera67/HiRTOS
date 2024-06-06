@@ -392,13 +392,15 @@ private
        Device_Memory_GRE => 2#1100#);
 
    type MAIR_Normal_Memory_Subkind_Type is
-      (Normal_Memory_Inner_Non_Cacheable,
+      (Normal_Memory_Invalid_Subkind,
+       Normal_Memory_Inner_Non_Cacheable,
        Normal_Memory_Inner_Write_Through,
        Normal_Memory_Inner_Write_Back)
       with Size => 4;
 
    for MAIR_Normal_Memory_Subkind_Type use
-      (Normal_Memory_Inner_Non_Cacheable => 2#0100#,
+      (Normal_Memory_Invalid_Subkind => 2#0000#,
+       Normal_Memory_Inner_Non_Cacheable => 2#0100#,
        Normal_Memory_Inner_Write_Through => 2#1000#,
        Normal_Memory_Inner_Write_Back => 2#1100#);
 
@@ -407,7 +409,7 @@ private
          when Device_Memory =>
              Device_Memory_Subkind : MAIR_Device_Memory_Subkind_Type := Device_Memory_nGnRnE;
          when others =>
-             Normal_Memory_Subkind : MAIR_Normal_Memory_Subkind_Type;
+             Normal_Memory_Subkind : MAIR_Normal_Memory_Subkind_Type := Normal_Memory_Invalid_Subkind;
       end case;
    end record
       with Size => 8,
@@ -585,7 +587,9 @@ private
    Unsupported_Exclusive_Access_Fault_Str : aliased constant String :=
       "Unsupported_Exclusive_Access_Fault";
 
-   Fault_Name_Pointer_Array : constant array (DFSR_Status_Type) of not null access constant String :=
+   type Constant_String_Pointer_Type is not null access constant String;
+
+   Fault_Name_Pointer_Array : constant array (DFSR_Status_Type) of Constant_String_Pointer_Type :=
       [No_Fault => No_Fault_Str'Access,
          Translation_Fault_Level0 => Translation_Fault_Level0_Str'Access,
          Permission_Fault_Level0 => Permission_Fault_Level0_Str'Access,

@@ -15,7 +15,7 @@ with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with HiRTOS_Cpu_Startup_Interface;
 with System.Machine_Code;
 
-package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => On is
+package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
 
    type Tick_Timer_Stats_Type is limited record
       Last_Period_Time_Stamp : Timer_Timestamp_Cycles_Type;

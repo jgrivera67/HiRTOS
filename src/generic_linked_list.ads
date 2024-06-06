@@ -113,18 +113,22 @@ private
       Head    : Element_Id_Type := Null_Element_Id;
       Tail    : Element_Id_Type := Null_Element_Id;
       Length  : Natural := 0;
-   end record with
-     Type_Invariant =>
-      (if List_Anchor_Type.Length = 0 then
-         (List_Anchor_Type.Head = Null_Element_Id
-          and then List_Anchor_Type.Tail = Null_Element_Id)
-       else
-         (List_Anchor_Type.Head /= Null_Element_Id
-          and then List_Anchor_Type.Tail /= Null_Element_Id
-          and then
-          (if List_Anchor_Type.Head = List_Anchor_Type.Tail then
-             List_Anchor_Type.Length = 1
-           else List_Anchor_Type.Length > 1)));
+   end record;
+   --
+   --  NOTE: The type invariant is commented out as gnatprove fails with error:
+   --        "type invariant in a nested package is not yet supported"
+   --  with
+   --    Type_Invariant =>
+   --     (if List_Anchor_Type.Length = 0 then
+   --        (List_Anchor_Type.Head = Null_Element_Id
+   --         and then List_Anchor_Type.Tail = Null_Element_Id)
+   --      else
+   --        (List_Anchor_Type.Head /= Null_Element_Id
+   --         and then List_Anchor_Type.Tail /= Null_Element_Id
+   --         and then
+   --         (if List_Anchor_Type.Head = List_Anchor_Type.Tail then
+   --            List_Anchor_Type.Length = 1
+   --          else List_Anchor_Type.Length > 1)));
 
    type List_Node_Type is limited record
       Next_Element_Id    : Element_Id_Type := Null_Element_Id;

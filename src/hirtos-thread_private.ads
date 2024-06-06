@@ -95,7 +95,7 @@ is
    --  Each thread has its own condvar
    --
    pragma Compile_Time_Error
-     (HiRTOS_Config_Parameters.Max_Num_Condvars >
+     (HiRTOS_Config_Parameters.Max_Num_Condvars <
       HiRTOS_Config_Parameters.Max_Num_Threads,
       "Max_Num_Condvars too small");
 
@@ -103,8 +103,8 @@ is
    --  Each thread has its own timer
    --
    pragma Compile_Time_Error
-     (HiRTOS_Config_Parameters.Max_Num_Timers >
-      HiRTOS_Config_Parameters.Max_Num_Timers,
+     (HiRTOS_Config_Parameters.Max_Num_Timers <
+      HiRTOS_Config_Parameters.Max_Num_Threads,
       "Max_Num_Timers too small");
 
    type Thread_Array_Type is array (Valid_Thread_Id_Type) of Thread_Type;

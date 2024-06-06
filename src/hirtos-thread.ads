@@ -41,7 +41,9 @@ is
                      (HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type'Size / System.Storage_Unit) = 0,
            Export,
            Convention => C,
-           External_Name => "hirtos_create_thread";
+           External_Name => "hirtos_create_thread",
+           --  NOTE: gnatprove crashes when parsing Entry_Point.all'Address
+           SPARK_Mode => Off;
 
    --
    --  Return the Id of the current thread executing on the current CPU core,

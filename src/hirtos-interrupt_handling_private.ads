@@ -6,7 +6,6 @@
 --
 
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
-with HiRTOS_Cpu_Arch_Interface.Interrupts;
 private package HiRTOS.Interrupt_Handling_Private with
   SPARK_Mode => On
 is
@@ -44,7 +43,6 @@ is
       return System.Address;
 
 private
-   use type Interrupt_Controller.Interrupt_Id_Type;
 
    --
    --  Interrupt nesting level object
@@ -62,10 +60,12 @@ private
       Interrupt_Nesting_Counter : Active_Interrupt_Nesting_Counter_Type;
       Saved_Stack_Pointer       : System.Address := System.Null_Address;
       Atomic_Level              : Atomic_Level_Type := Atomic_Level_None;
-   end record
-      with Type_Invariant =>
-         (if Interrupt_Id  /= Interrupt_Controller.Invalid_Interrupt_Id then
-             Atomic_Level <= Atomic_Level_Type (Interrupts.Interrupt_Priorities (Interrupt_Id)));
+   end record;
+      --  NOTE: type invariant commented out as gnatprove fails with error
+      --        "type invariant in private child unit is not yet supported"
+      --  with Type_Invariant =>
+      --     (if Interrupt_Id  /= Interrupt_Controller.Invalid_Interrupt_Id then
+      --         Atomic_Level <= Atomic_Level_Type (Interrupts.Interrupt_Priorities (Interrupt_Id)));
 
    type Interrupt_Nesting_Level_Array_Type is
      array

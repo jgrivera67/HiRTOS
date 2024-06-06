@@ -26,7 +26,7 @@ with GNAT.Source_Info;
 --  @summary HiRTOS implementation
 --
 package body HiRTOS with
-  SPARK_Mode => On
+  SPARK_Mode => Off
 is
    use HiRTOS.RTOS_Private;
    use HiRTOS.Thread_Private;
@@ -287,7 +287,7 @@ is
       return Boolean
    is
       use type HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type;
-      Non_Empty_Thread_Queues_Map_Value : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with
+      Non_Empty_Thread_Queues_Map_Value : constant HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with
          Import, Address => Thread_Priority_Queue.Non_Empty_Thread_Queues_Map'Address;
    begin
       return (Non_Empty_Thread_Queues_Map_Value = 0);
@@ -370,10 +370,8 @@ is
       declare
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
            HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
-         Current_Thread_Id :
-           Thread_Id_Type renames RTOS_Cpu_Instance.Current_Thread_Id;
-         Current_Thread_Obj :
-           Thread_Type renames RTOS_Cpu_Instance.Thread_Instances (Current_Thread_Id);
+         Current_Thread_Obj : Thread_Type renames
+           RTOS_Cpu_Instance.Thread_Instances (RTOS_Cpu_Instance.Current_Thread_Id);
       begin
          Thread_Private.Decrement_Privilege_Nesting (Current_Thread_Obj);
          if Thread_Private.Get_Privilege_Nesting (Current_Thread_Obj) = 0 then

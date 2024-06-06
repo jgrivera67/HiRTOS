@@ -17,7 +17,7 @@ with HiRTOS_Cpu_Multi_Core_Interface;
 --  @summary Whole RTOS private declarations
 --
 private package HiRTOS.RTOS_Private with
- SPARK_Mode => On
+  SPARK_Mode => On
 is
    use HiRTOS.Thread_Private;
    use HiRTOS.Mutex_Private;

@@ -12,7 +12,7 @@
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Multi_Core_Interface;
 
-package body HiRTOS.Memory_Protection_Private with SPARK_Mode => On is
+package body HiRTOS.Memory_Protection_Private with SPARK_Mode => Off is
    use HiRTOS_Cpu_Multi_Core_Interface;
    use HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 

@@ -27,6 +27,38 @@ is
    GICD_Base_Address : constant System.Address :=
      System'To_Address (16#8000_0000# + 16#2F00_0000#);
 
+   Global_Text_Region_Start_Address : constant System.Address;
+   Global_Text_Region_End_Address : constant System.Address;
+
+   Rodata_Section_Start_Address : constant System.Address;
+   Rodata_Section_End_Address : constant System.Address;
+
+   Global_Data_Region_Start_Address : constant System.Address;
+   Global_Data_Region_End_Address : constant System.Address;
+
+   Data_Section_Start_Address : constant System.Address;
+   Data_Section_End_Address : constant System.Address;
+
+   Data_Load_Section_Start_Address : constant System.Address;
+
+   BSS_Section_Start_Address : constant System.Address;
+   BSS_Section_End_Address : constant System.Address;
+
+   Privileged_BSS_Section_Start_Address : constant System.Address;
+   Privileged_BSS_Section_End_Address : constant System.Address;
+
+   Stacks_Section_Start_Address : constant System.Address;
+   Stacks_Section_End_Address : constant System.Address;
+
+   --
+   --  Global MMIO range for the target platform
+   --
+   Global_Mmio_Region_Start_Address : constant System.Address;
+   Global_Mmio_Region_End_Address : constant System.Address;
+
+private
+   pragma SPARK_Mode (Off);
+
    --
    --  Linker-script symbols defined in
    --  porting_layer/platforms/*/memory_layout.ld
@@ -151,10 +183,6 @@ is
 
    Stacks_Section_End_Address : constant System.Address :=
       Stacks_Section_End_Linker_Symbol'Address;
-
-   --
-   --  Global MMIO range for the target platform
-   --
 
    Global_Mmio_Region_Start_Address : constant System.Address :=
       System'To_Address (16#8000_0000# + 16#1C01_0000#);

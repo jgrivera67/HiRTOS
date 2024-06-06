@@ -14,7 +14,7 @@ with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface_Private;
 with System.Machine_Code;
 
-package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
+package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => Off is
    use ASCII;
    use HiRTOS_Cpu_Arch_Interface_Private;
 

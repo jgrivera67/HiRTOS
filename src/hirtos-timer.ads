@@ -35,7 +35,9 @@ package HiRTOS.Timer is
                   and then
                   Expiration_Time_Us mod HiRTOS_Config_Parameters.Tick_Timer_Period_Us = 0
                   and then
-                  HiRTOS.Memory_Protection.Valid_Code_Address (Expiration_Callback.all'Address);
+                  HiRTOS.Memory_Protection.Valid_Code_Address (Expiration_Callback.all'Address),
+           --  NOTE: gnatprove crashes when parsing Expiration_Callback.all'Address
+           SPARK_Mode => Off;
 
    --
    --  NOTE: Due to a race condition with the tick timer ISR, the timer may have already expired

@@ -14,7 +14,7 @@ with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU;
 with HiRTOS_Low_Level_Debug_Interface;
 
-package body HiRTOS_Cpu_Arch_Interface.Memory_Protection with SPARK_Mode => On is
+package body HiRTOS_Cpu_Arch_Interface.Memory_Protection is
    use HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU;
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
 

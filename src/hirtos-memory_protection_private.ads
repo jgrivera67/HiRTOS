@@ -48,12 +48,15 @@ is
    procedure Save_Thread_Memory_Regions (Thread_Regions : out Thread_Memory_Regions_Type)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
 
+   Global_Data_Region_Size_In_Bytes : constant Integer_Address;
+
+private
+   pragma SPARK_Mode (Off);
+   use HiRTOS_Cpu_Arch_Interface.Memory_Protection;
+
    Global_Data_Region_Size_In_Bytes : constant Integer_Address :=
       To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_End_Address) -
       To_Integer (HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address);
-
-private
-   use HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 
    --
    --  Thread-private memory protection regions
