@@ -253,10 +253,9 @@ the platform-specific components of the porting layer would need to be implement
 
             \umlemptypackage[x=-6, y=-4]{Ada RTS Tasking Skin Library Crate}
 
-            \begin{umlpackage}[x=0, y=-8]{HiRTOS Library Crate}
-               \umlemptypackage[x=0, y=0]{HiRTOS}
-               \umlemptypackage[x=-4, y=-1]{HiRTOS Config Parameters}
-               \umlemptypackage[x=-4, y=-4]{HiRTOS Porting Layer}
+            \begin{umlpackage}[x=0, y=0]{HiRTOS Library Crate}
+               \umlemptypackage[x=0, y=-10]{HiRTOS}
+               \umlemptypackage[x=-4, y=-12]{HiRTOS Porting Layer}
             \end{umlpackage}
 
             \umlemptypackage[x=+4, y=-16]{Portable Minimal Ada RTS Library Crate}
@@ -268,7 +267,6 @@ the platform-specific components of the porting layer would need to be implement
             \umlimport[]{Bare Metal Ada Applications}{Ada RTS Tasking Skin Library Crate}
             \umlimport[]{Bare Metal Ada Applications}{HiRTOS}
             \umlimport[geometry=-|]{Bare Metal Ada Applications}{Portable Minimal Ada RTS Library Crate}
-            \umlimport[geometry=|-]{HiRTOS}{HiRTOS Config Parameters}
          \end{tikzpicture}
       }
    \end{center}
@@ -556,9 +554,6 @@ internally by HiRTOS.
 \also
     \bigcap~\{~ i: ValidCpuIdType @ \\
 \t1    \ran (rtosCpuInstances(i)).timers ~\} = \emptyset
-\also
-    %\bigcap~\{~ \bigcup~ \{~ t: zAllCreatedThreadInstances @ zAddressRange(t.stack) ~\} ~\} = \emptyset
-    \bigcap~\{ t: zAllCreatedThreadInstances @ zAddressRange(t.stack) ~\} = \emptyset
 \end{schema}
 
 \subsubsection{Per-CPU HiRTOS Instance}
