@@ -156,7 +156,11 @@ Get_Highest_Priority_Queue(prio_queue) ==
       ],
       Mutex_Objects = [ m \in Mutexes |-> Mutex_Object_Initializer ],
       Condvar_Objects = [ cv \in Condvars |-> Condvar_Object_Initializer ],
-      Timer_Objects = [ tm \in Timers |-> Timer_Object_Initializer ];
+      Timer_Objects = [ tm \in Timers |-> Timer_Object_Initializer ],
+      global_x_protected_by_mutex1 = 0,
+      global_y_protected_by_mutex1 = 0,
+      global_x_protected_by_mutex2 = 0,
+      global_y_protected_by_mutex2 = 0;
 
    define
       Enqueue_Thread(priority_queue, thread_id) ==
@@ -564,14 +568,17 @@ procedure Release_Mutex(thread_id, mutex_id)
          context_switch0:
          either
             acquire_mutex1_step:
-            either
-                call Acquire_Mutex(self, "mutex1");
-                context_switch1:
-                await Thread_Objects[self].State = "Running" /\ HiRTOS.Interrupts_Enabled;
-                assert(Mutex_Objects["mutex1"].Owner_Thread_Id = self);
-            or
-                skip;
-            end either;
+            call Acquire_Mutex(self, "mutex1");
+            context_switch1:
+            await Thread_Objects[self].State = "Running" /\ HiRTOS.Interrupts_Enabled;
+            assert(Mutex_Objects["mutex1"].Owner_Thread_Id = self);
+
+            mutex1_protected_step1:
+            global_y_protected_by_mutex1 := global_x_protected_by_mutex1;
+            mutex1_protected_step2:
+            global_x_protected_by_mutex1 := (global_x_protected_by_mutex1 + 1) % 4;
+            mutex1_protected_step3:
+            assert global_x_protected_by_mutex1 = (global_y_protected_by_mutex1 + 1) % 4;
 
             acquire_mutex2_step:
             call Acquire_Mutex(self, "mutex2");
@@ -579,10 +586,22 @@ procedure Release_Mutex(thread_id, mutex_id)
             await Thread_Objects[self].State = "Running" /\ HiRTOS.Interrupts_Enabled;
             assert(Mutex_Objects["mutex2"].Owner_Thread_Id = self);
 
-            skip;
+            mutex2_protected_step1:
+            global_y_protected_by_mutex2 := global_x_protected_by_mutex2;
+            mutex2_protected_step2:
+            global_x_protected_by_mutex2 := (global_x_protected_by_mutex2 + 1) % 4;
+            mutex2_protected_step3:
+            assert global_x_protected_by_mutex2 = (global_y_protected_by_mutex2 + 1) % 4;
 
             release_mutex2_step:
             call Release_Mutex(self, "mutex2");
+
+            mutex1_protected_step4:
+            global_y_protected_by_mutex1 := global_x_protected_by_mutex1;
+            mutex1_protected_step5:
+            global_x_protected_by_mutex1 := (global_x_protected_by_mutex1 + 1) % 4;
+            mutex1_protected_step6:
+            assert global_x_protected_by_mutex1 = (global_y_protected_by_mutex1 + 1) % 4;
 
             release_mutex1_step:
             if Mutex_Objects["mutex1"].Owner_Thread_Id = self then
@@ -657,42 +676,44 @@ procedure Release_Mutex(thread_id, mutex_id)
 
 end algorithm;
 ******************************************************************************)
-\* BEGIN TRANSLATION (chksum(pcal) = "c5ed032d" /\ chksum(tla) = "11d75a39")
-\* Label enter_critical_section_step of procedure Acquire_Mutex at line 201 col 7 changed to enter_critical_section_step_
-\* Label exit_critical_section_step of procedure Acquire_Mutex at line 209 col 7 changed to exit_critical_section_step_
-\* Label enter_critical_section_step of procedure Release_Mutex at line 201 col 7 changed to enter_critical_section_step_R
-\* Label exit_critical_section_step of procedure Release_Mutex at line 209 col 7 changed to exit_critical_section_step_R
-\* Label enter_critical_section_step of procedure Wait_On_Condvar at line 201 col 7 changed to enter_critical_section_step_W
-\* Label exit_critical_section_step of procedure Wait_On_Condvar at line 209 col 7 changed to exit_critical_section_step_W
-\* Label enter_critical_section_step of procedure Signal_Condvar at line 201 col 7 changed to enter_critical_section_step_S
-\* Label exit_critical_section_step of procedure Signal_Condvar at line 209 col 7 changed to exit_critical_section_step_S
-\* Label enter_critical_section_step of procedure Broadcast_Condvar at line 201 col 7 changed to enter_critical_section_step_B
-\* Label exit_critical_section_step of procedure Broadcast_Condvar at line 209 col 7 changed to exit_critical_section_step_B
-\* Label enter_critical_section_step of procedure Delay_Until at line 201 col 7 changed to enter_critical_section_step_D
-\* Label exit_critical_section_step of procedure Delay_Until at line 209 col 7 changed to exit_critical_section_step_D
-\* Label enter_critical_section_step of process Timer_Interrupt at line 201 col 7 changed to enter_critical_section_step_T
-\* Label exit_critical_section_step of process Timer_Interrupt at line 209 col 7 changed to exit_critical_section_step_T
-\* Procedure variable owner_thread_id of procedure Do_Acquire_Mutex at line 246 col 16 changed to owner_thread_id_
-\* Procedure variable awoken_thread_id of procedure Do_Release_Mutex at line 356 col 16 changed to awoken_thread_id_
-\* Parameter thread_id of procedure Do_Acquire_Mutex at line 245 col 31 changed to thread_id_
-\* Parameter mutex_id of procedure Do_Acquire_Mutex at line 245 col 42 changed to mutex_id_
-\* Parameter thread_id of procedure Acquire_Mutex at line 342 col 28 changed to thread_id_A
-\* Parameter mutex_id of procedure Acquire_Mutex at line 342 col 39 changed to mutex_id_A
-\* Parameter thread_id of procedure Do_Release_Mutex at line 355 col 31 changed to thread_id_D
-\* Parameter mutex_id of procedure Do_Release_Mutex at line 355 col 42 changed to mutex_id_D
-\* Parameter thread_id of procedure Release_Mutex at line 411 col 25 changed to thread_id_R
-\* Parameter mutex_id of procedure Release_Mutex at line 411 col 36 changed to mutex_id_R
-\* Parameter thread_id of procedure Do_Wait_On_Condvar at line 423 col 33 changed to thread_id_Do
-\* Parameter condvar_id of procedure Do_Wait_On_Condvar at line 423 col 44 changed to condvar_id_
-\* Parameter mutex_id of procedure Do_Wait_On_Condvar at line 423 col 56 changed to mutex_id_Do
-\* Parameter thread_id of procedure Wait_On_Condvar at line 446 col 30 changed to thread_id_W
-\* Parameter condvar_id of procedure Wait_On_Condvar at line 446 col 41 changed to condvar_id_W
-\* Parameter condvar_id of procedure Do_Signal_Condvar at line 457 col 32 changed to condvar_id_D
-\* Parameter context_id of procedure Signal_Condvar at line 500 col 29 changed to context_id_
-\* Parameter condvar_id of procedure Signal_Condvar at line 500 col 41 changed to condvar_id_S
+\* BEGIN TRANSLATION (chksum(pcal) = "6b2c97fb" /\ chksum(tla) = "3f981055")
+\* Label enter_critical_section_step of procedure Acquire_Mutex at line 205 col 7 changed to enter_critical_section_step_
+\* Label exit_critical_section_step of procedure Acquire_Mutex at line 213 col 7 changed to exit_critical_section_step_
+\* Label enter_critical_section_step of procedure Release_Mutex at line 205 col 7 changed to enter_critical_section_step_R
+\* Label exit_critical_section_step of procedure Release_Mutex at line 213 col 7 changed to exit_critical_section_step_R
+\* Label enter_critical_section_step of procedure Wait_On_Condvar at line 205 col 7 changed to enter_critical_section_step_W
+\* Label exit_critical_section_step of procedure Wait_On_Condvar at line 213 col 7 changed to exit_critical_section_step_W
+\* Label enter_critical_section_step of procedure Signal_Condvar at line 205 col 7 changed to enter_critical_section_step_S
+\* Label exit_critical_section_step of procedure Signal_Condvar at line 213 col 7 changed to exit_critical_section_step_S
+\* Label enter_critical_section_step of procedure Broadcast_Condvar at line 205 col 7 changed to enter_critical_section_step_B
+\* Label exit_critical_section_step of procedure Broadcast_Condvar at line 213 col 7 changed to exit_critical_section_step_B
+\* Label enter_critical_section_step of procedure Delay_Until at line 205 col 7 changed to enter_critical_section_step_D
+\* Label exit_critical_section_step of procedure Delay_Until at line 213 col 7 changed to exit_critical_section_step_D
+\* Label enter_critical_section_step of process Timer_Interrupt at line 205 col 7 changed to enter_critical_section_step_T
+\* Label exit_critical_section_step of process Timer_Interrupt at line 213 col 7 changed to exit_critical_section_step_T
+\* Procedure variable owner_thread_id of procedure Do_Acquire_Mutex at line 250 col 16 changed to owner_thread_id_
+\* Procedure variable awoken_thread_id of procedure Do_Release_Mutex at line 360 col 16 changed to awoken_thread_id_
+\* Parameter thread_id of procedure Do_Acquire_Mutex at line 249 col 31 changed to thread_id_
+\* Parameter mutex_id of procedure Do_Acquire_Mutex at line 249 col 42 changed to mutex_id_
+\* Parameter thread_id of procedure Acquire_Mutex at line 346 col 28 changed to thread_id_A
+\* Parameter mutex_id of procedure Acquire_Mutex at line 346 col 39 changed to mutex_id_A
+\* Parameter thread_id of procedure Do_Release_Mutex at line 359 col 31 changed to thread_id_D
+\* Parameter mutex_id of procedure Do_Release_Mutex at line 359 col 42 changed to mutex_id_D
+\* Parameter thread_id of procedure Release_Mutex at line 415 col 25 changed to thread_id_R
+\* Parameter mutex_id of procedure Release_Mutex at line 415 col 36 changed to mutex_id_R
+\* Parameter thread_id of procedure Do_Wait_On_Condvar at line 427 col 33 changed to thread_id_Do
+\* Parameter condvar_id of procedure Do_Wait_On_Condvar at line 427 col 44 changed to condvar_id_
+\* Parameter mutex_id of procedure Do_Wait_On_Condvar at line 427 col 56 changed to mutex_id_Do
+\* Parameter thread_id of procedure Wait_On_Condvar at line 450 col 30 changed to thread_id_W
+\* Parameter condvar_id of procedure Wait_On_Condvar at line 450 col 41 changed to condvar_id_W
+\* Parameter condvar_id of procedure Do_Signal_Condvar at line 461 col 32 changed to condvar_id_D
+\* Parameter context_id of procedure Signal_Condvar at line 504 col 29 changed to context_id_
+\* Parameter condvar_id of procedure Signal_Condvar at line 504 col 41 changed to condvar_id_S
 CONSTANT defaultInitValue
 VARIABLES HiRTOS, Thread_Objects, Mutex_Objects, Condvar_Objects, 
-          Timer_Objects, pc, stack
+          Timer_Objects, global_x_protected_by_mutex1, 
+          global_y_protected_by_mutex1, global_x_protected_by_mutex2, 
+          global_y_protected_by_mutex2, pc, stack
 
 (* define statement *)
 Enqueue_Thread(priority_queue, thread_id) ==
@@ -727,7 +748,9 @@ VARIABLES thread_id_, mutex_id_, waking_up_thread_after_condvar_wait,
           thread_was_awaken, thread_id, delayed_threads
 
 vars == << HiRTOS, Thread_Objects, Mutex_Objects, Condvar_Objects, 
-           Timer_Objects, pc, stack, thread_id_, mutex_id_, 
+           Timer_Objects, global_x_protected_by_mutex1, 
+           global_y_protected_by_mutex1, global_x_protected_by_mutex2, 
+           global_y_protected_by_mutex2, pc, stack, thread_id_, mutex_id_, 
            waking_up_thread_after_condvar_wait, owner_thread_id_, thread_id_A, 
            mutex_id_A, owner_thread_id, thread_id_D, mutex_id_D, 
            doing_condvar_wait, awoken_thread_id_, thread_id_R, mutex_id_R, 
@@ -753,6 +776,10 @@ Init == (* Global variables *)
         /\ Mutex_Objects = [ m \in Mutexes |-> Mutex_Object_Initializer ]
         /\ Condvar_Objects = [ cv \in Condvars |-> Condvar_Object_Initializer ]
         /\ Timer_Objects = [ tm \in Timers |-> Timer_Object_Initializer ]
+        /\ global_x_protected_by_mutex1 = 0
+        /\ global_y_protected_by_mutex1 = 0
+        /\ global_x_protected_by_mutex2 = 0
+        /\ global_y_protected_by_mutex2 = 0
         (* Procedure Do_Acquire_Mutex *)
         /\ thread_id_ = [ self \in ProcSet |-> defaultInitValue]
         /\ mutex_id_ = [ self \in ProcSet |-> defaultInitValue]
@@ -802,7 +829,7 @@ Init == (* Global variables *)
 
 check_time_slice_step(self) == /\ pc[self] = "check_time_slice_step"
                                /\ Assert(~HiRTOS.Interrupts_Enabled, 
-                                         "Failure of assertion at line 219, column 7.")
+                                         "Failure of assertion at line 223, column 7.")
                                /\ IF HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id"
                                      THEN /\ Thread_Objects' = [Thread_Objects EXCEPT ![HiRTOS.Current_Thread_Id].State = "Runnable"]
                                           /\ IF Thread_Objects'[HiRTOS.Current_Thread_Id].ghost_Time_Slice_Consumed
@@ -816,8 +843,12 @@ check_time_slice_step(self) == /\ pc[self] = "check_time_slice_step"
                                                           Thread_Objects >>
                                /\ pc' = [pc EXCEPT ![self] = "choose_next_thread_step"]
                                /\ UNCHANGED << Mutex_Objects, Condvar_Objects, 
-                                               Timer_Objects, stack, 
-                                               thread_id_, mutex_id_, 
+                                               Timer_Objects, 
+                                               global_x_protected_by_mutex1, 
+                                               global_y_protected_by_mutex1, 
+                                               global_x_protected_by_mutex2, 
+                                               global_y_protected_by_mutex2, 
+                                               stack, thread_id_, mutex_id_, 
                                                waking_up_thread_after_condvar_wait, 
                                                owner_thread_id_, thread_id_A, 
                                                mutex_id_A, owner_thread_id, 
@@ -840,14 +871,18 @@ choose_next_thread_step(self) == /\ pc[self] = "choose_next_thread_step"
                                  /\ HiRTOS' = [HiRTOS EXCEPT !.Current_Thread_Id = Priority_Queue_Head(HiRTOS.Runnable_Threads_Queue),
                                                              !.Runnable_Threads_Queue = Priority_Queue_Tail(HiRTOS.Runnable_Threads_Queue)]
                                  /\ Assert(HiRTOS'.Current_Thread_Id /= "Invalid_Thread_Id", 
-                                           "Failure of assertion at line 237, column 7.")
+                                           "Failure of assertion at line 241, column 7.")
                                  /\ Thread_Objects' = [Thread_Objects EXCEPT ![HiRTOS'.Current_Thread_Id].ghost_Time_Slice_Consumed = FALSE,
                                                                              ![HiRTOS'.Current_Thread_Id].State = "Running"]
                                  /\ pc' = [pc EXCEPT ![self] = "run_scheduler_return_step"]
                                  /\ UNCHANGED << Mutex_Objects, 
                                                  Condvar_Objects, 
-                                                 Timer_Objects, stack, 
-                                                 thread_id_, mutex_id_, 
+                                                 Timer_Objects, 
+                                                 global_x_protected_by_mutex1, 
+                                                 global_y_protected_by_mutex1, 
+                                                 global_x_protected_by_mutex2, 
+                                                 global_y_protected_by_mutex2, 
+                                                 stack, thread_id_, mutex_id_, 
                                                  waking_up_thread_after_condvar_wait, 
                                                  owner_thread_id_, thread_id_A, 
                                                  mutex_id_A, owner_thread_id, 
@@ -873,8 +908,12 @@ run_scheduler_return_step(self) == /\ pc[self] = "run_scheduler_return_step"
                                    /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                    Mutex_Objects, 
                                                    Condvar_Objects, 
-                                                   Timer_Objects, thread_id_, 
-                                                   mutex_id_, 
+                                                   Timer_Objects, 
+                                                   global_x_protected_by_mutex1, 
+                                                   global_y_protected_by_mutex1, 
+                                                   global_x_protected_by_mutex2, 
+                                                   global_y_protected_by_mutex2, 
+                                                   thread_id_, mutex_id_, 
                                                    waking_up_thread_after_condvar_wait, 
                                                    owner_thread_id_, 
                                                    thread_id_A, mutex_id_A, 
@@ -901,14 +940,18 @@ Run_Thread_Scheduler(self) == check_time_slice_step(self)
 
 acquire_mutex_step(self) == /\ pc[self] = "acquire_mutex_step"
                             /\ Assert(~HiRTOS.Interrupts_Enabled, 
-                                      "Failure of assertion at line 249, column 7.")
+                                      "Failure of assertion at line 253, column 7.")
                             /\ IF Mutex_Objects[mutex_id_[self]].Owner_Thread_Id = "Invalid_Thread_Id"
                                   THEN /\ pc' = [pc EXCEPT ![self] = "acquire_mutex_acquire_step"]
                                   ELSE /\ pc' = [pc EXCEPT ![self] = "acquire_mutex_wait_on_mutex_step"]
                             /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                             Mutex_Objects, Condvar_Objects, 
-                                            Timer_Objects, stack, thread_id_, 
-                                            mutex_id_, 
+                                            Timer_Objects, 
+                                            global_x_protected_by_mutex1, 
+                                            global_y_protected_by_mutex1, 
+                                            global_x_protected_by_mutex2, 
+                                            global_y_protected_by_mutex2, 
+                                            stack, thread_id_, mutex_id_, 
                                             waking_up_thread_after_condvar_wait, 
                                             owner_thread_id_, thread_id_A, 
                                             mutex_id_A, owner_thread_id, 
@@ -932,13 +975,18 @@ acquire_mutex_acquire_step(self) == /\ pc[self] = "acquire_mutex_acquire_step"
                                     /\ IF waking_up_thread_after_condvar_wait[self]
                                           THEN /\ pc' = [pc EXCEPT ![self] = "acquire_mutex_make_condvar_wait_awoken_thread_runnable_step"]
                                           ELSE /\ Assert(thread_id_[self] = HiRTOS.Current_Thread_Id, 
-                                                         "Failure of assertion at line 265, column 13.")
+                                                         "Failure of assertion at line 269, column 13.")
                                                /\ Assert(Thread_Objects'[thread_id_[self]].State = "Running", 
-                                                         "Failure of assertion at line 266, column 13.")
+                                                         "Failure of assertion at line 270, column 13.")
                                                /\ pc' = [pc EXCEPT ![self] = "do_acquire_mutex_return_step"]
                                     /\ UNCHANGED << HiRTOS, Condvar_Objects, 
-                                                    Timer_Objects, stack, 
-                                                    thread_id_, mutex_id_, 
+                                                    Timer_Objects, 
+                                                    global_x_protected_by_mutex1, 
+                                                    global_y_protected_by_mutex1, 
+                                                    global_x_protected_by_mutex2, 
+                                                    global_y_protected_by_mutex2, 
+                                                    stack, thread_id_, 
+                                                    mutex_id_, 
                                                     waking_up_thread_after_condvar_wait, 
                                                     owner_thread_id_, 
                                                     thread_id_A, mutex_id_A, 
@@ -961,18 +1009,22 @@ acquire_mutex_acquire_step(self) == /\ pc[self] = "acquire_mutex_acquire_step"
 
 acquire_mutex_make_condvar_wait_awoken_thread_runnable_step(self) == /\ pc[self] = "acquire_mutex_make_condvar_wait_awoken_thread_runnable_step"
                                                                      /\ Assert(thread_id_[self] /= HiRTOS.Current_Thread_Id, 
-                                                                               "Failure of assertion at line 257, column 13.")
+                                                                               "Failure of assertion at line 261, column 13.")
                                                                      /\ Assert(Thread_Objects[thread_id_[self]].State = "Blocked_On_Condvar", 
-                                                                               "Failure of assertion at line 258, column 13.")
+                                                                               "Failure of assertion at line 262, column 13.")
                                                                      /\ Assert(   thread_id_[self] \notin
                                                                                Range(HiRTOS.Runnable_Threads_Queue[Thread_Objects[thread_id_[self]].Current_Priority]), 
-                                                                               "Failure of assertion at line 259, column 13.")
+                                                                               "Failure of assertion at line 263, column 13.")
                                                                      /\ /\ HiRTOS' = [HiRTOS EXCEPT !.Runnable_Threads_Queue = Enqueue_Thread(HiRTOS.Runnable_Threads_Queue, thread_id_[self])]
                                                                         /\ Thread_Objects' = [Thread_Objects EXCEPT ![thread_id_[self]].State = "Runnable"]
                                                                      /\ pc' = [pc EXCEPT ![self] = "do_acquire_mutex_return_step"]
                                                                      /\ UNCHANGED << Mutex_Objects, 
                                                                                      Condvar_Objects, 
                                                                                      Timer_Objects, 
+                                                                                     global_x_protected_by_mutex1, 
+                                                                                     global_y_protected_by_mutex1, 
+                                                                                     global_x_protected_by_mutex2, 
+                                                                                     global_y_protected_by_mutex2, 
                                                                                      stack, 
                                                                                      thread_id_, 
                                                                                      mutex_id_, 
@@ -1008,25 +1060,29 @@ acquire_mutex_make_condvar_wait_awoken_thread_runnable_step(self) == /\ pc[self]
 acquire_mutex_wait_on_mutex_step(self) == /\ pc[self] = "acquire_mutex_wait_on_mutex_step"
                                           /\ owner_thread_id_' = [owner_thread_id_ EXCEPT ![self] = Mutex_Objects[mutex_id_[self]].Owner_Thread_Id]
                                           /\ Assert(owner_thread_id_'[self] /= thread_id_[self], 
-                                                    "Failure of assertion at line 271, column 10.")
+                                                    "Failure of assertion at line 275, column 10.")
                                           /\ Mutex_Objects' = [Mutex_Objects EXCEPT ![mutex_id_[self]].Waiting_Threads_Queue = Enqueue_Thread(Mutex_Objects[mutex_id_[self]].Waiting_Threads_Queue, thread_id_[self])]
                                           /\ IF waking_up_thread_after_condvar_wait[self]
                                                 THEN /\ Assert(thread_id_[self] /= HiRTOS.Current_Thread_Id, 
-                                                               "Failure of assertion at line 275, column 13.")
+                                                               "Failure of assertion at line 279, column 13.")
                                                      /\ Assert(Thread_Objects[thread_id_[self]].State = "Blocked_On_Condvar", 
-                                                               "Failure of assertion at line 276, column 13.")
+                                                               "Failure of assertion at line 280, column 13.")
                                                      /\ UNCHANGED HiRTOS
                                                 ELSE /\ Assert(thread_id_[self] = HiRTOS.Current_Thread_Id, 
-                                                               "Failure of assertion at line 278, column 13.")
+                                                               "Failure of assertion at line 282, column 13.")
                                                      /\ Assert(Thread_Objects[thread_id_[self]].State = "Running", 
-                                                               "Failure of assertion at line 279, column 13.")
+                                                               "Failure of assertion at line 283, column 13.")
                                                      /\ HiRTOS' = [HiRTOS EXCEPT !.Current_Thread_Id = "Invalid_Thread_Id"]
                                           /\ Thread_Objects' = [Thread_Objects EXCEPT ![thread_id_[self]].State = "Blocked_On_Mutex",
                                                                                       ![thread_id_[self]].Waiting_On_Mutex_Id = mutex_id_[self]]
                                           /\ pc' = [pc EXCEPT ![self] = "acquire_mutex_check_if_priority_inheritance_needed_step"]
                                           /\ UNCHANGED << Condvar_Objects, 
-                                                          Timer_Objects, stack, 
-                                                          thread_id_, 
+                                                          Timer_Objects, 
+                                                          global_x_protected_by_mutex1, 
+                                                          global_y_protected_by_mutex1, 
+                                                          global_x_protected_by_mutex2, 
+                                                          global_y_protected_by_mutex2, 
+                                                          stack, thread_id_, 
                                                           mutex_id_, 
                                                           waking_up_thread_after_condvar_wait, 
                                                           thread_id_A, 
@@ -1075,6 +1131,10 @@ acquire_mutex_check_if_priority_inheritance_needed_step(self) == /\ pc[self] = "
                                                                                  Thread_Objects, 
                                                                                  Condvar_Objects, 
                                                                                  Timer_Objects, 
+                                                                                 global_x_protected_by_mutex1, 
+                                                                                 global_y_protected_by_mutex1, 
+                                                                                 global_x_protected_by_mutex2, 
+                                                                                 global_y_protected_by_mutex2, 
                                                                                  stack, 
                                                                                  thread_id_, 
                                                                                  mutex_id_, 
@@ -1119,14 +1179,18 @@ acquire_mutex_priority_inheritance_step(self) == /\ pc[self] = "acquire_mutex_pr
                                                                              THEN /\ pc' = [pc EXCEPT ![self] = "acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_condvar_step"]
                                                                                   /\ UNCHANGED Thread_Objects
                                                                              ELSE /\ Assert(Thread_Objects[owner_thread_id_[self]].State = "Running", 
-                                                                                            "Failure of assertion at line 316, column 17.")
+                                                                                            "Failure of assertion at line 320, column 17.")
                                                                                   /\ Assert(Is_Interrupt_Context(self), 
-                                                                                            "Failure of assertion at line 317, column 17.")
+                                                                                            "Failure of assertion at line 321, column 17.")
                                                                                   /\ Thread_Objects' = [Thread_Objects EXCEPT ![owner_thread_id_[self]].Current_Priority = Thread_Objects[thread_id_[self]].Current_Priority]
                                                                                   /\ pc' = [pc EXCEPT ![self] = "acquire_mutex_check_if_synchronous_context_switch_needed_step"]
                                                  /\ UNCHANGED << HiRTOS, 
                                                                  Condvar_Objects, 
                                                                  Timer_Objects, 
+                                                                 global_x_protected_by_mutex1, 
+                                                                 global_y_protected_by_mutex1, 
+                                                                 global_x_protected_by_mutex2, 
+                                                                 global_y_protected_by_mutex2, 
                                                                  stack, 
                                                                  thread_id_, 
                                                                  mutex_id_, 
@@ -1161,7 +1225,7 @@ acquire_mutex_priority_inheritance_step(self) == /\ pc[self] = "acquire_mutex_pr
 
 acquire_mutex_priority_inheritance_if_mutex_owner_runnable_step(self) == /\ pc[self] = "acquire_mutex_priority_inheritance_if_mutex_owner_runnable_step"
                                                                          /\ Assert((Thread_Objects[thread_id_[self]].Current_Priority) /= (Thread_Objects[owner_thread_id_[self]].Current_Priority), 
-                                                                                   "Failure of assertion at line 191, column 7 of macro called at line 294, column 16.")
+                                                                                   "Failure of assertion at line 195, column 7 of macro called at line 298, column 16.")
                                                                          /\ /\ HiRTOS' = [HiRTOS EXCEPT !.Runnable_Threads_Queue[(Thread_Objects[owner_thread_id_[self]].Current_Priority)] = SelectSeq((HiRTOS.Runnable_Threads_Queue)[(Thread_Objects[owner_thread_id_[self]].Current_Priority)], LAMBDA x : x /= owner_thread_id_[self]),
                                                                                                         !.Runnable_Threads_Queue[(Thread_Objects[thread_id_[self]].Current_Priority)] = Append((HiRTOS.Runnable_Threads_Queue)[(Thread_Objects[thread_id_[self]].Current_Priority)], owner_thread_id_[self])]
                                                                             /\ Thread_Objects' = [Thread_Objects EXCEPT ![owner_thread_id_[self]].Current_Priority = Thread_Objects[thread_id_[self]].Current_Priority]
@@ -1169,6 +1233,10 @@ acquire_mutex_priority_inheritance_if_mutex_owner_runnable_step(self) == /\ pc[s
                                                                          /\ UNCHANGED << Mutex_Objects, 
                                                                                          Condvar_Objects, 
                                                                                          Timer_Objects, 
+                                                                                         global_x_protected_by_mutex1, 
+                                                                                         global_y_protected_by_mutex1, 
+                                                                                         global_x_protected_by_mutex2, 
+                                                                                         global_y_protected_by_mutex2, 
                                                                                          stack, 
                                                                                          thread_id_, 
                                                                                          mutex_id_, 
@@ -1203,7 +1271,7 @@ acquire_mutex_priority_inheritance_if_mutex_owner_runnable_step(self) == /\ pc[s
 
 acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_mutex_step(self) == /\ pc[self] = "acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_mutex_step"
                                                                                  /\ Assert((Thread_Objects[thread_id_[self]].Current_Priority) /= (Thread_Objects[owner_thread_id_[self]].Current_Priority), 
-                                                                                           "Failure of assertion at line 191, column 7 of macro called at line 301, column 16.")
+                                                                                           "Failure of assertion at line 195, column 7 of macro called at line 305, column 16.")
                                                                                  /\ /\ Mutex_Objects' = [Mutex_Objects EXCEPT !          [Thread_Objects[owner_thread_id_[self]].Waiting_On_Mutex_Id].
                                                                                                                                Waiting_Threads_Queue[(Thread_Objects[owner_thread_id_[self]].Current_Priority)] = SelectSeq((Mutex_Objects[Thread_Objects[owner_thread_id_[self]].Waiting_On_Mutex_Id].
                                                                                                                                                                                                                                 Waiting_Threads_Queue)[(Thread_Objects[owner_thread_id_[self]].Current_Priority)], LAMBDA x : x /= owner_thread_id_[self]),
@@ -1215,6 +1283,10 @@ acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_mutex_step(self) ==
                                                                                  /\ UNCHANGED << HiRTOS, 
                                                                                                  Condvar_Objects, 
                                                                                                  Timer_Objects, 
+                                                                                                 global_x_protected_by_mutex1, 
+                                                                                                 global_y_protected_by_mutex1, 
+                                                                                                 global_x_protected_by_mutex2, 
+                                                                                                 global_y_protected_by_mutex2, 
                                                                                                  stack, 
                                                                                                  thread_id_, 
                                                                                                  mutex_id_, 
@@ -1249,7 +1321,7 @@ acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_mutex_step(self) ==
 
 acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_condvar_step(self) == /\ pc[self] = "acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_condvar_step"
                                                                                    /\ Assert((Thread_Objects[thread_id_[self]].Current_Priority) /= (Thread_Objects[owner_thread_id_[self]].Current_Priority), 
-                                                                                             "Failure of assertion at line 191, column 7 of macro called at line 309, column 16.")
+                                                                                             "Failure of assertion at line 195, column 7 of macro called at line 313, column 16.")
                                                                                    /\ /\ Condvar_Objects' = [Condvar_Objects EXCEPT !            [Thread_Objects[owner_thread_id_[self]].Waiting_On_Condvar_Id].
                                                                                                                                      Waiting_Threads_Queue[(Thread_Objects[owner_thread_id_[self]].Current_Priority)] = SelectSeq((Condvar_Objects[Thread_Objects[owner_thread_id_[self]].Waiting_On_Condvar_Id].
                                                                                                                                                                                                                                       Waiting_Threads_Queue)[(Thread_Objects[owner_thread_id_[self]].Current_Priority)], LAMBDA x : x /= owner_thread_id_[self]),
@@ -1261,6 +1333,10 @@ acquire_mutex_priority_inheritance_if_mutex_owner_blocked_on_condvar_step(self) 
                                                                                    /\ UNCHANGED << HiRTOS, 
                                                                                                    Mutex_Objects, 
                                                                                                    Timer_Objects, 
+                                                                                                   global_x_protected_by_mutex1, 
+                                                                                                   global_y_protected_by_mutex1, 
+                                                                                                   global_x_protected_by_mutex2, 
+                                                                                                   global_y_protected_by_mutex2, 
                                                                                                    stack, 
                                                                                                    thread_id_, 
                                                                                                    mutex_id_, 
@@ -1302,6 +1378,10 @@ acquire_mutex_check_if_synchronous_context_switch_needed_step(self) == /\ pc[sel
                                                                                        Mutex_Objects, 
                                                                                        Condvar_Objects, 
                                                                                        Timer_Objects, 
+                                                                                       global_x_protected_by_mutex1, 
+                                                                                       global_y_protected_by_mutex1, 
+                                                                                       global_x_protected_by_mutex2, 
+                                                                                       global_y_protected_by_mutex2, 
                                                                                        stack, 
                                                                                        thread_id_, 
                                                                                        mutex_id_, 
@@ -1344,6 +1424,10 @@ acquire_mutex_synchronous_context_switch_step(self) == /\ pc[self] = "acquire_mu
                                                                        Mutex_Objects, 
                                                                        Condvar_Objects, 
                                                                        Timer_Objects, 
+                                                                       global_x_protected_by_mutex1, 
+                                                                       global_y_protected_by_mutex1, 
+                                                                       global_x_protected_by_mutex2, 
+                                                                       global_y_protected_by_mutex2, 
                                                                        thread_id_, 
                                                                        mutex_id_, 
                                                                        waking_up_thread_after_condvar_wait, 
@@ -1386,6 +1470,10 @@ do_acquire_mutex_return_step(self) == /\ pc[self] = "do_acquire_mutex_return_ste
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
                                                       Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
                                                       thread_id_A, mutex_id_A, 
                                                       owner_thread_id, 
                                                       thread_id_D, mutex_id_D, 
@@ -1426,7 +1514,7 @@ enter_critical_section_step_(self) == /\ pc[self] = "enter_critical_section_step
                                              Thread_Objects[thread_id_A[self]].State = "Running")
                                       /\ HiRTOS' = [HiRTOS EXCEPT !.Interrupts_Enabled = FALSE]
                                       /\ Assert(HiRTOS'.Current_Thread_Id = thread_id_A[self], 
-                                                "Failure of assertion at line 347, column 7.")
+                                                "Failure of assertion at line 351, column 7.")
                                       /\ /\ mutex_id_' = [mutex_id_ EXCEPT ![self] = mutex_id_A[self]]
                                          /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "Do_Acquire_Mutex",
                                                                                   pc        |->  "exit_critical_section_step_",
@@ -1443,6 +1531,10 @@ enter_critical_section_step_(self) == /\ pc[self] = "enter_critical_section_step
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
                                                       Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
                                                       thread_id_A, mutex_id_A, 
                                                       owner_thread_id, 
                                                       thread_id_D, mutex_id_D, 
@@ -1470,8 +1562,13 @@ exit_critical_section_step_(self) == /\ pc[self] = "exit_critical_section_step_"
                                      /\ UNCHANGED << Thread_Objects, 
                                                      Mutex_Objects, 
                                                      Condvar_Objects, 
-                                                     Timer_Objects, stack, 
-                                                     thread_id_, mutex_id_, 
+                                                     Timer_Objects, 
+                                                     global_x_protected_by_mutex1, 
+                                                     global_y_protected_by_mutex1, 
+                                                     global_x_protected_by_mutex2, 
+                                                     global_y_protected_by_mutex2, 
+                                                     stack, thread_id_, 
+                                                     mutex_id_, 
                                                      waking_up_thread_after_condvar_wait, 
                                                      owner_thread_id_, 
                                                      thread_id_A, mutex_id_A, 
@@ -1502,8 +1599,12 @@ acquire_mutex_return_step(self) == /\ pc[self] = "acquire_mutex_return_step"
                                    /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                    Mutex_Objects, 
                                                    Condvar_Objects, 
-                                                   Timer_Objects, thread_id_, 
-                                                   mutex_id_, 
+                                                   Timer_Objects, 
+                                                   global_x_protected_by_mutex1, 
+                                                   global_y_protected_by_mutex1, 
+                                                   global_x_protected_by_mutex2, 
+                                                   global_y_protected_by_mutex2, 
+                                                   thread_id_, mutex_id_, 
                                                    waking_up_thread_after_condvar_wait, 
                                                    owner_thread_id_, 
                                                    thread_id_D, mutex_id_D, 
@@ -1528,19 +1629,23 @@ Acquire_Mutex(self) == enter_critical_section_step_(self)
 
 release_mutex_step(self) == /\ pc[self] = "release_mutex_step"
                             /\ Assert(~HiRTOS.Interrupts_Enabled, 
-                                      "Failure of assertion at line 359, column 7.")
-                            /\ Assert(Mutex_Objects[mutex_id_D[self]].Owner_Thread_Id = thread_id_D[self], 
-                                      "Failure of assertion at line 360, column 7.")
-                            /\ Assert(Thread_Objects[thread_id_D[self]].Owned_Mutexes /= <<>>, 
-                                      "Failure of assertion at line 361, column 7.")
-                            /\ Assert(Head(Thread_Objects[thread_id_D[self]].Owned_Mutexes) = mutex_id_D[self], 
-                                      "Failure of assertion at line 362, column 7.")
-                            /\ Assert(Thread_Objects[thread_id_D[self]].Current_Priority >= Thread_Objects[thread_id_D[self]].Base_Priority, 
                                       "Failure of assertion at line 363, column 7.")
+                            /\ Assert(Mutex_Objects[mutex_id_D[self]].Owner_Thread_Id = thread_id_D[self], 
+                                      "Failure of assertion at line 364, column 7.")
+                            /\ Assert(Thread_Objects[thread_id_D[self]].Owned_Mutexes /= <<>>, 
+                                      "Failure of assertion at line 365, column 7.")
+                            /\ Assert(Head(Thread_Objects[thread_id_D[self]].Owned_Mutexes) = mutex_id_D[self], 
+                                      "Failure of assertion at line 366, column 7.")
+                            /\ Assert(Thread_Objects[thread_id_D[self]].Current_Priority >= Thread_Objects[thread_id_D[self]].Base_Priority, 
+                                      "Failure of assertion at line 367, column 7.")
                             /\ Thread_Objects' = [Thread_Objects EXCEPT ![thread_id_D[self]].Owned_Mutexes = Tail(Thread_Objects[thread_id_D[self]].Owned_Mutexes)]
                             /\ pc' = [pc EXCEPT ![self] = "release_mutex_restore_priority_step"]
                             /\ UNCHANGED << HiRTOS, Mutex_Objects, 
                                             Condvar_Objects, Timer_Objects, 
+                                            global_x_protected_by_mutex1, 
+                                            global_y_protected_by_mutex1, 
+                                            global_x_protected_by_mutex2, 
+                                            global_y_protected_by_mutex2, 
                                             stack, thread_id_, mutex_id_, 
                                             waking_up_thread_after_condvar_wait, 
                                             owner_thread_id_, thread_id_A, 
@@ -1566,7 +1671,7 @@ release_mutex_restore_priority_step(self) == /\ pc[self] = "release_mutex_restor
                                                                         IF prev_mutex_obj.Last_Inherited_Priority /= Invalid_Thread_Priority
                                                                            THEN /\ Assert(     prev_mutex_obj.Last_Inherited_Priority \in
                                                                                           Thread_Objects[thread_id_D[self]].Base_Priority .. Thread_Objects[thread_id_D[self]].Current_Priority, 
-                                                                                          "Failure of assertion at line 371, column 19.")
+                                                                                          "Failure of assertion at line 375, column 19.")
                                                                                 /\ Thread_Objects' = [Thread_Objects EXCEPT ![thread_id_D[self]].Current_Priority = prev_mutex_obj.Last_Inherited_Priority]
                                                                            ELSE /\ Thread_Objects' = [Thread_Objects EXCEPT ![thread_id_D[self]].Current_Priority = Thread_Objects[thread_id_D[self]].Base_Priority]
                                                               ELSE /\ Thread_Objects' = [Thread_Objects EXCEPT ![thread_id_D[self]].Current_Priority = Thread_Objects[thread_id_D[self]].Base_Priority]
@@ -1577,6 +1682,10 @@ release_mutex_restore_priority_step(self) == /\ pc[self] = "release_mutex_restor
                                                              Mutex_Objects, 
                                                              Condvar_Objects, 
                                                              Timer_Objects, 
+                                                             global_x_protected_by_mutex1, 
+                                                             global_y_protected_by_mutex1, 
+                                                             global_x_protected_by_mutex2, 
+                                                             global_y_protected_by_mutex2, 
                                                              stack, thread_id_, 
                                                              mutex_id_, 
                                                              waking_up_thread_after_condvar_wait, 
@@ -1618,6 +1727,10 @@ release_mutex_check_if_mutex_waiters_step(self) == /\ pc[self] = "release_mutex_
                                                                    Thread_Objects, 
                                                                    Condvar_Objects, 
                                                                    Timer_Objects, 
+                                                                   global_x_protected_by_mutex1, 
+                                                                   global_y_protected_by_mutex1, 
+                                                                   global_x_protected_by_mutex2, 
+                                                                   global_y_protected_by_mutex2, 
                                                                    stack, 
                                                                    thread_id_, 
                                                                    mutex_id_, 
@@ -1653,7 +1766,7 @@ release_mutex_check_if_mutex_waiters_step(self) == /\ pc[self] = "release_mutex_
 release_mutex_wakeup_mutex_waiter_step(self) == /\ pc[self] = "release_mutex_wakeup_mutex_waiter_step"
                                                 /\ awoken_thread_id_' = [awoken_thread_id_ EXCEPT ![self] = Priority_Queue_Head(Mutex_Objects[mutex_id_D[self]].Waiting_Threads_Queue)]
                                                 /\ Assert(Thread_Objects[awoken_thread_id_'[self]].Waiting_On_Mutex_Id = mutex_id_D[self], 
-                                                          "Failure of assertion at line 390, column 10.")
+                                                          "Failure of assertion at line 394, column 10.")
                                                 /\ /\ HiRTOS' = [HiRTOS EXCEPT !.Runnable_Threads_Queue = Enqueue_Thread(HiRTOS.Runnable_Threads_Queue, awoken_thread_id_'[self])]
                                                    /\ Mutex_Objects' = [Mutex_Objects EXCEPT ![mutex_id_D[self]].Owner_Thread_Id = awoken_thread_id_'[self],
                                                                                              ![mutex_id_D[self]].Waiting_Threads_Queue = Priority_Queue_Tail(Mutex_Objects[mutex_id_D[self]].Waiting_Threads_Queue)]
@@ -1665,6 +1778,10 @@ release_mutex_wakeup_mutex_waiter_step(self) == /\ pc[self] = "release_mutex_wak
                                                       ELSE /\ pc' = [pc EXCEPT ![self] = "do_release_mutex_return_step"]
                                                 /\ UNCHANGED << Condvar_Objects, 
                                                                 Timer_Objects, 
+                                                                global_x_protected_by_mutex1, 
+                                                                global_y_protected_by_mutex1, 
+                                                                global_x_protected_by_mutex2, 
+                                                                global_y_protected_by_mutex2, 
                                                                 stack, 
                                                                 thread_id_, 
                                                                 mutex_id_, 
@@ -1706,6 +1823,10 @@ release_mutex_synchronous_context_switch_step(self) == /\ pc[self] = "release_mu
                                                                        Mutex_Objects, 
                                                                        Condvar_Objects, 
                                                                        Timer_Objects, 
+                                                                       global_x_protected_by_mutex1, 
+                                                                       global_y_protected_by_mutex1, 
+                                                                       global_x_protected_by_mutex2, 
+                                                                       global_y_protected_by_mutex2, 
                                                                        thread_id_, 
                                                                        mutex_id_, 
                                                                        waking_up_thread_after_condvar_wait, 
@@ -1748,6 +1869,10 @@ do_release_mutex_return_step(self) == /\ pc[self] = "do_release_mutex_return_ste
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
                                                       Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
                                                       thread_id_, mutex_id_, 
                                                       waking_up_thread_after_condvar_wait, 
                                                       owner_thread_id_, 
@@ -1782,7 +1907,7 @@ enter_critical_section_step_R(self) == /\ pc[self] = "enter_critical_section_ste
                                               Thread_Objects[thread_id_R[self]].State = "Running")
                                        /\ HiRTOS' = [HiRTOS EXCEPT !.Interrupts_Enabled = FALSE]
                                        /\ Assert(HiRTOS'.Current_Thread_Id = thread_id_R[self], 
-                                                 "Failure of assertion at line 415, column 7.")
+                                                 "Failure of assertion at line 419, column 7.")
                                        /\ /\ doing_condvar_wait' = [doing_condvar_wait EXCEPT ![self] = FALSE]
                                           /\ mutex_id_D' = [mutex_id_D EXCEPT ![self] = mutex_id_R[self]]
                                           /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "Do_Release_Mutex",
@@ -1799,6 +1924,10 @@ enter_critical_section_step_R(self) == /\ pc[self] = "enter_critical_section_ste
                                                        Mutex_Objects, 
                                                        Condvar_Objects, 
                                                        Timer_Objects, 
+                                                       global_x_protected_by_mutex1, 
+                                                       global_y_protected_by_mutex1, 
+                                                       global_x_protected_by_mutex2, 
+                                                       global_y_protected_by_mutex2, 
                                                        thread_id_, mutex_id_, 
                                                        waking_up_thread_after_condvar_wait, 
                                                        owner_thread_id_, 
@@ -1827,8 +1956,13 @@ exit_critical_section_step_R(self) == /\ pc[self] = "exit_critical_section_step_
                                       /\ UNCHANGED << Thread_Objects, 
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
-                                                      Timer_Objects, stack, 
-                                                      thread_id_, mutex_id_, 
+                                                      Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
+                                                      stack, thread_id_, 
+                                                      mutex_id_, 
                                                       waking_up_thread_after_condvar_wait, 
                                                       owner_thread_id_, 
                                                       thread_id_A, mutex_id_A, 
@@ -1860,8 +1994,12 @@ release_mutex_return_step(self) == /\ pc[self] = "release_mutex_return_step"
                                    /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                    Mutex_Objects, 
                                                    Condvar_Objects, 
-                                                   Timer_Objects, thread_id_, 
-                                                   mutex_id_, 
+                                                   Timer_Objects, 
+                                                   global_x_protected_by_mutex1, 
+                                                   global_y_protected_by_mutex1, 
+                                                   global_x_protected_by_mutex2, 
+                                                   global_y_protected_by_mutex2, 
+                                                   thread_id_, mutex_id_, 
                                                    waking_up_thread_after_condvar_wait, 
                                                    owner_thread_id_, 
                                                    thread_id_A, mutex_id_A, 
@@ -1887,7 +2025,7 @@ Release_Mutex(self) == enter_critical_section_step_R(self)
 
 wait_on_condvar_wait_step(self) == /\ pc[self] = "wait_on_condvar_wait_step"
                                    /\ Assert(~HiRTOS.Interrupts_Enabled, 
-                                             "Failure of assertion at line 426, column 7.")
+                                             "Failure of assertion at line 430, column 7.")
                                    /\ /\ Condvar_Objects' = [Condvar_Objects EXCEPT ![condvar_id_[self]].Waiting_Threads_Queue = Enqueue_Thread(Condvar_Objects[condvar_id_[self]].Waiting_Threads_Queue, thread_id_Do[self])]
                                       /\ Thread_Objects' = [Thread_Objects EXCEPT ![thread_id_Do[self]].ghost_Condvar_Wait_Mutex_Id = mutex_id_Do[self],
                                                                                   ![thread_id_Do[self]].State = "Blocked_On_Condvar",
@@ -1895,8 +2033,13 @@ wait_on_condvar_wait_step(self) == /\ pc[self] = "wait_on_condvar_wait_step"
                                    /\ HiRTOS' = [HiRTOS EXCEPT !.Current_Thread_Id = "Invalid_Thread_Id"]
                                    /\ pc' = [pc EXCEPT ![self] = "wait_on_condvar_release_mutex_step"]
                                    /\ UNCHANGED << Mutex_Objects, 
-                                                   Timer_Objects, stack, 
-                                                   thread_id_, mutex_id_, 
+                                                   Timer_Objects, 
+                                                   global_x_protected_by_mutex1, 
+                                                   global_y_protected_by_mutex1, 
+                                                   global_x_protected_by_mutex2, 
+                                                   global_y_protected_by_mutex2, 
+                                                   stack, thread_id_, 
+                                                   mutex_id_, 
                                                    waking_up_thread_after_condvar_wait, 
                                                    owner_thread_id_, 
                                                    thread_id_A, mutex_id_A, 
@@ -1942,6 +2085,10 @@ wait_on_condvar_release_mutex_step(self) == /\ pc[self] = "wait_on_condvar_relea
                                                             Mutex_Objects, 
                                                             Condvar_Objects, 
                                                             Timer_Objects, 
+                                                            global_x_protected_by_mutex1, 
+                                                            global_y_protected_by_mutex1, 
+                                                            global_x_protected_by_mutex2, 
+                                                            global_y_protected_by_mutex2, 
                                                             thread_id_, 
                                                             mutex_id_, 
                                                             waking_up_thread_after_condvar_wait, 
@@ -1979,6 +2126,10 @@ wait_on_condvar_synchronous_context_switch_step(self) == /\ pc[self] = "wait_on_
                                                                          Mutex_Objects, 
                                                                          Condvar_Objects, 
                                                                          Timer_Objects, 
+                                                                         global_x_protected_by_mutex1, 
+                                                                         global_y_protected_by_mutex1, 
+                                                                         global_x_protected_by_mutex2, 
+                                                                         global_y_protected_by_mutex2, 
                                                                          thread_id_, 
                                                                          mutex_id_, 
                                                                          waking_up_thread_after_condvar_wait, 
@@ -2020,6 +2171,10 @@ do_wait_on_condvar_return_step(self) == /\ pc[self] = "do_wait_on_condvar_return
                                                         Mutex_Objects, 
                                                         Condvar_Objects, 
                                                         Timer_Objects, 
+                                                        global_x_protected_by_mutex1, 
+                                                        global_y_protected_by_mutex1, 
+                                                        global_x_protected_by_mutex2, 
+                                                        global_y_protected_by_mutex2, 
                                                         thread_id_, mutex_id_, 
                                                         waking_up_thread_after_condvar_wait, 
                                                         owner_thread_id_, 
@@ -2069,6 +2224,10 @@ enter_critical_section_step_W(self) == /\ pc[self] = "enter_critical_section_ste
                                                        Mutex_Objects, 
                                                        Condvar_Objects, 
                                                        Timer_Objects, 
+                                                       global_x_protected_by_mutex1, 
+                                                       global_y_protected_by_mutex1, 
+                                                       global_x_protected_by_mutex2, 
+                                                       global_y_protected_by_mutex2, 
                                                        thread_id_, mutex_id_, 
                                                        waking_up_thread_after_condvar_wait, 
                                                        owner_thread_id_, 
@@ -2097,8 +2256,13 @@ exit_critical_section_step_W(self) == /\ pc[self] = "exit_critical_section_step_
                                       /\ UNCHANGED << Thread_Objects, 
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
-                                                      Timer_Objects, stack, 
-                                                      thread_id_, mutex_id_, 
+                                                      Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
+                                                      stack, thread_id_, 
+                                                      mutex_id_, 
                                                       waking_up_thread_after_condvar_wait, 
                                                       owner_thread_id_, 
                                                       thread_id_A, mutex_id_A, 
@@ -2131,8 +2295,12 @@ wait_on_condvar_return_step(self) == /\ pc[self] = "wait_on_condvar_return_step"
                                      /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                      Mutex_Objects, 
                                                      Condvar_Objects, 
-                                                     Timer_Objects, thread_id_, 
-                                                     mutex_id_, 
+                                                     Timer_Objects, 
+                                                     global_x_protected_by_mutex1, 
+                                                     global_y_protected_by_mutex1, 
+                                                     global_x_protected_by_mutex2, 
+                                                     global_y_protected_by_mutex2, 
+                                                     thread_id_, mutex_id_, 
                                                      waking_up_thread_after_condvar_wait, 
                                                      owner_thread_id_, 
                                                      thread_id_A, mutex_id_A, 
@@ -2158,14 +2326,18 @@ Wait_On_Condvar(self) == enter_critical_section_step_W(self)
 
 signal_condvar_step(self) == /\ pc[self] = "signal_condvar_step"
                              /\ Assert(~HiRTOS.Interrupts_Enabled, 
-                                       "Failure of assertion at line 462, column 7.")
+                                       "Failure of assertion at line 466, column 7.")
                              /\ IF ~Is_Thread_Priority_Queue_Empty(Condvar_Objects[condvar_id_D[self]].Waiting_Threads_Queue)
                                    THEN /\ pc' = [pc EXCEPT ![self] = "signal_condvar_wakeup_waiter_step"]
                                    ELSE /\ pc' = [pc EXCEPT ![self] = "do_condvar_signal_return_step"]
                              /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                              Mutex_Objects, Condvar_Objects, 
-                                             Timer_Objects, stack, thread_id_, 
-                                             mutex_id_, 
+                                             Timer_Objects, 
+                                             global_x_protected_by_mutex1, 
+                                             global_y_protected_by_mutex1, 
+                                             global_x_protected_by_mutex2, 
+                                             global_y_protected_by_mutex2, 
+                                             stack, thread_id_, mutex_id_, 
                                              waking_up_thread_after_condvar_wait, 
                                              owner_thread_id_, thread_id_A, 
                                              mutex_id_A, owner_thread_id, 
@@ -2188,11 +2360,11 @@ signal_condvar_wakeup_waiter_step(self) == /\ pc[self] = "signal_condvar_wakeup_
                                            /\ awoken_thread_id' = [awoken_thread_id EXCEPT ![self] = Priority_Queue_Head(Condvar_Objects[condvar_id_D[self]].Waiting_Threads_Queue)]
                                            /\ Condvar_Objects' = [Condvar_Objects EXCEPT ![condvar_id_D[self]].Waiting_Threads_Queue = Priority_Queue_Tail(Condvar_Objects[condvar_id_D[self]].Waiting_Threads_Queue)]
                                            /\ Assert(awoken_thread_id'[self] /= HiRTOS.Current_Thread_Id, 
-                                                     "Failure of assertion at line 470, column 10.")
+                                                     "Failure of assertion at line 474, column 10.")
                                            /\ Assert(Thread_Objects[awoken_thread_id'[self]].Waiting_On_Condvar_Id = condvar_id_D[self], 
-                                                     "Failure of assertion at line 471, column 10.")
+                                                     "Failure of assertion at line 475, column 10.")
                                            /\ Assert(Thread_Objects[awoken_thread_id'[self]].Waiting_On_Mutex_Id = "Invalid_Mutex_Id", 
-                                                     "Failure of assertion at line 472, column 10.")
+                                                     "Failure of assertion at line 476, column 10.")
                                            /\ to_reacquire_mutex_id' = [to_reacquire_mutex_id EXCEPT ![self] = Thread_Objects[awoken_thread_id'[self]].ghost_Condvar_Wait_Mutex_Id]
                                            /\ Thread_Objects' = [Thread_Objects EXCEPT ![awoken_thread_id'[self]].ghost_Condvar_Wait_Mutex_Id = "Invalid_Mutex_Id",
                                                                                        ![awoken_thread_id'[self]].Waiting_On_Condvar_Id = "Invalid_Condvar_Id"]
@@ -2200,6 +2372,10 @@ signal_condvar_wakeup_waiter_step(self) == /\ pc[self] = "signal_condvar_wakeup_
                                            /\ UNCHANGED << HiRTOS, 
                                                            Mutex_Objects, 
                                                            Timer_Objects, 
+                                                           global_x_protected_by_mutex1, 
+                                                           global_y_protected_by_mutex1, 
+                                                           global_x_protected_by_mutex2, 
+                                                           global_y_protected_by_mutex2, 
                                                            stack, thread_id_, 
                                                            mutex_id_, 
                                                            waking_up_thread_after_condvar_wait, 
@@ -2238,6 +2414,10 @@ signal_condvar_check_if_mutex_reacquire_needed_step(self) == /\ pc[self] = "sign
                                                                              Mutex_Objects, 
                                                                              Condvar_Objects, 
                                                                              Timer_Objects, 
+                                                                             global_x_protected_by_mutex1, 
+                                                                             global_y_protected_by_mutex1, 
+                                                                             global_x_protected_by_mutex2, 
+                                                                             global_y_protected_by_mutex2, 
                                                                              stack, 
                                                                              thread_id_, 
                                                                              mutex_id_, 
@@ -2288,6 +2468,10 @@ signal_condvar_reacquire_mutex_step(self) == /\ pc[self] = "signal_condvar_reacq
                                                              Mutex_Objects, 
                                                              Condvar_Objects, 
                                                              Timer_Objects, 
+                                                             global_x_protected_by_mutex1, 
+                                                             global_y_protected_by_mutex1, 
+                                                             global_x_protected_by_mutex2, 
+                                                             global_y_protected_by_mutex2, 
                                                              thread_id_A, 
                                                              mutex_id_A, 
                                                              owner_thread_id, 
@@ -2322,6 +2506,10 @@ signal_condvar_awoken_thread_runnable_step(self) == /\ pc[self] = "signal_condva
                                                     /\ UNCHANGED << Mutex_Objects, 
                                                                     Condvar_Objects, 
                                                                     Timer_Objects, 
+                                                                    global_x_protected_by_mutex1, 
+                                                                    global_y_protected_by_mutex1, 
+                                                                    global_x_protected_by_mutex2, 
+                                                                    global_y_protected_by_mutex2, 
                                                                     stack, 
                                                                     thread_id_, 
                                                                     mutex_id_, 
@@ -2363,6 +2551,10 @@ signal_condvar_check_if_sync_context_switch_needed_step(self) == /\ pc[self] = "
                                                                                  Mutex_Objects, 
                                                                                  Condvar_Objects, 
                                                                                  Timer_Objects, 
+                                                                                 global_x_protected_by_mutex1, 
+                                                                                 global_y_protected_by_mutex1, 
+                                                                                 global_x_protected_by_mutex2, 
+                                                                                 global_y_protected_by_mutex2, 
                                                                                  stack, 
                                                                                  thread_id_, 
                                                                                  mutex_id_, 
@@ -2405,6 +2597,10 @@ signal_condvar_synchronous_context_switch_step(self) == /\ pc[self] = "signal_co
                                                                         Mutex_Objects, 
                                                                         Condvar_Objects, 
                                                                         Timer_Objects, 
+                                                                        global_x_protected_by_mutex1, 
+                                                                        global_y_protected_by_mutex1, 
+                                                                        global_x_protected_by_mutex2, 
+                                                                        global_y_protected_by_mutex2, 
                                                                         thread_id_, 
                                                                         mutex_id_, 
                                                                         waking_up_thread_after_condvar_wait, 
@@ -2447,6 +2643,10 @@ do_condvar_signal_return_step(self) == /\ pc[self] = "do_condvar_signal_return_s
                                                        Mutex_Objects, 
                                                        Condvar_Objects, 
                                                        Timer_Objects, 
+                                                       global_x_protected_by_mutex1, 
+                                                       global_y_protected_by_mutex1, 
+                                                       global_x_protected_by_mutex2, 
+                                                       global_y_protected_by_mutex2, 
                                                        thread_id_, mutex_id_, 
                                                        waking_up_thread_after_condvar_wait, 
                                                        owner_thread_id_, 
@@ -2498,6 +2698,10 @@ enter_critical_section_step_S(self) == /\ pc[self] = "enter_critical_section_ste
                                                        Mutex_Objects, 
                                                        Condvar_Objects, 
                                                        Timer_Objects, 
+                                                       global_x_protected_by_mutex1, 
+                                                       global_y_protected_by_mutex1, 
+                                                       global_x_protected_by_mutex2, 
+                                                       global_y_protected_by_mutex2, 
                                                        thread_id_, mutex_id_, 
                                                        waking_up_thread_after_condvar_wait, 
                                                        owner_thread_id_, 
@@ -2525,8 +2729,13 @@ exit_critical_section_step_S(self) == /\ pc[self] = "exit_critical_section_step_
                                       /\ UNCHANGED << Thread_Objects, 
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
-                                                      Timer_Objects, stack, 
-                                                      thread_id_, mutex_id_, 
+                                                      Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
+                                                      stack, thread_id_, 
+                                                      mutex_id_, 
                                                       waking_up_thread_after_condvar_wait, 
                                                       owner_thread_id_, 
                                                       thread_id_A, mutex_id_A, 
@@ -2557,8 +2766,12 @@ condvar_signaled_step(self) == /\ pc[self] = "condvar_signaled_step"
                                /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                Mutex_Objects, Condvar_Objects, 
-                                               Timer_Objects, thread_id_, 
-                                               mutex_id_, 
+                                               Timer_Objects, 
+                                               global_x_protected_by_mutex1, 
+                                               global_y_protected_by_mutex1, 
+                                               global_x_protected_by_mutex2, 
+                                               global_y_protected_by_mutex2, 
+                                               thread_id_, mutex_id_, 
                                                waking_up_thread_after_condvar_wait, 
                                                owner_thread_id_, thread_id_A, 
                                                mutex_id_A, owner_thread_id, 
@@ -2589,8 +2802,13 @@ enter_critical_section_step_B(self) == /\ pc[self] = "enter_critical_section_ste
                                        /\ UNCHANGED << Thread_Objects, 
                                                        Mutex_Objects, 
                                                        Condvar_Objects, 
-                                                       Timer_Objects, stack, 
-                                                       thread_id_, mutex_id_, 
+                                                       Timer_Objects, 
+                                                       global_x_protected_by_mutex1, 
+                                                       global_y_protected_by_mutex1, 
+                                                       global_x_protected_by_mutex2, 
+                                                       global_y_protected_by_mutex2, 
+                                                       stack, thread_id_, 
+                                                       mutex_id_, 
                                                        waking_up_thread_after_condvar_wait, 
                                                        owner_thread_id_, 
                                                        thread_id_A, mutex_id_A, 
@@ -2621,8 +2839,12 @@ broadcast_condvar_step(self) == /\ pc[self] = "broadcast_condvar_step"
                                       ELSE /\ pc' = [pc EXCEPT ![self] = "broadcast_condvar_check_if_sync_context_switch_needed_step"]
                                 /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                 Mutex_Objects, Condvar_Objects, 
-                                                Timer_Objects, stack, 
-                                                thread_id_, mutex_id_, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
                                                 waking_up_thread_after_condvar_wait, 
                                                 owner_thread_id_, thread_id_A, 
                                                 mutex_id_A, owner_thread_id, 
@@ -2659,6 +2881,10 @@ broadcast_condvar_wakeup_waiter_step(self) == /\ pc[self] = "broadcast_condvar_w
                                                               Mutex_Objects, 
                                                               Condvar_Objects, 
                                                               Timer_Objects, 
+                                                              global_x_protected_by_mutex1, 
+                                                              global_y_protected_by_mutex1, 
+                                                              global_x_protected_by_mutex2, 
+                                                              global_y_protected_by_mutex2, 
                                                               thread_id_, 
                                                               mutex_id_, 
                                                               waking_up_thread_after_condvar_wait, 
@@ -2694,6 +2920,10 @@ broadcast_condvar_after_waking_up_one_waiter_step(self) == /\ pc[self] = "broadc
                                                                            Mutex_Objects, 
                                                                            Condvar_Objects, 
                                                                            Timer_Objects, 
+                                                                           global_x_protected_by_mutex1, 
+                                                                           global_y_protected_by_mutex1, 
+                                                                           global_x_protected_by_mutex2, 
+                                                                           global_y_protected_by_mutex2, 
                                                                            stack, 
                                                                            thread_id_, 
                                                                            mutex_id_, 
@@ -2734,6 +2964,10 @@ broadcast_condvar_check_if_sync_context_switch_needed_step(self) == /\ pc[self] 
                                                                                     Mutex_Objects, 
                                                                                     Condvar_Objects, 
                                                                                     Timer_Objects, 
+                                                                                    global_x_protected_by_mutex1, 
+                                                                                    global_y_protected_by_mutex1, 
+                                                                                    global_x_protected_by_mutex2, 
+                                                                                    global_y_protected_by_mutex2, 
                                                                                     stack, 
                                                                                     thread_id_, 
                                                                                     mutex_id_, 
@@ -2776,6 +3010,10 @@ broadcast_condvar_synchronous_context_switch_step(self) == /\ pc[self] = "broadc
                                                                            Mutex_Objects, 
                                                                            Condvar_Objects, 
                                                                            Timer_Objects, 
+                                                                           global_x_protected_by_mutex1, 
+                                                                           global_y_protected_by_mutex1, 
+                                                                           global_x_protected_by_mutex2, 
+                                                                           global_y_protected_by_mutex2, 
                                                                            thread_id_, 
                                                                            mutex_id_, 
                                                                            waking_up_thread_after_condvar_wait, 
@@ -2813,8 +3051,13 @@ exit_critical_section_step_B(self) == /\ pc[self] = "exit_critical_section_step_
                                       /\ UNCHANGED << Thread_Objects, 
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
-                                                      Timer_Objects, stack, 
-                                                      thread_id_, mutex_id_, 
+                                                      Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
+                                                      stack, thread_id_, 
+                                                      mutex_id_, 
                                                       waking_up_thread_after_condvar_wait, 
                                                       owner_thread_id_, 
                                                       thread_id_A, mutex_id_A, 
@@ -2847,8 +3090,12 @@ condvar_broadcasted_step(self) == /\ pc[self] = "condvar_broadcasted_step"
                                   /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                   Mutex_Objects, 
                                                   Condvar_Objects, 
-                                                  Timer_Objects, thread_id_, 
-                                                  mutex_id_, 
+                                                  Timer_Objects, 
+                                                  global_x_protected_by_mutex1, 
+                                                  global_y_protected_by_mutex1, 
+                                                  global_x_protected_by_mutex2, 
+                                                  global_y_protected_by_mutex2, 
+                                                  thread_id_, mutex_id_, 
                                                   waking_up_thread_after_condvar_wait, 
                                                   owner_thread_id_, 
                                                   thread_id_A, mutex_id_A, 
@@ -2885,8 +3132,13 @@ enter_critical_section_step_D(self) == /\ pc[self] = "enter_critical_section_ste
                                        /\ UNCHANGED << Thread_Objects, 
                                                        Mutex_Objects, 
                                                        Condvar_Objects, 
-                                                       Timer_Objects, stack, 
-                                                       thread_id_, mutex_id_, 
+                                                       Timer_Objects, 
+                                                       global_x_protected_by_mutex1, 
+                                                       global_y_protected_by_mutex1, 
+                                                       global_x_protected_by_mutex2, 
+                                                       global_y_protected_by_mutex2, 
+                                                       stack, thread_id_, 
+                                                       mutex_id_, 
                                                        waking_up_thread_after_condvar_wait, 
                                                        owner_thread_id_, 
                                                        thread_id_A, mutex_id_A, 
@@ -2925,6 +3177,10 @@ delay_until_step(self) == /\ pc[self] = "delay_until_step"
                           /\ pc' = [pc EXCEPT ![self] = "wait_on_condvar_wait_step"]
                           /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                           Mutex_Objects, Condvar_Objects, 
+                                          global_x_protected_by_mutex1, 
+                                          global_y_protected_by_mutex1, 
+                                          global_x_protected_by_mutex2, 
+                                          global_y_protected_by_mutex2, 
                                           thread_id_, mutex_id_, 
                                           waking_up_thread_after_condvar_wait, 
                                           owner_thread_id_, thread_id_A, 
@@ -2946,8 +3202,13 @@ exit_critical_section_step_D(self) == /\ pc[self] = "exit_critical_section_step_
                                       /\ UNCHANGED << Thread_Objects, 
                                                       Mutex_Objects, 
                                                       Condvar_Objects, 
-                                                      Timer_Objects, stack, 
-                                                      thread_id_, mutex_id_, 
+                                                      Timer_Objects, 
+                                                      global_x_protected_by_mutex1, 
+                                                      global_y_protected_by_mutex1, 
+                                                      global_x_protected_by_mutex2, 
+                                                      global_y_protected_by_mutex2, 
+                                                      stack, thread_id_, 
+                                                      mutex_id_, 
                                                       waking_up_thread_after_condvar_wait, 
                                                       owner_thread_id_, 
                                                       thread_id_A, mutex_id_A, 
@@ -2977,8 +3238,12 @@ after_delay_until_step(self) == /\ pc[self] = "after_delay_until_step"
                                 /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
                                 /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                 Mutex_Objects, Condvar_Objects, 
-                                                Timer_Objects, thread_id_, 
-                                                mutex_id_, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                thread_id_, mutex_id_, 
                                                 waking_up_thread_after_condvar_wait, 
                                                 owner_thread_id_, thread_id_A, 
                                                 mutex_id_A, owner_thread_id, 
@@ -3010,6 +3275,10 @@ thread_state_machine_next_state_loop(self) == /\ pc[self] = "thread_state_machin
                                                               Mutex_Objects, 
                                                               Condvar_Objects, 
                                                               Timer_Objects, 
+                                                              global_x_protected_by_mutex1, 
+                                                              global_y_protected_by_mutex1, 
+                                                              global_x_protected_by_mutex2, 
+                                                              global_y_protected_by_mutex2, 
                                                               stack, 
                                                               thread_id_, 
                                                               mutex_id_, 
@@ -3053,6 +3322,10 @@ context_switch0(self) == /\ pc[self] = "context_switch0"
                                /\ pc' = [pc EXCEPT ![self] = "enter_critical_section_step_D"]
                          /\ UNCHANGED << HiRTOS, Thread_Objects, Mutex_Objects, 
                                          Condvar_Objects, Timer_Objects, 
+                                         global_x_protected_by_mutex1, 
+                                         global_y_protected_by_mutex1, 
+                                         global_x_protected_by_mutex2, 
+                                         global_y_protected_by_mutex2, 
                                          thread_id_, mutex_id_, 
                                          waking_up_thread_after_condvar_wait, 
                                          owner_thread_id_, thread_id_A, 
@@ -3068,23 +3341,24 @@ context_switch0(self) == /\ pc[self] = "context_switch0"
                                          thread_was_awaken, delayed_threads >>
 
 acquire_mutex1_step(self) == /\ pc[self] = "acquire_mutex1_step"
-                             /\ \/ /\ /\ mutex_id_A' = [mutex_id_A EXCEPT ![self] = "mutex1"]
-                                      /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "Acquire_Mutex",
-                                                                               pc        |->  "context_switch1",
-                                                                               owner_thread_id |->  owner_thread_id[self],
-                                                                               thread_id_A |->  thread_id_A[self],
-                                                                               mutex_id_A |->  mutex_id_A[self] ] >>
-                                                                           \o stack[self]]
-                                      /\ thread_id_A' = [thread_id_A EXCEPT ![self] = self]
-                                   /\ owner_thread_id' = [owner_thread_id EXCEPT ![self] = "Invalid_Thread_Id"]
-                                   /\ pc' = [pc EXCEPT ![self] = "enter_critical_section_step_"]
-                                \/ /\ TRUE
-                                   /\ pc' = [pc EXCEPT ![self] = "acquire_mutex2_step"]
-                                   /\ UNCHANGED <<stack, thread_id_A, mutex_id_A, owner_thread_id>>
+                             /\ /\ mutex_id_A' = [mutex_id_A EXCEPT ![self] = "mutex1"]
+                                /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "Acquire_Mutex",
+                                                                         pc        |->  "context_switch1",
+                                                                         owner_thread_id |->  owner_thread_id[self],
+                                                                         thread_id_A |->  thread_id_A[self],
+                                                                         mutex_id_A |->  mutex_id_A[self] ] >>
+                                                                     \o stack[self]]
+                                /\ thread_id_A' = [thread_id_A EXCEPT ![self] = self]
+                             /\ owner_thread_id' = [owner_thread_id EXCEPT ![self] = "Invalid_Thread_Id"]
+                             /\ pc' = [pc EXCEPT ![self] = "enter_critical_section_step_"]
                              /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                              Mutex_Objects, Condvar_Objects, 
-                                             Timer_Objects, thread_id_, 
-                                             mutex_id_, 
+                                             Timer_Objects, 
+                                             global_x_protected_by_mutex1, 
+                                             global_y_protected_by_mutex1, 
+                                             global_x_protected_by_mutex2, 
+                                             global_y_protected_by_mutex2, 
+                                             thread_id_, mutex_id_, 
                                              waking_up_thread_after_condvar_wait, 
                                              owner_thread_id_, thread_id_D, 
                                              mutex_id_D, doing_condvar_wait, 
@@ -3104,10 +3378,14 @@ acquire_mutex1_step(self) == /\ pc[self] = "acquire_mutex1_step"
 context_switch1(self) == /\ pc[self] = "context_switch1"
                          /\ Thread_Objects[self].State = "Running" /\ HiRTOS.Interrupts_Enabled
                          /\ Assert((Mutex_Objects["mutex1"].Owner_Thread_Id = self), 
-                                   "Failure of assertion at line 571, column 17.")
-                         /\ pc' = [pc EXCEPT ![self] = "acquire_mutex2_step"]
+                                   "Failure of assertion at line 574, column 13.")
+                         /\ pc' = [pc EXCEPT ![self] = "mutex1_protected_step1"]
                          /\ UNCHANGED << HiRTOS, Thread_Objects, Mutex_Objects, 
-                                         Condvar_Objects, Timer_Objects, stack, 
+                                         Condvar_Objects, Timer_Objects, 
+                                         global_x_protected_by_mutex1, 
+                                         global_y_protected_by_mutex1, 
+                                         global_x_protected_by_mutex2, 
+                                         global_y_protected_by_mutex2, stack, 
                                          thread_id_, mutex_id_, 
                                          waking_up_thread_after_condvar_wait, 
                                          owner_thread_id_, thread_id_A, 
@@ -3123,6 +3401,92 @@ context_switch1(self) == /\ pc[self] = "context_switch1"
                                          thread_was_awaken, thread_id, 
                                          delayed_threads >>
 
+mutex1_protected_step1(self) == /\ pc[self] = "mutex1_protected_step1"
+                                /\ global_y_protected_by_mutex1' = global_x_protected_by_mutex1
+                                /\ pc' = [pc EXCEPT ![self] = "mutex1_protected_step2"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
+mutex1_protected_step2(self) == /\ pc[self] = "mutex1_protected_step2"
+                                /\ global_x_protected_by_mutex1' = (global_x_protected_by_mutex1 + 1) % 4
+                                /\ pc' = [pc EXCEPT ![self] = "mutex1_protected_step3"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
+mutex1_protected_step3(self) == /\ pc[self] = "mutex1_protected_step3"
+                                /\ Assert(global_x_protected_by_mutex1 = (global_y_protected_by_mutex1 + 1) % 4, 
+                                          "Failure of assertion at line 581, column 13.")
+                                /\ pc' = [pc EXCEPT ![self] = "acquire_mutex2_step"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
 acquire_mutex2_step(self) == /\ pc[self] = "acquire_mutex2_step"
                              /\ /\ mutex_id_A' = [mutex_id_A EXCEPT ![self] = "mutex2"]
                                 /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "Acquire_Mutex",
@@ -3136,8 +3500,12 @@ acquire_mutex2_step(self) == /\ pc[self] = "acquire_mutex2_step"
                              /\ pc' = [pc EXCEPT ![self] = "enter_critical_section_step_"]
                              /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                              Mutex_Objects, Condvar_Objects, 
-                                             Timer_Objects, thread_id_, 
-                                             mutex_id_, 
+                                             Timer_Objects, 
+                                             global_x_protected_by_mutex1, 
+                                             global_y_protected_by_mutex1, 
+                                             global_x_protected_by_mutex2, 
+                                             global_y_protected_by_mutex2, 
+                                             thread_id_, mutex_id_, 
                                              waking_up_thread_after_condvar_wait, 
                                              owner_thread_id_, thread_id_D, 
                                              mutex_id_D, doing_condvar_wait, 
@@ -3157,11 +3525,14 @@ acquire_mutex2_step(self) == /\ pc[self] = "acquire_mutex2_step"
 context_switch2(self) == /\ pc[self] = "context_switch2"
                          /\ Thread_Objects[self].State = "Running" /\ HiRTOS.Interrupts_Enabled
                          /\ Assert((Mutex_Objects["mutex2"].Owner_Thread_Id = self), 
-                                   "Failure of assertion at line 580, column 13.")
-                         /\ TRUE
-                         /\ pc' = [pc EXCEPT ![self] = "release_mutex2_step"]
+                                   "Failure of assertion at line 587, column 13.")
+                         /\ pc' = [pc EXCEPT ![self] = "mutex2_protected_step1"]
                          /\ UNCHANGED << HiRTOS, Thread_Objects, Mutex_Objects, 
-                                         Condvar_Objects, Timer_Objects, stack, 
+                                         Condvar_Objects, Timer_Objects, 
+                                         global_x_protected_by_mutex1, 
+                                         global_y_protected_by_mutex1, 
+                                         global_x_protected_by_mutex2, 
+                                         global_y_protected_by_mutex2, stack, 
                                          thread_id_, mutex_id_, 
                                          waking_up_thread_after_condvar_wait, 
                                          owner_thread_id_, thread_id_A, 
@@ -3177,10 +3548,96 @@ context_switch2(self) == /\ pc[self] = "context_switch2"
                                          thread_was_awaken, thread_id, 
                                          delayed_threads >>
 
+mutex2_protected_step1(self) == /\ pc[self] = "mutex2_protected_step1"
+                                /\ global_y_protected_by_mutex2' = global_x_protected_by_mutex2
+                                /\ pc' = [pc EXCEPT ![self] = "mutex2_protected_step2"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
+mutex2_protected_step2(self) == /\ pc[self] = "mutex2_protected_step2"
+                                /\ global_x_protected_by_mutex2' = (global_x_protected_by_mutex2 + 1) % 4
+                                /\ pc' = [pc EXCEPT ![self] = "mutex2_protected_step3"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
+mutex2_protected_step3(self) == /\ pc[self] = "mutex2_protected_step3"
+                                /\ Assert(global_x_protected_by_mutex2 = (global_y_protected_by_mutex2 + 1) % 4, 
+                                          "Failure of assertion at line 594, column 13.")
+                                /\ pc' = [pc EXCEPT ![self] = "release_mutex2_step"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
 release_mutex2_step(self) == /\ pc[self] = "release_mutex2_step"
                              /\ /\ mutex_id_R' = [mutex_id_R EXCEPT ![self] = "mutex2"]
                                 /\ stack' = [stack EXCEPT ![self] = << [ procedure |->  "Release_Mutex",
-                                                                         pc        |->  "release_mutex1_step",
+                                                                         pc        |->  "mutex1_protected_step4",
                                                                          thread_id_R |->  thread_id_R[self],
                                                                          mutex_id_R |->  mutex_id_R[self] ] >>
                                                                      \o stack[self]]
@@ -3188,8 +3645,12 @@ release_mutex2_step(self) == /\ pc[self] = "release_mutex2_step"
                              /\ pc' = [pc EXCEPT ![self] = "enter_critical_section_step_R"]
                              /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                              Mutex_Objects, Condvar_Objects, 
-                                             Timer_Objects, thread_id_, 
-                                             mutex_id_, 
+                                             Timer_Objects, 
+                                             global_x_protected_by_mutex1, 
+                                             global_y_protected_by_mutex1, 
+                                             global_x_protected_by_mutex2, 
+                                             global_y_protected_by_mutex2, 
+                                             thread_id_, mutex_id_, 
                                              waking_up_thread_after_condvar_wait, 
                                              owner_thread_id_, thread_id_A, 
                                              mutex_id_A, owner_thread_id, 
@@ -3207,6 +3668,92 @@ release_mutex2_step(self) == /\ pc[self] = "release_mutex2_step"
                                              thread_was_awaken, thread_id, 
                                              delayed_threads >>
 
+mutex1_protected_step4(self) == /\ pc[self] = "mutex1_protected_step4"
+                                /\ global_y_protected_by_mutex1' = global_x_protected_by_mutex1
+                                /\ pc' = [pc EXCEPT ![self] = "mutex1_protected_step5"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
+mutex1_protected_step5(self) == /\ pc[self] = "mutex1_protected_step5"
+                                /\ global_x_protected_by_mutex1' = (global_x_protected_by_mutex1 + 1) % 4
+                                /\ pc' = [pc EXCEPT ![self] = "mutex1_protected_step6"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
+mutex1_protected_step6(self) == /\ pc[self] = "mutex1_protected_step6"
+                                /\ Assert(global_x_protected_by_mutex1 = (global_y_protected_by_mutex1 + 1) % 4, 
+                                          "Failure of assertion at line 604, column 13.")
+                                /\ pc' = [pc EXCEPT ![self] = "release_mutex1_step"]
+                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
+                                                Mutex_Objects, Condvar_Objects, 
+                                                Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
+                                                stack, thread_id_, mutex_id_, 
+                                                waking_up_thread_after_condvar_wait, 
+                                                owner_thread_id_, thread_id_A, 
+                                                mutex_id_A, owner_thread_id, 
+                                                thread_id_D, mutex_id_D, 
+                                                doing_condvar_wait, 
+                                                awoken_thread_id_, thread_id_R, 
+                                                mutex_id_R, thread_id_Do, 
+                                                condvar_id_, mutex_id_Do, 
+                                                thread_id_W, condvar_id_W, 
+                                                mutex_id, condvar_id_D, 
+                                                do_context_switch, 
+                                                awoken_thread_id, 
+                                                to_reacquire_mutex_id, 
+                                                context_id_, condvar_id_S, 
+                                                context_id, condvar_id, 
+                                                thread_was_awaken, thread_id, 
+                                                delayed_threads >>
+
 release_mutex1_step(self) == /\ pc[self] = "release_mutex1_step"
                              /\ IF Mutex_Objects["mutex1"].Owner_Thread_Id = self
                                    THEN /\ /\ mutex_id_R' = [mutex_id_R EXCEPT ![self] = "mutex1"]
@@ -3222,8 +3769,12 @@ release_mutex1_step(self) == /\ pc[self] = "release_mutex1_step"
                                                         mutex_id_R >>
                              /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                              Mutex_Objects, Condvar_Objects, 
-                                             Timer_Objects, thread_id_, 
-                                             mutex_id_, 
+                                             Timer_Objects, 
+                                             global_x_protected_by_mutex1, 
+                                             global_y_protected_by_mutex1, 
+                                             global_x_protected_by_mutex2, 
+                                             global_y_protected_by_mutex2, 
+                                             thread_id_, mutex_id_, 
                                              waking_up_thread_after_condvar_wait, 
                                              owner_thread_id_, thread_id_A, 
                                              mutex_id_A, owner_thread_id, 
@@ -3248,8 +3799,13 @@ thread_iteration_completed_step(self) == /\ pc[self] = "thread_iteration_complet
                                                          Thread_Objects, 
                                                          Mutex_Objects, 
                                                          Condvar_Objects, 
-                                                         Timer_Objects, stack, 
-                                                         thread_id_, mutex_id_, 
+                                                         Timer_Objects, 
+                                                         global_x_protected_by_mutex1, 
+                                                         global_y_protected_by_mutex1, 
+                                                         global_x_protected_by_mutex2, 
+                                                         global_y_protected_by_mutex2, 
+                                                         stack, thread_id_, 
+                                                         mutex_id_, 
                                                          waking_up_thread_after_condvar_wait, 
                                                          owner_thread_id_, 
                                                          thread_id_A, 
@@ -3283,9 +3839,18 @@ Thread_State_Machine(self) == thread_state_machine_next_state_loop(self)
                                  \/ context_switch0(self)
                                  \/ acquire_mutex1_step(self)
                                  \/ context_switch1(self)
+                                 \/ mutex1_protected_step1(self)
+                                 \/ mutex1_protected_step2(self)
+                                 \/ mutex1_protected_step3(self)
                                  \/ acquire_mutex2_step(self)
                                  \/ context_switch2(self)
+                                 \/ mutex2_protected_step1(self)
+                                 \/ mutex2_protected_step2(self)
+                                 \/ mutex2_protected_step3(self)
                                  \/ release_mutex2_step(self)
+                                 \/ mutex1_protected_step4(self)
+                                 \/ mutex1_protected_step5(self)
+                                 \/ mutex1_protected_step6(self)
                                  \/ release_mutex1_step(self)
                                  \/ thread_iteration_completed_step(self)
 
@@ -3294,8 +3859,12 @@ idle_thread_next_state_loop == /\ pc["Idle_Thread"] = "idle_thread_next_state_lo
                                /\ pc' = [pc EXCEPT !["Idle_Thread"] = "idle_thread_next_state_loop"]
                                /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                Mutex_Objects, Condvar_Objects, 
-                                               Timer_Objects, stack, 
-                                               thread_id_, mutex_id_, 
+                                               Timer_Objects, 
+                                               global_x_protected_by_mutex1, 
+                                               global_y_protected_by_mutex1, 
+                                               global_x_protected_by_mutex2, 
+                                               global_y_protected_by_mutex2, 
+                                               stack, thread_id_, mutex_id_, 
                                                waking_up_thread_after_condvar_wait, 
                                                owner_thread_id_, thread_id_A, 
                                                mutex_id_A, owner_thread_id, 
@@ -3321,8 +3890,13 @@ timer_interrupt_next_state_loop == /\ pc["Timer_Interrupt"] = "timer_interrupt_n
                                    /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                    Mutex_Objects, 
                                                    Condvar_Objects, 
-                                                   Timer_Objects, stack, 
-                                                   thread_id_, mutex_id_, 
+                                                   Timer_Objects, 
+                                                   global_x_protected_by_mutex1, 
+                                                   global_y_protected_by_mutex1, 
+                                                   global_x_protected_by_mutex2, 
+                                                   global_y_protected_by_mutex2, 
+                                                   stack, thread_id_, 
+                                                   mutex_id_, 
                                                    waking_up_thread_after_condvar_wait, 
                                                    owner_thread_id_, 
                                                    thread_id_A, mutex_id_A, 
@@ -3351,8 +3925,12 @@ enter_critical_section_step_T == /\ pc["Timer_Interrupt"] = "enter_critical_sect
                                  /\ pc' = [pc EXCEPT !["Timer_Interrupt"] = "track_time_slice"]
                                  /\ UNCHANGED << Thread_Objects, Mutex_Objects, 
                                                  Condvar_Objects, 
-                                                 Timer_Objects, stack, 
-                                                 thread_id_, mutex_id_, 
+                                                 Timer_Objects, 
+                                                 global_x_protected_by_mutex1, 
+                                                 global_y_protected_by_mutex1, 
+                                                 global_x_protected_by_mutex2, 
+                                                 global_y_protected_by_mutex2, 
+                                                 stack, thread_id_, mutex_id_, 
                                                  waking_up_thread_after_condvar_wait, 
                                                  owner_thread_id_, thread_id_A, 
                                                  mutex_id_A, owner_thread_id, 
@@ -3375,7 +3953,7 @@ enter_critical_section_step_T == /\ pc["Timer_Interrupt"] = "enter_critical_sect
 track_time_slice == /\ pc["Timer_Interrupt"] = "track_time_slice"
                     /\ IF HiRTOS.Current_Thread_Id /= "Invalid_Thread_Id"
                           THEN /\ Assert(~Thread_Objects[HiRTOS.Current_Thread_Id].ghost_Time_Slice_Consumed, 
-                                         "Failure of assertion at line 618, column 13.")
+                                         "Failure of assertion at line 637, column 13.")
                                /\ Thread_Objects' = [Thread_Objects EXCEPT ![HiRTOS.Current_Thread_Id].ghost_Time_Slice_Consumed = TRUE]
                           ELSE /\ TRUE
                                /\ UNCHANGED Thread_Objects
@@ -3383,8 +3961,12 @@ track_time_slice == /\ pc["Timer_Interrupt"] = "track_time_slice"
                                             Timer_Objects[Thread_Objects'[t].Builtin_Timer_Id].State = "Timer_Running" }
                     /\ pc' = [pc EXCEPT !["Timer_Interrupt"] = "wakeup_delay_until_waiters"]
                     /\ UNCHANGED << HiRTOS, Mutex_Objects, Condvar_Objects, 
-                                    Timer_Objects, stack, thread_id_, 
-                                    mutex_id_, 
+                                    Timer_Objects, 
+                                    global_x_protected_by_mutex1, 
+                                    global_y_protected_by_mutex1, 
+                                    global_x_protected_by_mutex2, 
+                                    global_y_protected_by_mutex2, stack, 
+                                    thread_id_, mutex_id_, 
                                     waking_up_thread_after_condvar_wait, 
                                     owner_thread_id_, thread_id_A, mutex_id_A, 
                                     owner_thread_id, thread_id_D, mutex_id_D, 
@@ -3423,6 +4005,10 @@ wakeup_delay_until_waiters == /\ pc["Timer_Interrupt"] = "wakeup_delay_until_wai
                                                          delayed_threads >>
                               /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                               Mutex_Objects, Condvar_Objects, 
+                                              global_x_protected_by_mutex1, 
+                                              global_y_protected_by_mutex1, 
+                                              global_x_protected_by_mutex2, 
+                                              global_y_protected_by_mutex2, 
                                               thread_id_, mutex_id_, 
                                               waking_up_thread_after_condvar_wait, 
                                               owner_thread_id_, thread_id_A, 
@@ -3448,6 +4034,10 @@ timer_interupt_asynchronous_context_switch_step == /\ pc["Timer_Interrupt"] = "t
                                                                    Mutex_Objects, 
                                                                    Condvar_Objects, 
                                                                    Timer_Objects, 
+                                                                   global_x_protected_by_mutex1, 
+                                                                   global_y_protected_by_mutex1, 
+                                                                   global_x_protected_by_mutex2, 
+                                                                   global_y_protected_by_mutex2, 
                                                                    thread_id_, 
                                                                    mutex_id_, 
                                                                    waking_up_thread_after_condvar_wait, 
@@ -3484,6 +4074,10 @@ exit_critical_section_step_T == /\ pc["Timer_Interrupt"] = "exit_critical_sectio
                                 /\ pc' = [pc EXCEPT !["Timer_Interrupt"] = "timer_interrupt_next_state_loop"]
                                 /\ UNCHANGED << Thread_Objects, Mutex_Objects, 
                                                 Condvar_Objects, Timer_Objects, 
+                                                global_x_protected_by_mutex1, 
+                                                global_y_protected_by_mutex1, 
+                                                global_x_protected_by_mutex2, 
+                                                global_y_protected_by_mutex2, 
                                                 stack, thread_id_, mutex_id_, 
                                                 waking_up_thread_after_condvar_wait, 
                                                 owner_thread_id_, thread_id_A, 
@@ -3514,8 +4108,13 @@ other_interrupt_next_state_loop == /\ pc["Other_Interrupt"] = "other_interrupt_n
                                    /\ UNCHANGED << HiRTOS, Thread_Objects, 
                                                    Mutex_Objects, 
                                                    Condvar_Objects, 
-                                                   Timer_Objects, stack, 
-                                                   thread_id_, mutex_id_, 
+                                                   Timer_Objects, 
+                                                   global_x_protected_by_mutex1, 
+                                                   global_y_protected_by_mutex1, 
+                                                   global_x_protected_by_mutex2, 
+                                                   global_y_protected_by_mutex2, 
+                                                   stack, thread_id_, 
+                                                   mutex_id_, 
                                                    waking_up_thread_after_condvar_wait, 
                                                    owner_thread_id_, 
                                                    thread_id_A, mutex_id_A, 
@@ -3544,6 +4143,10 @@ enter_critical_section_step == /\ pc["Other_Interrupt"] = "enter_critical_sectio
                                /\ pc' = [pc EXCEPT !["Other_Interrupt"] = "other_interupt_asynchronous_context_switch_step"]
                                /\ UNCHANGED << Thread_Objects, Mutex_Objects, 
                                                Condvar_Objects, Timer_Objects, 
+                                               global_x_protected_by_mutex1, 
+                                               global_y_protected_by_mutex1, 
+                                               global_x_protected_by_mutex2, 
+                                               global_y_protected_by_mutex2, 
                                                stack, thread_id_, mutex_id_, 
                                                waking_up_thread_after_condvar_wait, 
                                                owner_thread_id_, thread_id_A, 
@@ -3573,6 +4176,10 @@ other_interupt_asynchronous_context_switch_step == /\ pc["Other_Interrupt"] = "o
                                                                    Mutex_Objects, 
                                                                    Condvar_Objects, 
                                                                    Timer_Objects, 
+                                                                   global_x_protected_by_mutex1, 
+                                                                   global_y_protected_by_mutex1, 
+                                                                   global_x_protected_by_mutex2, 
+                                                                   global_y_protected_by_mutex2, 
                                                                    thread_id_, 
                                                                    mutex_id_, 
                                                                    waking_up_thread_after_condvar_wait, 
@@ -3609,6 +4216,10 @@ exit_critical_section_step == /\ pc["Other_Interrupt"] = "exit_critical_section_
                               /\ pc' = [pc EXCEPT !["Other_Interrupt"] = "other_interrupt_next_state_loop"]
                               /\ UNCHANGED << Thread_Objects, Mutex_Objects, 
                                               Condvar_Objects, Timer_Objects, 
+                                              global_x_protected_by_mutex1, 
+                                              global_y_protected_by_mutex1, 
+                                              global_x_protected_by_mutex2, 
+                                              global_y_protected_by_mutex2, 
                                               stack, thread_id_, mutex_id_, 
                                               waking_up_thread_after_condvar_wait, 
                                               owner_thread_id_, thread_id_A, 
@@ -3670,6 +4281,10 @@ TypeInvariant ==
    /\ Mutex_Objects \in [Mutexes -> Mutex_Object_Type]
    /\ Condvar_Objects \in [Condvars -> Condvar_Object_Type]
    /\ Timer_Objects \in [Timers -> Timer_Object_Type]
+   /\ global_x_protected_by_mutex1 \in 0 .. 3
+   /\ global_y_protected_by_mutex1 \in 0 .. 3
+   /\ global_x_protected_by_mutex2 \in 0 .. 3
+   /\ global_y_protected_by_mutex2 \in 0 .. 3
 
 \* There can be at most only one "running" thread
 SafetyInvariant1 ==
