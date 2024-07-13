@@ -1,0 +1,40 @@
+name = "esp32_c3_wifi"
+description = "Wifi app for ESP32-C3 platform"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["esp32_c3_wifi"]
+
+[[depends-on]]
+hirtos = "*"
+gnat_riscv64_elf = "*"
+gnatprove = "*"
+gprbuild = "^22" # needed by alire-index CI builds
+
+[configuration.values]
+hirtos.Platform = "esp32_c3"
+
+[[pins]]
+hirtos = { path='../..' }
+
+[gpr-set-externals]
+CPU_Core = "riscv32"
+
+[build-profiles]
+hirtos = "development"
+
+[[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
+type = "post-build"
+command = ["sh", "-c", "riscv64-elf-objdump -dSstl bin/esp32_c3_wifi.elf > bin/esp32_c3_wifi.lst"]
+
+[[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
+type = "post-build"
+command = ["../../src/porting_layer/platforms/esp32_c3/generate_bin_image.sh", "esp32c3", "bin/esp32_c3_wifi.elf"]
+
