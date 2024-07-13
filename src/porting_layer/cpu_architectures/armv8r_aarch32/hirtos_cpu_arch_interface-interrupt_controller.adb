@@ -154,10 +154,10 @@ is
          Set_ICC_CTLR (ICC_CTLR_Value);
 
          --
-         --  Set binary point to 7 for groups 0 and 1, so that no priority
-         --  grouping is used:
+         --  Set binary point to maximize interrupt preemptability for nested interrupts,
+         --  for groups 0 (FIQ) and 1 (IRQ):
          --
-         ICC_BPR_Value.Binary_Point := Binary_Point_Type'Last;
+         ICC_BPR_Value.Binary_Point := Binary_Point_Type'First;
          Set_ICC_BPR (Cpu_Interrupt_Fiq, ICC_BPR_Value);
          Set_ICC_BPR (Cpu_Interrupt_Irq, ICC_BPR_Value);
 
@@ -169,6 +169,7 @@ is
          --  Interrupt group 0 will be used for high-priority non-maskable
          --  interrupts, as they are routed to the FIQ interrupt line of
          --  the CPU core.
+         --
          ICC_IGRPEN_Value.Enable := Interrupt_Group_Enabled;
          Set_ICC_IGRPEN
            (Cpu_Interrupt_Fiq, ICC_IGRPEN_Value); --  group0 -> FIQ

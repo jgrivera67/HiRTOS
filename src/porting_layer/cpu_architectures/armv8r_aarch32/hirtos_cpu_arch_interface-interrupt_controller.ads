@@ -716,6 +716,7 @@ private
       GICD_ICFGR_Array      at    16#0C08# range 0 .. ((61 - 2 + 1) * 32) - 1;
       GICD_IROUTER_Array    at 16#6100# range 0 .. ((991 - 32 + 1) * 64) - 1;
       GICD_PIDR_Array       at    16#FFE0# range 0 .. ((7 - 0 + 1) * 32) - 1;
+
       GICR_Array            at 16#10_0000# range 0 ..
           ((16#18_0000# - 16#10_0000#) * System.Storage_Unit) - 1;
    end record;
@@ -820,8 +821,9 @@ private
    --
    --  This value controls how the 5-bit interrupt priority field is split into
    --  a group priority field, that determines interrupt preemption, and a
-   --  subpriority field. See Table 9-87 ICC_BPR0 relationship between binary
-   --  point value and group priority, subpriority fields on page 9-318.
+   --  subpriority field. See Table 10-88 "ICC_BPR0 relationship between binary
+   --  point value and group priority, subpriority fields" in the ARM Cortex-R52
+   --  TRM.
    --
    type Binary_Point_Type is mod 2**3 with
      Size => 3;

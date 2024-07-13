@@ -83,15 +83,21 @@ interrupt_vector_jump_table:
         /* end of interrupt_vector_jump_table */
 
 	.section .globals_initialized_at_load_time
-   .align 6 // 64-byte aligned
+   .align 5 // 32-byte aligned
+   .global hirtos_secondary_cores_start_gate
+hirtos_secondary_cores_start_gate:
+   .word
+   .space CACHE_LINE_SIZE
+
 	.global hirtos_global_vars_elaborated_flag
 hirtos_global_vars_elaborated_flag:
-   .word 0
-   .space CACHE_LINE_SIZE - 4
+   .word
+   .space CACHE_LINE_SIZE
 
    .global hirtos_booted_as_partition
 hirtos_booted_as_partition:
-   .byte 0
+   .byte
+   .space 1
 
 /**
  * Get CPU id
@@ -111,6 +117,9 @@ hirtos_booted_as_partition:
         .cfi_undefined ra
 reset_handler:
         la gp, __global_pointer
+        la  t0, hirtos_booted_as_partition
+        li  t1, 0
+        sb  t1, (t0)
 
         /*
          * Set ISR stack for calling CPU:
@@ -138,3 +147,15 @@ reset_handler:
 1:      wfi
         j 1b
         .cfi_endproc
+
+
+/**
+ * Alternating bit pattern that secondary cores wait to see, before
+ * they start waiting for hirtos_global_vars_elaborated_flag to be set
+ * by the primary core.
+ */
+   .section .rodata.hirtos_secondary_cores_start_gate_value
+   .align 2 // 4-byte aligned
+   .global hirtos_secondary_cores_start_gate_value
+hirtos_secondary_cores_start_gate_value:
+   .word 0xa5a5a5a5

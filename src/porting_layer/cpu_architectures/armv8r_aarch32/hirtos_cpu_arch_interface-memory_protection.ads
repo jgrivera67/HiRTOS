@@ -544,6 +544,9 @@ private
      with Convention => C;
 
    function Encode_Region_Border_Address_Field (Start_Address : System.Address) return Address_Top_26_Bits_Type
+      with Pre => To_Integer (Start_Address) <= Integer_Address (Interfaces.Unsigned_32'Last);
+
+   function Encode_Region_Border_Address_Field (Start_Address : System.Address) return Address_Top_26_Bits_Type
    is (Address_Top_26_Bits_Type (
          Interfaces.Shift_Right (
             Interfaces.Unsigned_32 (To_Integer (Start_Address)), PRBAR_BASE_Start_Bit_Position)));

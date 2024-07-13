@@ -18,11 +18,11 @@ package HiRTOS_Cpu_Arch_Interface with
 is
    use System.Storage_Elements;
 
-   type Cpu_Register_Type is new Interfaces.Unsigned_32;
+   type Cpu_Register_Type is mod 2 ** HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits
+      with Size => HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits;
 
    pragma Compile_Time_Error
-    (Cpu_Register_Type'Size /=
-     HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits,
+    (Cpu_Register_Type'Size /= System.Address'Size,
      "Cpu_Register_Type has the wrong size");
 
    function Get_Call_Address return System.Address with
@@ -100,22 +100,23 @@ is
     Inline_Always;
 
    function Count_Leading_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type with
+    Post => Count_Leading_Zeros'Result <= Cpu_Register_Type'Size,
     Inline_Always, Suppress => All_Checks;
 
    function Count_Trailing_Zeros (Value : Cpu_Register_Type) return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
 
-   type Bit_Index_Type is mod Integer_Address'Size;
+   type Bit_Index_Type is mod Cpu_Register_Type'Size;
 
    function Bit_Mask (Bit_Index : Bit_Index_Type) return Cpu_Register_Type is
     --(Cpu_Register_Type (Interfaces.Shift_Left (Interfaces.Unsigned_32 (1), Natural (Bit_Index))));
     (Cpu_Register_Type (2 ** Natural (Bit_Index)));
 
-   subtype Log_Base_2_Type is Natural range 0 .. Integer_Address'Size - 1;
-
    function Is_Value_Power_Of_Two (Value : Integer_Address) return Boolean is
       (Value /= 0 and then
        (Value and (Value - 1)) = 0);
+
+   subtype Log_Base_2_Type is Natural range 0 .. Natural (Bit_Index_Type'Last);
 
    function Get_Log_Base_2 (Value : Integer_Address) return Log_Base_2_Type
       with Pre => Is_Value_Power_Of_Two (Value);

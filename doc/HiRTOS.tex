@@ -587,7 +587,8 @@ are described below:
     tickTimerThreadId \neq idleThreadId
 \also
     threadSchedulerState = threadSchedulerRunning \implies \\
-    (\forall threadId: (\dom threads \setminus \{~ currentThreadId ~\}) @ \\
+    (\forall threadId: (\dom threads \setminus \{~ currentThreadId ~\}) | \\
+\t1    (threads(threadId)).state \in \{~threadRunnable, threadBlockedOnMutex~\}  @ \\
 \t1    (threads(threadId)).currentPriority \leq (threads(currentThreadId)).currentPriority)
 \also
     zCpuInterruptMaskingState = cpuInterruptsEnabled \iff \\
@@ -600,10 +601,6 @@ are described below:
     \bigcap~\{~ t: \ran threads @ \{~ t.builtinCondvarId ~\} ~\} = \emptyset
 \also
     \bigcap~\{~ t: \ran threads @ \{~ t.builtinTimerId ~\} ~\} = \emptyset
-\also
-    \forall t: \ran threads @ (t.id = (threads \inv)(t) \land \\
-    (t.ownedMutexes \neq \emptyset \implies \\
-     t.currentPriority = max~ \{~ m : \ran t.ownedMutexes @ (mutexes(m)).ceilingPriority ~\}))
 \also
     \forall m: \ran mutexes @ m.id = mutexes\inv(m)
 \also

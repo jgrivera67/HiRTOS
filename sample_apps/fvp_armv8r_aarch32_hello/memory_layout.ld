@@ -153,6 +153,11 @@ SECTIONS
     PROVIDE_HIDDEN (__rodata_start = .);
     *(.rdata)
     *(.rodata .rodata.*)
+    *(.srodata.cst16)
+    *(.srodata.cst8)
+    *(.srodata.cst4)
+    *(.srodata.cst2)
+    *(.srodata .srodata.*)
     *(.gnu.linkonce.r.*)
     . = ALIGN(MPU_REGION_ALIGNMENT);
     PROVIDE_HIDDEN (__rodata_end = .);
@@ -169,11 +174,6 @@ SECTIONS
     *(.sdata .sdata.*)
     *(.sdata2 .sdata2.*)
     *(.gnu.linkonce.s.*)
-    *(.srodata.cst16)
-    *(.srodata.cst8)
-    *(.srodata.cst4)
-    *(.srodata.cst2)
-    *(.srodata .srodata.*)
     PROVIDE( __data_end = . );
   } >TCM
 
@@ -203,10 +203,13 @@ SECTIONS
     __privileged_bss_end = .;
   } >TCM
 
-  .globals_initialized_at_load_time :
+  .globals_initialized_at_load_time (NOLOAD) :
   {
     . = ALIGN(MPU_REGION_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
+    __globals_initialized_at_load_time_start = .;
     *(.globals_initialized_at_load_time)
+    . = ALIGN(MPU_REGION_ALIGNMENT); /* End boundary for data cache flushing */
+    __globals_initialized_at_load_time_end = .;
   } >TCM
 
   .stack (NOLOAD)  :

@@ -10,6 +10,7 @@
 --
 
 with HiRTOS_Cpu_Multi_Core_Interface;
+with HiRTOS_Cpu_Arch_Interface;
 with Interfaces;
 
 package HiRTOS_Cpu_Startup_Interface
@@ -21,6 +22,11 @@ is
            External_Name => "ada_reset_handler",
            No_Return;
 
+   HiRTOS_Secondary_Cores_Start_Gate : HiRTOS_Cpu_Multi_Core_Interface.Atomic_Counter_Type
+      with Import,
+           Convention => C,
+           External_Name => "hirtos_secondary_cores_start_gate";
+
    HiRTOS_Global_Vars_Elaborated_Flag : HiRTOS_Cpu_Multi_Core_Interface.Atomic_Counter_Type
       with Import,
            Convention => C,
@@ -31,5 +37,10 @@ is
            Convention => C,
            Size => Interfaces.Unsigned_8'Size,
            External_Name => "hirtos_booted_as_partition";
+
+   HiRTOS_Secondary_Cores_Start_Gate_Value : constant HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type
+      with Import,
+           Convention => C,
+           External_Name => "hirtos_secondary_cores_start_gate_value";
 
 end HiRTOS_Cpu_Startup_Interface;

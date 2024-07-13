@@ -17,7 +17,7 @@ project Hello_Partitions is
    for Object_Dir use "obj/" & Hello_Partitions_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("hello_partitions.adb");
+   for Main use ("app_main.adb");
 
    Executable_Prefix := "hello_partitions";
 
@@ -41,6 +41,7 @@ project Hello_Partitions is
    end Linker;
 
    package Builder is
+      for Executable ("app_main.adb") use Executable_Prefix;
       for Executable_Suffix use ".elf";
    end Builder;
 

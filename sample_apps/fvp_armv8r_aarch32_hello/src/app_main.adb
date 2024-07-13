@@ -15,8 +15,7 @@ with GNAT.Source_Info;
 --  NOTE: This is needed to force the startup code to be linked-in
 pragma Unreferenced (HiRTOS_Cpu_Startup_Interface);
 
-procedure Fvp_Armv8r_Aarch32_Hello is
-
+procedure App_Main is
    procedure Print_Console_Greeting is
       Cpu_Id : constant HiRTOS.Cpu_Id_Type := HiRTOS.Get_Current_Cpu_Id;
    begin
@@ -37,4 +36,4 @@ begin -- Main
    HiRTOS.Start_Thread_Scheduler;
 
    pragma Assert (False);
-end Fvp_Armv8r_Aarch32_Hello;
+end App_Main;

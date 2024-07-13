@@ -61,21 +61,35 @@ is
    begin
       pragma Warnings (Off, "condition can only be False if invalid values present");
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
+         Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 0);
+         Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Secondary_Cores_Start_Gate,
+                       HiRTOS_Cpu_Startup_Interface.HiRTOS_Secondary_Cores_Start_Gate_Value);
+         HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
+
          HiRTOS_Lib_Elaboration;
          if not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
             HiRTOS_Platform_Interface.Initialize_Platform;
          end if;
 
-         Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          Memory_Utils.Flush_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);
+
+         Atomic_Store (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag, 1);
          HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
       else
-         loop
+         --
+         --  Secondary cores first wait for initialization of HiRTOS_Global_Vars_Elaborated_Flag:
+         --
+         while Atomic_Load (HiRTOS_Cpu_Startup_Interface.HiRTOS_Secondary_Cores_Start_Gate) /=
+               HiRTOS_Cpu_Startup_Interface.HiRTOS_Secondary_Cores_Start_Gate_Value loop
             HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
-            exit when Atomic_Load (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag) = 1;
          end loop;
+
+         while Atomic_Load (HiRTOS_Cpu_Startup_Interface.HiRTOS_Global_Vars_Elaborated_Flag) /= 1 loop
+            HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
+         end loop;
+
          Memory_Utils.Invalidate_Data_Cache_Range (
             HiRTOS_Platform_Parameters.Global_Data_Region_Start_Address,
             HiRTOS.Memory_Protection_Private.Global_Data_Region_Size_In_Bytes);

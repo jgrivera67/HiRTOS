@@ -304,14 +304,20 @@ el2_interrupt_vector_table:
 
 	.section .globals_initialized_at_load_time
    .align 6 // 64-byte aligned
-	.global hirtos_global_vars_elaborated_flag
+	.global hirtos_secondary_cores_start_gate
+hirtos_secondary_cores_start_gate:
+   .word
+   .space CACHE_LINE_SIZE
+
+   .global hirtos_global_vars_elaborated_flag
 hirtos_global_vars_elaborated_flag:
-   .word 0
-   .space CACHE_LINE_SIZE - 4
+   .word
+   .space CACHE_LINE_SIZE
 
    .global hirtos_booted_as_partition
 hirtos_booted_as_partition:
-   .byte 0
+   .byte
+   .space 1
 
 /**
  * System Reset handler entry point
@@ -332,9 +338,10 @@ reset_handler:
         mrs    r0, cpsr
         and    r0, r0, #CPSR_MODE_MASK
         cmp    r0, #CPSR_HYPERVISOR_MODE
-        ldrne  r0, =hirtos_booted_as_partition
+        moveq  r1, #0
         movne  r1, #1
-        strbne r1, [r0]
+        ldr    r0, =hirtos_booted_as_partition
+        strb   r1, [r0]
         bne    reset_handler_el1
 
 #if defined(ARM_FVP_SIMULATOR)
@@ -415,3 +422,14 @@ reset_handler_common:
 1:      wfi
 	     b 1b
         .endfunc
+
+/**
+ * Alternating bit pattern that secondary cores wait to see, before
+ * they start waiting for hirtos_global_vars_elaborated_flag to be set
+ * by the primary core.
+ */
+   .section .rodata.hirtos_secondary_cores_start_gate_value
+   .align 2 // 4-byte aligned
+   .global hirtos_secondary_cores_start_gate_value
+hirtos_secondary_cores_start_gate_value:
+   .word 0xa5a5a5a5

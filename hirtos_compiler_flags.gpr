@@ -86,6 +86,8 @@ abstract project Hirtos_Compiler_Flags is
                   ("-gnatwa" -- Enable all warnings
                   ,"-gnatw.X" -- Disable warnings for No_Exception_Propagation
                   ,"-gnatVa" -- All validity checks
+                --,"-gnateA" -- Adds checks that parameters are not aliased
+                --,"-gnateV" -- Adds checks that parameters are valid, including parameters of composite types
                   ,"-gnaty3" -- Specify indentation level of 3
                   ,"-gnatya" -- Check attribute casing
                   ,"-gnatyA" -- Use of array index numbers in array attributes

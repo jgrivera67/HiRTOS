@@ -16,7 +16,7 @@ project Fvp_Armv8r_Aarch32_Hello is
    for Object_Dir use "obj/" & Fvp_Armv8r_Aarch32_Hello_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("fvp_armv8r_aarch32_hello.adb");
+   for Main use ("app_main.adb");
 
    Executable_Prefix := "fvp_armv8r_aarch32_hello";
 
@@ -38,6 +38,7 @@ project Fvp_Armv8r_Aarch32_Hello is
    end Linker;
 
    package Builder is
+      for Executable ("app_main.adb") use Executable_Prefix;
       for Executable_Suffix use ".elf";
    end Builder;
 

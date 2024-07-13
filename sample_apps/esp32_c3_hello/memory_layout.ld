@@ -142,12 +142,6 @@ SECTIONS
     PROVIDE( __data_end = . );
   } > dram_seg
 
-  .globals_initialized_at_load_time :
-  {
-    . = ALIGN(CACHE_LINE_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
-    *(.globals_initialized_at_load_time)
-  } > dram_seg
-
   .bss (NOLOAD)  :
   {
    PROVIDE( __bss_start = . );
@@ -172,6 +166,16 @@ SECTIONS
     . = ALIGN(CACHE_LINE_ALIGNMENT); /* End boundary for data cache flushing */
     __privileged_bss_end = .;
   } > dram_seg
+
+  .globals_initialized_at_load_time (NOLOAD) :
+  {
+    . = ALIGN(CACHE_LINE_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
+    __globals_initialized_at_load_time_start = .;
+    *(.globals_initialized_at_load_time)
+    . = ALIGN(CACHE_LINE_ALIGNMENT); /* End boundary for data cache flushing */
+    __globals_initialized_at_load_time_end = .;
+  } > dram_seg
+
 
   .stack (NOLOAD)  :
   {

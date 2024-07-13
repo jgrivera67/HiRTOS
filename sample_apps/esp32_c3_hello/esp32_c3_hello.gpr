@@ -16,7 +16,7 @@ project Esp32_C3_Hello is
    for Object_Dir use "obj/" & Esp32_C3_Hello_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("esp32_c3_hello.adb");
+   for Main use ("app_main.adb");
 
    Executable_Prefix := "esp32_c3_hello";
 
@@ -38,6 +38,7 @@ project Esp32_C3_Hello is
    end Linker;
 
    package Builder is
+      for Executable ("app_main.adb") use Executable_Prefix;
       for Executable_Suffix use ".elf";
    end Builder;
 
