@@ -12,6 +12,7 @@
    "editor.detectIndentation": false,
    "[ada]": {
       "editor.defaultFormatter": "AdaCore.ada"
-   }
+   },
+   "sarif-viewer.connectToGithubCodeScanning": "off"
   }
 }

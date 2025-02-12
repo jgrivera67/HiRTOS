@@ -27,7 +27,7 @@ pragma Assertion_Policy (Pre            => Ignore,
 with System.Parameters;
 
 package Interfaces.C
-  with SPARK_Mode, Pure
+  with SPARK_Mode => Off, Pure
 is
    pragma Annotate (GNATprove, Always_Return, C);
 

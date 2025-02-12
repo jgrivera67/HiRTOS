@@ -4,11 +4,11 @@ abstract project Hello_Partition2_Config is
    Crate_Version := "0.1.0-dev";
    Crate_Name := "hello_partition2";
 
-   Alire_Host_OS := "linux";
+   Alire_Host_OS := "macos";
 
    Alire_Host_Arch := "x86_64";
 
-   Alire_Host_Distro := "ubuntu";
+   Alire_Host_Distro := "homebrew";
    Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Ada_Compiler_Switches := Ada_Compiler_Switches &
           (

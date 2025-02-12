@@ -40,7 +40,9 @@ is
 
    function Get_Current_Interrupt_Nesting_Saved_Stack_Pointer
      (Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type)
-      return System.Address;
+      return System.Address with
+      Pre => Get_Current_Interrupt_Nesting_Counter (Interrupt_Nesting_Level_Stack) in
+               Active_Interrupt_Nesting_Counter_Type;
 
 private
 

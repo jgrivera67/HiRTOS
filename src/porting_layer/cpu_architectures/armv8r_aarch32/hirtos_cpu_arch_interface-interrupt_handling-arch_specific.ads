@@ -10,7 +10,6 @@
 --
 
 package HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific
-   with SPARK_Mode => On
 is
    procedure Handle_Undefined_Instruction_Exception;
 

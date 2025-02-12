@@ -46,4 +46,21 @@ project Fvp_Armv8r_Aarch32_Hello is
       for Artifacts (".") use ("share");
    end Install;
 
+   package Prove is
+      --for Excluded_Source_Dirs use ("../../third_party/portable_minimal_ada_rts/src/"); 
+      for Proof_Switches ("Ada") use ("--proof=per_path",
+                                      --"--verbose",
+                                      --"--no-subprojects",
+                                      "-j0",
+                                      "--no-global-generation",
+                                      "--no-inlining",
+                                      "--no-loop-unrolling",
+                                      "--level=1",
+                                      --"--prover=z3,cvc5,altergo",
+                                      "--timeout=60",
+                                      "--memlimit=0",
+                                      "--steps=200000",
+                                      "--assumptions",
+                                      "--report=statistics");
+   end Prove;
 end Fvp_Armv8r_Aarch32_Hello;

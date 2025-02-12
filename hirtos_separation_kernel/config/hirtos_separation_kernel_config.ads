@@ -8,11 +8,11 @@ package Hirtos_Separation_Kernel_Config is
    Crate_Version : constant String := "2.0.0";
    Crate_Name : constant String := "hirtos_separation_kernel";
 
-   Alire_Host_OS : constant String := "linux";
+   Alire_Host_OS : constant String := "macos";
 
    Alire_Host_Arch : constant String := "x86_64";
 
-   Alire_Host_Distro : constant String := "ubuntu";
+   Alire_Host_Distro : constant String := "homebrew";
 
    type Platform_Kind is (arm_fvp);
    Platform : constant Platform_Kind := arm_fvp;

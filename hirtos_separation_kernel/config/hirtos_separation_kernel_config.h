@@ -5,11 +5,11 @@
 #define CRATE_VERSION "2.0.0"
 #define CRATE_NAME "hirtos_separation_kernel"
 
-#define ALIRE_HOST_OS "linux"
+#define ALIRE_HOST_OS "macos"
 
 #define ALIRE_HOST_ARCH "x86_64"
 
-#define ALIRE_HOST_DISTRO "ubuntu"
+#define ALIRE_HOST_DISTRO "homebrew"
 
 #define PLATFORM_ARM_FVP 1
 

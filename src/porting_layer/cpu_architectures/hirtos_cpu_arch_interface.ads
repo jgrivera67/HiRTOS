@@ -119,7 +119,8 @@ is
    subtype Log_Base_2_Type is Natural range 0 .. Natural (Bit_Index_Type'Last);
 
    function Get_Log_Base_2 (Value : Integer_Address) return Log_Base_2_Type
-      with Pre => Is_Value_Power_Of_Two (Value);
+      with Pre => Is_Value_Power_Of_Two (Value) and then
+                  Cpu_Register_Type (Value) <= Cpu_Register_Type'Last;
 
    function Get_Log_Base_2 (Value : Integer_Address) return Log_Base_2_Type is
       (Log_Base_2_Type'Last - Log_Base_2_Type (Count_Leading_Zeros (Cpu_Register_Type (Value))));

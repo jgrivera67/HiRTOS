@@ -98,23 +98,4 @@ project HiRTOS is
 
       for Default_Switches ("Asm_Cpp") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS;
    end Compiler;
-
-   --package Builder is
-   --   for Global_Compilation_Switches ("Ada") use ("-gnateT=target.atp");
-   --end Builder;
-
-   package Prove is
-      for Proof_Switches ("Ada") use ("--proof=per_path",
-                                      "-j0",
-                                      "--no-global-generation",
-                                      "--no-inlining",
-                                      "--no-loop-unrolling",
-                                      "--level=1",
-                                      "--prover=z3,cvc5,altergo",
-                                      "--timeout=60",
-                                      "--memlimit=0",
-                                      "--steps=200000",
-                                      "--assumptions",
-                                      "--report=statistics");
-   end Prove;
 end HIRTOS;

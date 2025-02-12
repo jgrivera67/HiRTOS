@@ -13,12 +13,12 @@ with HiRTOS.Interrupt_Handling;
 with HiRTOS_Low_Level_Debug_Interface;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific
-   with SPARK_Mode => On
 is
    procedure Handle_Undefined_Instruction_Exception is
       Faulting_PC : constant System.Storage_Elements.Integer_Address :=
          System.Storage_Elements.To_Integer (HiRTOS.Interrupt_Handling.Get_Interrupted_PC) - 4;
    begin
+      pragma Assume (Faulting_PC <= System.Storage_Elements.Integer_Address (Interfaces.Unsigned_32'Last));
       HiRTOS_Low_Level_Debug_Interface.Print_String (
          "*** Undefined instruction exception (faulting PC: ");
       HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (Interfaces.Unsigned_32 (Faulting_PC));

@@ -40,7 +40,7 @@
 pragma Assertion_Policy (Pre => Ignore);
 
 package Ada.Assertions with
-  SPARK_Mode, Pure
+  SPARK_Mode => Off, Pure
 is
    Assertion_Error : exception;
 

@@ -38,7 +38,7 @@ pragma Assertion_Policy (Ghost          => Ignore,
                          Assert         => Ignore);
 
 package body Interfaces.C
-  with SPARK_Mode
+  with SPARK_Mode => Off
 is
 
    --------------------

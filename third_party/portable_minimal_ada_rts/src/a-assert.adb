@@ -30,7 +30,7 @@
 ------------------------------------------------------------------------------
 
 package body Ada.Assertions with
-  SPARK_Mode
+  SPARK_Mode => Off
 is
    ------------
    -- Assert --

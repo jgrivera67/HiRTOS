@@ -148,7 +148,8 @@ is
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
-      with Pre => To_Integer (Start_Address) mod
+      with Pre => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment > 1 and then
+                  To_Integer (Start_Address) mod
                      HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
                   Size_In_Bytes > 0 and then
                   Size_In_Bytes mod
