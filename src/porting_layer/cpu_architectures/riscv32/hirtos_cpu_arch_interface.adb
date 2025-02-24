@@ -114,7 +114,7 @@ package body HiRTOS_Cpu_Arch_Interface is
          Volatile => True);
    end Break_Point;
 
-   function Ldrex_Word (Word_Address : System.Address) return Cpu_Register_Type is
+   function Ldaex_Word (Word_Address : System.Address) return Cpu_Register_Type is
       MISA_Value : constant MISA_Type := Get_MISA;
    begin
       if MISA_Value.A = 1 then
@@ -139,9 +139,9 @@ package body HiRTOS_Cpu_Arch_Interface is
             return Word;
          end;
       end if;
-   end Ldrex_Word;
+   end Ldaex_Word;
 
-   function Strex_Word (Word_Address : System.Address;
+   function Stlex_Word (Word_Address : System.Address;
                         Value : Cpu_Register_Type) return Boolean
    is
       MISA_Value : constant MISA_Type := Get_MISA;
@@ -174,9 +174,9 @@ package body HiRTOS_Cpu_Arch_Interface is
 
          return True;
       end if;
-   end Strex_Word;
+   end Stlex_Word;
 
-   function Ldrex_Byte (Byte_Address : System.Address) return Interfaces.Unsigned_8 is
+   function Ldaex_Byte (Byte_Address : System.Address) return Interfaces.Unsigned_8 is
       Result : Cpu_Register_Type;
    begin
       System.Machine_Code.Asm (
@@ -186,9 +186,9 @@ package body HiRTOS_Cpu_Arch_Interface is
            Volatile => True);
 
       return Interfaces.Unsigned_8 (Result);
-   end Ldrex_Byte;
+   end Ldaex_Byte;
 
-   function Strex_Byte (Byte_Address : System.Address;
+   function Stlex_Byte (Byte_Address : System.Address;
                         Value : Interfaces.Unsigned_8) return Boolean
    is
       Result : Cpu_Register_Type;
@@ -205,7 +205,7 @@ package body HiRTOS_Cpu_Arch_Interface is
          Volatile => True);
 
       return Result = 0;
-   end Strex_Byte;
+   end Stlex_Byte;
 
    procedure Wait_For_Interrupt is
    begin

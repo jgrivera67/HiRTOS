@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2022-2023, German Rivera
+--  Copyright (c) 2022-2025, German Rivera
 --
 --
 --  SPDX-License-Identifier: Apache-2.0
@@ -70,17 +70,17 @@ is
 
    procedure Break_Point with Inline_Always;
 
-   function Ldrex_Word (Word_Address : System.Address) return Cpu_Register_Type with
+   function Ldaex_Word (Word_Address : System.Address) return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
 
-   function Strex_Word (Word_Address : System.Address; Value : Cpu_Register_Type)
+   function Stlex_Word (Word_Address : System.Address; Value : Cpu_Register_Type)
     return Boolean with
     Inline_Always, Suppress => All_Checks;
 
-   function Ldrex_Byte (Byte_Address : System.Address) return Interfaces.Unsigned_8 with
+   function Ldaex_Byte (Byte_Address : System.Address) return Interfaces.Unsigned_8 with
     Inline_Always, Suppress => All_Checks;
 
-   function Strex_Byte (Byte_Address : System.Address; Value : Interfaces.Unsigned_8)
+   function Stlex_Byte (Byte_Address : System.Address; Value : Interfaces.Unsigned_8)
     return Boolean with
     Inline_Always, Suppress => All_Checks;
 
@@ -135,11 +135,17 @@ is
 
    procedure Invalidate_Instruction_Cache;
 
-   procedure Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address);
+   procedure Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (Cache_Line_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
 
-   procedure Flush_Data_Cache_Line (Cache_Line_Address : System.Address);
+   procedure Flush_Data_Cache_Line (Cache_Line_Address : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (Cache_Line_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
 
-   procedure Flush_Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address);
+   procedure Flush_Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (Cache_Line_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0;
 
    procedure Hypercall (Op_Code : Interfaces.Unsigned_8) with
      Pre => not Cpu_In_Hypervisor_Mode;

@@ -7,7 +7,7 @@
 
 #define ALIRE_HOST_OS "macos"
 
-#define ALIRE_HOST_ARCH "x86_64"
+#define ALIRE_HOST_ARCH "aarch64"
 
 #define ALIRE_HOST_DISTRO "homebrew"
 
@@ -19,7 +19,8 @@
 
 #define PLATFORM_ARM_FVP 1
 #define PLATFORM_ESP32_C3 2
+#define PLATFORM_RASPBERRY_PI4 3
 
-#define PLATFORM  1
+#define PLATFORM  3
 
 #endif

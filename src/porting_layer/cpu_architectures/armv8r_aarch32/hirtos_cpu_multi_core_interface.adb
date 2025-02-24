@@ -47,7 +47,7 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
       loop
          --  NOTE: Invalidate cache line to support multi-core processors without cache coherence
          Memory_Utils.Invalidate_Data_Cache_Range (Atomic_Counter'Address, Cache_Line_Size_Bytes);
-         Old_Value := Ldrex_Word (Atomic_Counter.Counter'Address);
+         Old_Value := Ldaex_Word (Atomic_Counter.Counter'Address);
          case Atomic_Operator is
             when Test_Set =>
                if Old_Value = Value then
@@ -65,7 +65,7 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
                New_Value := Old_Value and Value;
          end case;
 
-         exit when Strex_Word (Atomic_Counter.Counter'Address, New_Value);
+         exit when Stlex_Word (Atomic_Counter.Counter'Address, New_Value);
       end loop;
 
       --  NOTE: Flush cache line to support multi-core processors without cache coherence

@@ -1,12 +1,12 @@
 --
---  Copyright (c) 2022-2023, German Rivera
+--  Copyright (c) 2025, German Rivera
 --
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
 
 --
---  @summary HiRTOS to target platform interface for ARMv8-R architecture
+--  @summary HiRTOS to target platform interface for ARMv8-A aarch64 architecture
 --
 
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
@@ -17,25 +17,19 @@ package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
    use HiRTOS_Cpu_Arch_Interface_Private;
+   use type Interfaces.Unsigned_8;
 
    --
-   --   Bit masks for CPSR bit fields
+   --  Bit masks to use with msr DAIFset/DAIFclr:
    --
-   CPSR_F_Bit_Mask : constant := 2#0100_0000#; --  bit 6
-   CPSR_I_Bit_Mask : constant Cpu_Register_Type := 2#1000_0000#; --  bit 7
-   CPSR_IF_Bit_Mask : constant Cpu_Register_Type := (CPSR_I_Bit_Mask or CPSR_F_Bit_Mask);
-   CPSR_Mode_Mask : constant Cpu_Register_Type :=  2#0001_1111#; --  bits [4:0]
+   DAIF_SetClr_F_Bit_Mask : constant Interfaces.Unsigned_8 := 2#1#; --  bit 0
+   DAIF_SetClr_I_Bit_Mask : constant Interfaces.Unsigned_8 := 2#10#; --  bit 1
+   DAIF_SetClr_A_Bit_Mask : constant Interfaces.Unsigned_8 := 2#100#; --  bit 2
+   DAIF_SetClr_D_Bit_Mask : constant Interfaces.Unsigned_8 := 2#1000#; --  bit 3
+   DAIF_SetClr_IF_Mask : constant Interfaces.Unsigned_8 := (DAIF_SetClr_I_Bit_Mask or DAIF_SetClr_F_Bit_Mask);
 
    function Get_Cpu_Status_Register return Cpu_Register_Type is
-      Reg_Value : Cpu_Register_Type;
-   begin
-      System.Machine_Code.Asm (
-         "mrs %0, cpsr",
-         Outputs => Cpu_Register_Type'Asm_Output ("=r", Reg_Value),
-         Volatile => True);
-
-      return Reg_Value;
-   end Get_Cpu_Status_Register;
+      (Cpu_Register_Type (Get_PSTATE.Value));
 
    function Get_Call_Address return System.Address is
       Reg_Value : Cpu_Register_Type;
@@ -70,65 +64,60 @@ package body HiRTOS_Cpu_Arch_Interface is
    end Set_Stack_Pointer;
 
    function Cpu_Interrupting_Disabled return Boolean is
-      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
+      DAIF_Value : constant DAIF_Type := Get_DAIF;
    begin
       if Cpu_In_Hypervisor_Mode then
-         return (CPSR_Value and CPSR_IF_Bit_Mask) = CPSR_IF_Bit_Mask;
+         return DAIF_Value.F = Interrupt_Disabled and DAIF_Value.I = Interrupt_Disabled;
       else
-         return (CPSR_Value and CPSR_I_Bit_Mask) = CPSR_I_Bit_Mask;
+         return DAIF_Value.I = Interrupt_Disabled;
       end if;
    end Cpu_Interrupting_Disabled;
 
    function Disable_Cpu_Interrupting return Cpu_Register_Type
    is
-      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
+      DAIF_Value : constant DAIF_Type := Get_DAIF;
+      PSTATE_Value : PSTATE_Type;
    begin
       if Cpu_In_Hypervisor_Mode then
-         if (CPSR_Value and CPSR_IF_Bit_Mask) /= CPSR_IF_Bit_Mask then
+         if DAIF_Value.F = Interrupt_Enabled or else DAIF_Value.I = Interrupt_Enabled then
             System.Machine_Code.Asm (
-               "cpsid if" & LF &
-               "dsb" & LF &
-               "isb",
-               Clobber => "memory",
+               "msr DAIFset, %0",
+               Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_IF_Mask),  --  %0
                Volatile => True);
          end if;
       else
-         if (CPSR_Value and CPSR_I_Bit_Mask) /= CPSR_I_Bit_Mask then
+         if DAIF_Value.I = Interrupt_Enabled then
             System.Machine_Code.Asm (
-               "cpsid i" & LF &
-               "dsb" & LF &
-               "isb",
-               Clobber => "memory",
+               "msr DAIFset, %0",
+               Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_I_Bit_Mask),  --  %0
                Volatile => True);
          end if;
       end if;
 
+      Strong_Memory_Barrier;
       pragma Assert (Cpu_Interrupting_Disabled);
-      return CPSR_Value;
+      PSTATE_Value.DAIF := DAIF_Value;
+      return PSTATE_Value.Value;
    end Disable_Cpu_Interrupting;
 
    procedure Restore_Cpu_Interrupting (Old_Cpu_Interrupting : Cpu_Register_Type) is
+      PSTATE_Value : constant PSTATE_Type := (As_Value => True, Value => Old_Cpu_Interrupting);
    begin
-      if (Old_Cpu_Interrupting and CPSR_IF_Bit_Mask) = 0 then
+      Strong_Memory_Barrier;
+      if PSTATE_Value.DAIF.I = Interrupt_Enabled and then PSTATE_Value.DAIF.F = Interrupt_Enabled then
          System.Machine_Code.Asm (
-            "dsb" & LF &
-            "isb" & LF &
-            "cpsie if",
-            Clobber => "memory",
+            "msr DAIFclr, %0",
+            Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_IF_Mask),  --  %0
             Volatile => True);
-      elsif (Old_Cpu_Interrupting and CPSR_I_Bit_Mask) = 0 then
+      elsif PSTATE_Value.DAIF.I = Interrupt_Enabled then
          System.Machine_Code.Asm (
-            "dsb" & LF &
-            "isb" & LF &
-            "cpsie i",
-            Clobber => "memory",
+            "msr DAIFclr, %0",
+            Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_I_Bit_Mask),  --  %0
             Volatile => True);
-      elsif (Old_Cpu_Interrupting and CPSR_F_Bit_Mask) = 0 then
+      elsif PSTATE_Value.DAIF.F = Interrupt_Enabled then
          System.Machine_Code.Asm (
-            "dsb" & LF &
-            "isb" & LF &
-            "cpsie f",
-            Clobber => "memory",
+            "msr DAIFclr, %0",
+            Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_F_Bit_Mask),  --  %0
             Volatile => True);
       end if;
    end Restore_Cpu_Interrupting;
@@ -138,23 +127,23 @@ package body HiRTOS_Cpu_Arch_Interface is
       System.Machine_Code.Asm (
          "dsb" & LF &
          "isb" & LF &
-         "cpsie if",
-         Clobber => "memory",
+         "msr DAIFclr, %0",
+         Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_IF_Mask),  --  %0
          Volatile => True);
 
       pragma Assert (not Cpu_Interrupting_Disabled);
    end Enable_Cpu_Interrupting;
 
    function Cpu_In_Privileged_Mode return Boolean is
-      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
+      CurrentEL_Value : constant Exception_Level_Type := Get_CurrentEL;
    begin
-      return (CPSR_Value and CPSR_Mode_Mask) /= CPSR_User_Mode;
+      return CurrentEL_Value /= EL0;
    end Cpu_In_Privileged_Mode;
 
    function Cpu_In_Hypervisor_Mode return Boolean is
-      CPSR_Value : constant Cpu_Register_Type := Get_Cpu_Status_Register;
+      CurrentEL_Value : constant Exception_Level_Type := Get_CurrentEL;
    begin
-      return (CPSR_Value and CPSR_Mode_Mask) = CPSR_Hypervisor_Mode;
+      return CurrentEL_Value = EL2;
    end Cpu_In_Hypervisor_Mode;
 
    function Ldaex_Word (Word_Address : System.Address) return Cpu_Register_Type is
@@ -274,71 +263,94 @@ package body HiRTOS_Cpu_Arch_Interface is
    end Count_Trailing_Zeros;
 
    procedure Enable_Caches is
-      SCTLR_Value : SCTLR_Type;
+      SCTLR_Value : SCTLR_EL1_Type;
    begin
       Memory_Barrier;
       Invalidate_Data_Cache;
       Invalidate_Instruction_Cache;
-      SCTLR_Value := Get_SCTLR;
+      SCTLR_Value := Get_SCTLR_EL1;
       SCTLR_Value.C := Cacheable;
-      SCTLR_Value.I := Instruction_Access_Cacheable; --  TODO: This too slow in ARM FVP simulator
-      Set_SCTLR (SCTLR_Value);
+      SCTLR_Value.I := Instruction_Access_Cacheable; 
+      Set_SCTLR_EL1 (SCTLR_Value);
       Strong_Memory_Barrier;
    end Enable_Caches;
 
    procedure Disable_Caches is
-      SCTLR_Value : SCTLR_Type;
+      SCTLR_Value : SCTLR_EL1_Type;
    begin
       Strong_Memory_Barrier;
-      SCTLR_Value := Get_SCTLR;
+      SCTLR_Value := Get_SCTLR_EL1;
       SCTLR_Value.C := Non_Cacheable;
       SCTLR_Value.I := Instruction_Access_Non_Cacheable;
-      Set_SCTLR (SCTLR_Value);
+      Set_SCTLR_EL1 (SCTLR_Value);
       Strong_Memory_Barrier;
    end Disable_Caches;
 
    procedure Invalidate_Data_Cache is
    begin
       Strong_Memory_Barrier;
-      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIM_ALL;
+      System.Machine_Code.Asm (
+         "dc zva, xzr",
+         Clobber => "memory",
+         Volatile => True);
       Strong_Memory_Barrier;
    end Invalidate_Data_Cache;
 
    procedure Invalidate_Instruction_Cache is
    begin
       Strong_Memory_Barrier;
-      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_ICIALLU;
+      System.Machine_Code.Asm (
+         "ic iallu",
+         Clobber => "memory",
+         Volatile => True);
       Strong_Memory_Barrier;
    end Invalidate_Instruction_Cache;
 
    procedure Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is
    begin
-      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCIMVAC (Cache_Line_Address);
+      Strong_Memory_Barrier;
+      System.Machine_Code.Asm (
+         "dc ivac, %0",
+         Inputs => System.Address'Asm_Input ("r", Cache_Line_Address), --  %0
+         Clobber => "memory",
+         Volatile => True);
+      Strong_Memory_Barrier;
    end Invalidate_Data_Cache_Line;
 
    procedure Flush_Data_Cache_Line (Cache_Line_Address : System.Address) is
    begin
-      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCMVAC (Cache_Line_Address);
+      Strong_Memory_Barrier;
+      System.Machine_Code.Asm (
+         "dc cvac, %0",
+         Inputs => System.Address'Asm_Input ("r", Cache_Line_Address), --  %0
+         Volatile => True);
+      Strong_Memory_Barrier;
    end Flush_Data_Cache_Line;
 
    procedure Flush_Invalidate_Data_Cache_Line (Cache_Line_Address : System.Address) is
    begin
-      HiRTOS_Cpu_Arch_Interface.System_Registers.Set_DCCIMVAC (Cache_Line_Address);
+      Strong_Memory_Barrier;
+      System.Machine_Code.Asm (
+         "dc civac, %0",
+         Inputs => System.Address'Asm_Input ("r", Cache_Line_Address), --  %0
+         Clobber => "memory",
+         Volatile => True);
+      Strong_Memory_Barrier;
    end Flush_Invalidate_Data_Cache_Line;
 
    procedure Hypercall (Op_Code : Interfaces.Unsigned_8) is
    begin
       System.Machine_Code.Asm (
-            "mov r0, %0" & LF &
+            "mov x0, %0" & LF &
             "hvc #0",
             Inputs => Interfaces.Unsigned_8'Asm_Input ("r", Op_Code), --  %0
-            Clobber => "r0",
+            Clobber => "x0",
             Volatile => True);
    end Hypercall;
 
    procedure Break_Point is
    begin
-      System.Machine_Code.Asm ("bkpt #0", Volatile => True);
+      System.Machine_Code.Asm ("brk #0", Volatile => True);
    end Break_Point;
 
 end HiRTOS_Cpu_Arch_Interface;

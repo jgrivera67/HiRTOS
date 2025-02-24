@@ -42,6 +42,9 @@ project HiRTOS is
             "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific",
             "HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU",
             "HiRTOS_Cpu_Arch_Interface.System_Registers");
+      when "raspberry_pi4" =>
+         Platform_Specific_Interfaces := (
+            "HiRTOS_Cpu_Arch_Interface.System_Registers");
       when "esp32_c3" =>
          Platform_Specific_Interfaces := (
             "Esp32_C3",

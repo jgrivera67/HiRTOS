@@ -1,0 +1,34 @@
+name = "raspberry_pi4_hello"
+description = "Hello world app for RaspberryPI 4"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["raspberry_pi4_hello"]
+
+[[depends-on]]
+hirtos = "*"
+gnat_aarch64_elf = "*"
+gnatprove = "*"
+#gprbuild = "^22" # needed by alire-index CI builds
+gprbuild = "*" # needed by alire-index CI builds
+
+[configuration.values]
+hirtos.Platform = "raspberry_pi4"
+
+[[pins]]
+hirtos = { path='../..' }
+
+[gpr-set-externals]
+CPU_Core = "arm_cortex_a72"
+
+[build-profiles]
+hirtos = "development"
+
+[[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
+type = "post-build"
+command = ["sh", "-c", "arm-eabi-objdump -dSstl bin/raspberry_pi4_hello.elf > bin/raspberry_pi4_hello.lst"]
