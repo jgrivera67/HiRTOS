@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2022-2023, German Rivera
+--  Copyright (c) 2022-2025, German Rivera
 --
 --
 --  SPDX-License-Identifier: Apache-2.0
@@ -15,7 +15,6 @@ with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => Off is
    use ASCII;
-   use HiRTOS_Cpu_Arch_Interface_Private;
 
    procedure Thread_Unintended_Exit_Catcher is
    begin
@@ -129,7 +128,7 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => Off is
    --
    procedure Switch_Cpu_To_Unprivileged_Mode is
       SPSR_Value : constant PSTATE_Type :=
-         (As_Value => True, SPSel => SP_EL0, CurrentEL => EL0, M => Execution_State_AArch64,
+         (As_Value => False, SPSel => SP_EL0, CurrentEL => EL0, M => Execution_State_AArch64,
           DAIF => (D => Interrupt_Enabled, A => Interrupt_Enabled,
                    I => Interrupt_Enabled, F => Interrupt_Enabled),
           others => <>);
@@ -150,7 +149,7 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => Off is
         "eret",
          Inputs =>
             [Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_IF_Mask),  --  %0
-             Interfaces.Unsigned_64'Asm_Input ("r", SPSR_Value)], --  %1
+             Cpu_Register_Type'Asm_Input ("r", SPSR_Value.Value)], --  %1
          Volatile => True);
    end Switch_Cpu_To_Unprivileged_Mode;
 

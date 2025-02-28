@@ -11,7 +11,6 @@
 
 with Generic_Execution_Stack;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
-with HiRTOS_Cpu_Arch_Interface.Memory_Protection;
 with HiRTOS_Cpu_Arch_Interface_Private;
 with System.Machine_Code;
 with Interfaces;
@@ -175,7 +174,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
       System.Machine_Code.Asm (
          --
          --  Switch to use SP_EL0 to save ELR_EL1, SPSR_EL1 and general purpose registers
-         -- onto the interrupted context stack.
+         --  onto the interrupted context stack.
          --
          --  NOTE: ELR_EL1 holds the exception return address and SPSR_EL1 is the
          --  interrupted mode PSTATE.
@@ -207,7 +206,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
          --
          --  Save ELR_EL1 and SPSR_EL1 on the stack:
-         -- 
+         --
          "mrs x0, elr_el1" & LF &
          "mrs x1, spsr_el1" & LF &
          "stp x0, x1, [sp, #-16]!" & LF &
@@ -287,8 +286,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --  Restore floating-point registers from the stack:
          --
          "ldp x0, x1, [sp], #16" & LF &
-         "msr fpsr, x0" & LF &   
-         "msr fpcr, x1" & LF &   
+         "msr fpsr, x0" & LF &
+         "msr fpcr, x1" & LF &
          "ldp q30, q31, [sp], #32" & LF &
          "ldp q28, q29, [sp], #32" & LF &
          "ldp q26, q27, [sp], #32" & LF &
@@ -308,7 +307,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
          --
          --  Restore ELR_EL1 and SPSR_EL1 on the stack:
-         -- 
+         --
          "ldp x0, x1, [sp], #16" & LF &
          "msr elr_el1, x0" & LF &
          "msr spsr_el1, x1" & LF &
@@ -316,7 +315,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          --
          --  Restore general-purpose registers saved on the stack:
          --
-         "ldp x30, xzr, [sp], #16" & LF & 
+         "ldp x30, xzr, [sp], #16" & LF &
          "ldp x28, x29, [sp], #16" & LF &
          "ldp x26, x27, [sp], #16" & LF &
          "ldp x24, x25, [sp], #16" & LF &
@@ -339,7 +338,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          "eret",
          Volatile => True);
 
-      pragma Assert (False);
+      --  pragma Assert (False);
       loop
          Wait_For_Interrupt;
       end loop;
@@ -391,8 +390,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
 
    procedure Stay_In_Cpu_Privileged_Mode is
       SPSR_Value : constant PSTATE_Type :=
-         (SPSel => SP_EL0, CurrentEL => EL1, M => Execution_State_AArch64, 
-          DAIF => (D => Interrupt_Enabled, A => Interrupt_Enabled, 
+         (As_Value => False, SPSel => SP_EL0, CurrentEL => EL1, M => Execution_State_AArch64,
+          DAIF => (D => Interrupt_Enabled, A => Interrupt_Enabled,
                    I => Interrupt_Enabled, F => Interrupt_Enabled),
           others => <>);
    begin
@@ -408,7 +407,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
         "eret",
          Inputs =>
             [Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_IF_Mask),  --  %0
-             Interfaces.Unsigned_64'Asm_Input ("r", SPSR_Value)], --  %1
+             Cpu_Register_Type'Asm_Input ("r", SPSR_Value.Value)], --  %1
          Volatile => True);
    end Stay_In_Cpu_Privileged_Mode;
 

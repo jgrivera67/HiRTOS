@@ -66,6 +66,7 @@ abstract project Hirtos_Compiler_Flags is
                                     "-march=armv8-a",
                                     "-mlittle-endian",
                                     "-mabi=lp64",
+                                    "-I/opt/gcc-14.2.0-aarch64-elf/lib/gcc/aarch64-elf/14.2.0/include",
                                     "-fno-omit-frame-pointer");
 
 
@@ -126,11 +127,11 @@ abstract project Hirtos_Compiler_Flags is
                   ,"-gnatyM120" --  Check maximum line length
                   ,"-gnatef"    --  Print full path in error messages
                   ,"-gnata"     --  Enable assertions and contracts
-                  ,"-gnatwe"    --  Warnings as errors
+               --??? ,"-gnatwe"    --  Warnings as errors
                   ,"-gnat2022"  --  Use Ada 2022
                   ,"-nostdinc"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) source files.
                   ,"-nostdlib"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) ALI files.
-                  --,"-gdwarf-4"  --  To generate correct source-line info
+                  ,"-gdwarf-4"  --  To generate correct source-line info
                   );
 
       Development_Only_Flags := ("-Og", -- No optimization

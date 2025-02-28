@@ -64,7 +64,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
          (if HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then Get_CNTVCT
                                                                      else Get_CNTPCT);
    begin
-      return  Timer_Timestamp_Cycles_Type (CNTPCT_Value.Value);
+      return  Timer_Timestamp_Cycles_Type (CNTPCT_Value);
    end Get_Timer_Timestamp_Cycles;
 
    procedure Start_Timer (Expiration_Time_Us : HiRTOS.Relative_Time_Us_Type) is
@@ -209,7 +209,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
       CNTFRQ_Value : CNTFRQ_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c14, c0, 0",
+         "mrs %0, cntfrq_el0",
          Outputs => CNTFRQ_Type'Asm_Output ("=r", CNTFRQ_Value), --  %0
          Volatile => True);
 
@@ -219,7 +219,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
    procedure Set_CNTFRQ (CNTFRQ_Value : CNTFRQ_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 0, %0, c14, c0, 0",
+         "msr cntfrq_el0, %0",
          Inputs => CNTFRQ_Type'Asm_Input ("r", CNTFRQ_Value), --  %0
          Volatile => True);
    end Set_CNTFRQ;
@@ -228,7 +228,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
       CNTP_CTL_Value : CNTP_CTL_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c14, c2, 1",
+         "mrs %0, cntp_ctl_el0",
          Outputs => CNTP_CTL_Type'Asm_Output ("=r", CNTP_CTL_Value), --  %0
          Volatile => True);
 
@@ -238,7 +238,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
    procedure Set_CNTP_CTL (CNTP_CTL_Value : CNTP_CTL_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 0, %0, c14, c2, 1",
+         "msr cntp_ctl_el0, %0",
          Inputs => CNTP_CTL_Type'Asm_Input ("r", CNTP_CTL_Value), --  %0
          Volatile => True);
    end Set_CNTP_CTL;
@@ -247,7 +247,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
       CNTP_TVAL_Value : CNTP_TVAL_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c14, c2, 0",
+         "mrs %0, cntp_tval_el0",
          Outputs => CNTP_TVAL_Type'Asm_Output ("=r", CNTP_TVAL_Value), --  %0
          Volatile => True);
 
@@ -257,7 +257,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
    procedure Set_CNTP_TVAL (CNTP_TVAL_Value : CNTP_TVAL_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 0, %0, c14, c2, 0",
+         "msr cntp_tval_el0, %0",
          Inputs => CNTP_TVAL_Type'Asm_Input ("r", CNTP_TVAL_Value), --  %0
          Volatile => True);
    end Set_CNTP_TVAL;
@@ -265,34 +265,19 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
    function Get_CNTPCT return CNTPCT_Type is
       CNTPCT_Value : CNTPCT_Type;
    begin
-      --  NOTE: Use "=&r" to ensure different registers is used
       System.Machine_Code.Asm (
-         "mrrc p15, 0, %0, %1, c14",
-         Outputs => [Interfaces.Unsigned_32'Asm_Output ("=r", CNTPCT_Value.Low_Word),    --  %0
-                     Interfaces.Unsigned_32'Asm_Output ("=&r", CNTPCT_Value.High_Word)], --  %1
+         "mrs %0, cntpct_el0",
+         Outputs => CNTPCT_Type'Asm_Output ("=r", CNTPCT_Value), --  %0
          Volatile => True);
 
       return CNTPCT_Value;
    end Get_CNTPCT;
 
-   function Get_CNTPCTSS return CNTPCT_Type is
-      CNTPCT_Value : CNTPCT_Type;
-   begin
-      --  NOTE: Use "=&r" to ensure different registers is used
-      System.Machine_Code.Asm (
-         "mrrc p15, 8, %0, %1, c14",
-         Outputs => [Interfaces.Unsigned_32'Asm_Output ("=r", CNTPCT_Value.Low_Word),    --  %0
-                     Interfaces.Unsigned_32'Asm_Output ("=&r", CNTPCT_Value.High_Word)], --  %1
-         Volatile => True);
-
-      return CNTPCT_Value;
-   end Get_CNTPCTSS;
-
    function Get_CNTV_CTL return CNTV_CTL_Type is
       CNTV_CTL_Value : CNTV_CTL_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c14, c3, 1",
+         "mrs %0, cntv_ctl_el0",
          Outputs => CNTV_CTL_Type'Asm_Output ("=r", CNTV_CTL_Value), --  %0
          Volatile => True);
 
@@ -302,7 +287,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
    procedure Set_CNTV_CTL (CNTV_CTL_Value : CNTV_CTL_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 0, %0, c14, c3, 1",
+         "msr cntv_ctl_el0, %0",
          Inputs => CNTV_CTL_Type'Asm_Input ("r", CNTV_CTL_Value), --  %0
          Volatile => True);
    end Set_CNTV_CTL;
@@ -311,7 +296,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
       CNTV_TVAL_Value : CNTV_TVAL_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c14, c3, 0",
+         "mrs %0, cntv_tval_el0",
          Outputs => CNTV_TVAL_Type'Asm_Output ("=r", CNTV_TVAL_Value), --  %0
          Volatile => True);
 
@@ -321,7 +306,7 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
    procedure Set_CNTV_TVAL (CNTV_TVAL_Value : CNTV_TVAL_Type) is
    begin
       System.Machine_Code.Asm (
-         "mcr p15, 0, %0, c14, c3, 0",
+         "msr cntv_tval_el0, %0",
          Inputs => CNTV_TVAL_Type'Asm_Input ("r", CNTV_TVAL_Value), --  %0
          Volatile => True);
    end Set_CNTV_TVAL;
@@ -329,11 +314,9 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
    function Get_CNTVCT return CNTVCT_Type is
       CNTVCT_Value : CNTVCT_Type;
    begin
-      --  NOTE: Use "=&r" to ensure a different register is used
       System.Machine_Code.Asm (
-         "mrrc p15, 1, %0, %1, c14",
-         Outputs => [Interfaces.Unsigned_32'Asm_Output ("=r", CNTVCT_Value.Low_Word),    --  %0
-                     Interfaces.Unsigned_32'Asm_Output ("=&r", CNTVCT_Value.High_Word)], --  %1
+         "mrs %0, cntvct_el0",
+         Outputs => CNTVCT_Type'Asm_Output ("=r", CNTVCT_Value), --  %0
          Volatile => True);
 
       return CNTVCT_Value;

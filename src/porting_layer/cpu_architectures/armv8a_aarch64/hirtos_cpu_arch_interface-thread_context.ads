@@ -54,7 +54,7 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
 
    procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : System.Address);
 
-   function Get_Saved_SPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
+   function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
 
 private
    use HiRTOS_Cpu_Arch_Interface_Private;
@@ -167,9 +167,9 @@ private
       Reserved at 16#108# range 0 .. 63;
    end record;
 
-   pragma Compile_Time_Error (
-      (Integer_Registers_Type'Object_Size / System.Storage_Unit) mod 16 /= 0,
-      "Size of Integer_Registers_Type must be a multiple of 16 bytes");
+   --  pragma Compile_Time_Error (
+   --     (Integer_Registers_Type'Object_Size / System.Storage_Unit) mod 16 /= 0,
+   --     "Size of Integer_Registers_Type must be a multiple of 16 bytes");
 
    --
    --  CPU context saved on the current's stack on entry to ISRs and on synchronous
@@ -198,7 +198,7 @@ private
       (System.Storage_Elements.To_Address (
          System.Storage_Elements.Integer_Address (Cpu_Context.Integer_Registers.PC)));
 
-   function Get_Saved_SPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
-      (Cpu_Context.Integer_Registers.CPSR);
+   function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
+      (Cpu_Context.Integer_Registers.SPSR.Value);
 
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

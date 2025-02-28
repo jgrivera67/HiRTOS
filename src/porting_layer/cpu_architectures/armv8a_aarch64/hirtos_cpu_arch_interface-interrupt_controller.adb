@@ -600,17 +600,16 @@ is
    ----------------------------------------------------------------------------
 
    --  Get base address of the GIC registers
-   --  TODO: This function does not work for the ARM FVP ARMv8R mddel
-   function Get_IMP_CBAR return IMP_CBAR_Type is
-      IMP_CBAR_Value : IMP_CBAR_Type;
+   function Get_CBAR_EL1 return CBAR_EL1_Type is
+      CBAR_EL1_Value : CBAR_EL1_Type;
    begin
       System.Machine_Code.Asm
-        ("mrc p15, 1, %0, c15, c3, 0",
-         Outputs  => IMP_CBAR_Type'Asm_Output ("=r", IMP_CBAR_Value), --  %0
+        ("mrs %0, s3_1_c15_c3_0",
+         Outputs  => Interfaces.Unsigned_64'Asm_Output ("=r", CBAR_EL1_Value.Value), --  %0
          Volatile => True);
 
-      return IMP_CBAR_Value;
-   end Get_IMP_CBAR;
+      return CBAR_EL1_Value;
+   end Get_CBAR_EL1;
 
    function Get_ICC_IAR
      (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_IAR_Type
@@ -619,12 +618,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c8, 0",
+           ("mrs %0, icc_iar0_el1",
             Outputs  => ICC_IAR_Type'Asm_Output ("=r", ICC_IAR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c12, 0",
+           ("mrs %0, icc_iar1_el1",
             Outputs  => ICC_IAR_Type'Asm_Output ("=r", ICC_IAR_Value), --  %0
             Volatile => True);
       end if;
@@ -639,12 +638,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c8, 0",
+           ("msr icc_iar0_el1, %0",
             Inputs   => ICC_IAR_Type'Asm_Input ("r", ICC_IAR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c12, 0",
+           ("msr icc_iar1_el1, %0",
             Inputs   => ICC_IAR_Type'Asm_Input ("r", ICC_IAR_Value), --  %0
             Volatile => True);
       end if;
@@ -657,12 +656,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c8, 1",
+           ("mrs %0, icc_eoir0_el1",
             Outputs  => ICC_EOIR_Type'Asm_Output ("=r", ICC_EOIR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c12, 1",
+           ("mrs %0, icc_eoir1_el1",
             Outputs  => ICC_EOIR_Type'Asm_Output ("=r", ICC_EOIR_Value), --  %0
             Volatile => True);
       end if;
@@ -677,12 +676,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c8, 1",
+           ("msr icc_eoir0_el1, %0",
             Inputs   => ICC_EOIR_Type'Asm_Input ("r", ICC_EOIR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c12, 1",
+           ("msr icc_eoir1_el1, %0",
             Inputs   => ICC_EOIR_Type'Asm_Input ("r", ICC_EOIR_Value), --  %0
             Volatile => True);
       end if;
@@ -695,13 +694,13 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c8, 2",
+           ("mrs %0, icc_hppir0_el1",
             Outputs  =>
               ICC_HPPIR_Type'Asm_Output ("=r", ICC_HPPIR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c12, 2",
+           ("mrs %0, icc_hppir1_el1",
             Outputs  =>
               ICC_HPPIR_Type'Asm_Output ("=r", ICC_HPPIR_Value), --  %0
             Volatile => True);
@@ -717,12 +716,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c8, 2",
+           ("msr icc_hppir0_el1, %0",
             Inputs   => ICC_HPPIR_Type'Asm_Input ("r", ICC_HPPIR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c12, 2",
+           ("msr icc_hppir1_el1, %0",
             Inputs   => ICC_HPPIR_Type'Asm_Input ("r", ICC_HPPIR_Value), --  %0
             Volatile => True);
       end if;
@@ -735,12 +734,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c8, 3",
+           ("mrs %0, icc_bpr0_el1",
             Outputs  => ICC_BPR_Type'Asm_Output ("=r", ICC_BPR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c12, 3",
+           ("mrs %0, icc_bpr1_el1",
             Outputs  => ICC_BPR_Type'Asm_Output ("=r", ICC_BPR_Value), --  %0
             Volatile => True);
       end if;
@@ -755,12 +754,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c8, 3",
+           ("msr icc_bpr0_el1, %0",
             Inputs   => ICC_BPR_Type'Asm_Input ("r", ICC_BPR_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c12, 3",
+           ("msr icc_bpr1_el1, %0",
             Inputs   => ICC_BPR_Type'Asm_Input ("r", ICC_BPR_Value), --  %0
             Volatile => True);
       end if;
@@ -770,7 +769,7 @@ is
       ICC_DIR_Value : ICC_DIR_Type;
    begin
       System.Machine_Code.Asm
-        ("mrc p15, 0, %0, c12, c11, 1",
+        ("mrs %0, icc_dir_el1",
          Outputs  => ICC_DIR_Type'Asm_Output ("=r", ICC_DIR_Value), --  %0
          Volatile => True);
 
@@ -780,7 +779,7 @@ is
    procedure Set_ICC_DIR (ICC_DIR_Value : ICC_DIR_Type) is
    begin
       System.Machine_Code.Asm
-        ("mcr p15, 0, %0, c12, c11, 1",
+        ("msr icc_dir_el1, %0",
          Inputs   => ICC_DIR_Type'Asm_Input ("r", ICC_DIR_Value), --  %0
          Volatile => True);
    end Set_ICC_DIR;
@@ -789,7 +788,7 @@ is
       ICC_PMR_Value : ICC_PMR_Type;
    begin
       System.Machine_Code.Asm
-        ("mrc p15, 0, %0, c4, c6, 0",
+        ("mrs %0, icc_pmr_el1",
          Outputs  => ICC_PMR_Type'Asm_Output ("=r", ICC_PMR_Value), --  %0
          Volatile => True);
 
@@ -799,7 +798,7 @@ is
    procedure Set_ICC_PMR (ICC_PMR_Value : ICC_PMR_Type) is
    begin
       System.Machine_Code.Asm
-        ("mcr p15, 0, %0, c4, c6, 0",
+        ("msr icc_pmr_el1, %0",
          Inputs   => ICC_PMR_Type'Asm_Input ("r", ICC_PMR_Value), --  %0
          Volatile => True);
    end Set_ICC_PMR;
@@ -808,7 +807,7 @@ is
       ICC_RPR_Value : ICC_RPR_Type;
    begin
       System.Machine_Code.Asm
-        ("mrc p15, 0, %0, c12, c11, 3",
+        ("mrs %0, icc_rpr_el1",
          Outputs  => ICC_RPR_Type'Asm_Output ("=r", ICC_RPR_Value), --  %0
          Volatile => True);
 
@@ -818,7 +817,7 @@ is
    procedure Set_ICC_RPR (ICC_RPR_Value : ICC_RPR_Type) is
    begin
       System.Machine_Code.Asm
-        ("mcr p15, 0, %0, c12, c11, 3",
+        ("msr icc_rpr_el1, %0",
          Inputs   => ICC_RPR_Type'Asm_Input ("r", ICC_RPR_Value), --  %0
          Volatile => True);
    end Set_ICC_RPR;
@@ -827,7 +826,7 @@ is
       ICC_CTLR_Value : ICC_CTLR_Type;
    begin
       System.Machine_Code.Asm
-        ("mrc p15, 0, %0, c12, c12, 4",
+        ("mrs %0, icc_ctlr_el1",
          Outputs  => ICC_CTLR_Type'Asm_Output ("=r", ICC_CTLR_Value), --  %0
          Volatile => True);
 
@@ -837,7 +836,7 @@ is
    procedure Set_ICC_CTLR (ICC_CTLR_Value : ICC_CTLR_Type) is
    begin
       System.Machine_Code.Asm
-        ("mcr p15, 0, %0, c12, c12, 4",
+        ("msr icc_ctlr_el1, %0",
          Inputs   => ICC_CTLR_Type'Asm_Input ("r", ICC_CTLR_Value), --  %0
          Volatile => True);
    end Set_ICC_CTLR;
@@ -846,7 +845,7 @@ is
       ICC_SRE_Value : ICC_SRE_Type;
    begin
       System.Machine_Code.Asm
-        ("mrc p15, 0, %0, c12, c12, 5",
+        ("mrs %0, icc_sre_el1",
          Outputs  => ICC_SRE_Type'Asm_Output ("=r", ICC_SRE_Value), --  %0
          Volatile => True);
 
@@ -856,7 +855,7 @@ is
    procedure Set_ICC_SRE (ICC_SRE_Value : ICC_SRE_Type) is
    begin
       System.Machine_Code.Asm
-        ("mcr p15, 0, %0, c12, c12, 5",
+        ("msr icc_sre_el1, %0",
          Inputs   => ICC_SRE_Type'Asm_Input ("r", ICC_SRE_Value), --  %0
          Volatile => True);
    end Set_ICC_SRE;
@@ -868,13 +867,13 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c12, 6",
+           ("mrs %0, icc_igrpen0_el1",
             Outputs  =>
               ICC_IGRPEN_Type'Asm_Output ("=r", ICC_IGRPEN_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mrc p15, 0, %0, c12, c12, 7",
+           ("mrs %0, icc_igrpen1_el1",
             Outputs  =>
               ICC_IGRPEN_Type'Asm_Output ("=r", ICC_IGRPEN_Value), --  %0
             Volatile => True);
@@ -890,12 +889,12 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c12, 6",
+           ("msr icc_igrpen0_el1, %0",
             Inputs => ICC_IGRPEN_Type'Asm_Input ("r", ICC_IGRPEN_Value), --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mcr p15, 0, %0, c12, c12, 7",
+           ("msr icc_igrpen1_el1, %0",
             Inputs => ICC_IGRPEN_Type'Asm_Input ("r", ICC_IGRPEN_Value), --  %0
             Volatile => True);
       end if;
@@ -908,21 +907,15 @@ is
    begin
       if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
          System.Machine_Code.Asm
-           ("mcrr p15, 2, %0, %1, c12",
+           ("msr icc_sgi0r_el1, %0",
             Inputs   =>
-              [Interfaces.Unsigned_32'Asm_Input
-                ("r", ICC_SGIR_Value.Lower_Word),  --  %0
-              Interfaces.Unsigned_32'Asm_Input
-                ("r", ICC_SGIR_Value.Upper_Word)], --  %1
+              Interfaces.Unsigned_64'Asm_Input ("r", ICC_SGIR_Value.Value),  --  %0
             Volatile => True);
       else
          System.Machine_Code.Asm
-           ("mcrr p15, 0, %0, %1, c12",
+           ("msr icc_sgi1r_el1, %0",
             Inputs   =>
-              [Interfaces.Unsigned_32'Asm_Input
-                ("r", ICC_SGIR_Value.Lower_Word),  --  %0
-              Interfaces.Unsigned_32'Asm_Input
-                ("r", ICC_SGIR_Value.Upper_Word)], --  %1
+              Interfaces.Unsigned_64'Asm_Input ("r", ICC_SGIR_Value.Value),  --  %0
             Volatile => True);
       end if;
    end Set_ICC_SGIR;

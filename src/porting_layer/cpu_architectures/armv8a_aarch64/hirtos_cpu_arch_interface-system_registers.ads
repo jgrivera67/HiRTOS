@@ -9,8 +9,6 @@
 --  @summary RTOS to target platform interface - ARMv8-A system registers
 --
 
-with System.Storage_Elements;
-
 package HiRTOS_Cpu_Arch_Interface.System_Registers
    with SPARK_Mode => On
 is
@@ -238,8 +236,20 @@ is
 
    type CONTEXTIDR_EL1_Type is new Interfaces.Unsigned_64;
 
-   function Get_CONTEXTIDR_EL1 return CONTEXTIDR_El1_Type;
+   function Get_CONTEXTIDR_EL1 return CONTEXTIDR_EL1_Type;
 
-   procedure Set_CONTEXTIDR_EL1 (CONTEXTIDR_Value : CONTEXTIDR_El1_Type);
+   procedure Set_CONTEXTIDR_EL1 (CONTEXTIDR_Value : CONTEXTIDR_EL1_Type);
+
+   type ESR_EL1_Type is new Interfaces.Unsigned_64; --  TODO: Define the right fields
+
+   function Get_ESR_EL1 return ESR_EL1_Type;
+
+   procedure Set_ESR_EL1 (ESR_EL1_Value : ESR_EL1_Type);
+
+   type FAR_EL1_Type is new Interfaces.Unsigned_64; --  TODO: Define the right fields
+
+   function Get_FAR_EL1 return FAR_EL1_Type;
+
+   procedure Set_FAR_EL1 (FAR_EL1_Value : FAR_EL1_Type);
 
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

@@ -114,7 +114,7 @@ package body HiRTOS_Cpu_Arch_Interface is
          Volatile => True);
    end Break_Point;
 
-   function Ldaex_Word (Word_Address : System.Address) return Cpu_Register_Type is
+   function Ldaex_Agnostic_Word (Agnostic_Word_Address : System.Address) return Cpu_Register_Type is
       MISA_Value : constant MISA_Type := Get_MISA;
    begin
       if MISA_Value.A = 1 then
@@ -127,22 +127,22 @@ package body HiRTOS_Cpu_Arch_Interface is
          --     System.Machine_Code.Asm (
          --        "lr.w %0, (%1)",
          --        Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
-         --        Inputs => System.Address'Asm_Input ("r", Word_Address), --  %1
+         --        Inputs => System.Address'Asm_Input ("r", Agnostic_Word_Address), --  %1
          --        Volatile => True);
          --     return Result;
          --  end;
          pragma Assert (False);
       else
          declare
-            Word : Cpu_Register_Type with Address => Word_Address;
+            Word : Cpu_Register_Type with Address => Agnostic_Word_Address;
          begin
             return Word;
          end;
       end if;
-   end Ldaex_Word;
+   end Ldaex_Agnostic_Word;
 
-   function Stlex_Word (Word_Address : System.Address;
-                        Value : Cpu_Register_Type) return Boolean
+   function Stlex_Agnostic_Word (Agnostic_Word_Address : System.Address;
+                                 Value : Cpu_Register_Type) return Boolean
    is
       MISA_Value : constant MISA_Type := Get_MISA;
    begin
@@ -159,7 +159,7 @@ package body HiRTOS_Cpu_Arch_Interface is
          --           Cpu_Register_Type'Asm_Output ("=&r", Result),   -- %0
          --        Inputs =>
          --           [Cpu_Register_Type'Asm_Input ("r", Value),      -- %1
-         --            System.Address'Asm_Input ("r", Word_Address)], -- %2
+         --            System.Address'Asm_Input ("r", Agnostic_Word_Address)], -- %2
          --        Clobber => "memory",
          --        Volatile => True);
          --     return Result = 0;
@@ -167,14 +167,14 @@ package body HiRTOS_Cpu_Arch_Interface is
          pragma Assert (False);
       else
          declare
-            Word : Cpu_Register_Type with Address => Word_Address;
+            Word : Cpu_Register_Type with Address => Agnostic_Word_Address;
          begin
             Word := Value;
          end;
 
          return True;
       end if;
-   end Stlex_Word;
+   end Stlex_Agnostic_Word;
 
    function Ldaex_Byte (Byte_Address : System.Address) return Interfaces.Unsigned_8 is
       Result : Cpu_Register_Type;

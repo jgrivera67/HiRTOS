@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2022-2023, German Rivera
+--  Copyright (c) 2022-2025, German Rivera
 --
 --
 --  SPDX-License-Identifier: Apache-2.0
@@ -23,12 +23,11 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
                                  Fetch_And);
 
    function Get_Cpu_Id return Valid_Cpu_Core_Id_Type is
-      use type Interfaces.Unsigned_32;
-      Reg_Value : Interfaces.Unsigned_32;
+      Reg_Value : Cpu_Register_Type;
    begin
       System.Machine_Code.Asm (
-         "mrc p15, 0, %0, c0, c0, 5",   -- read MPIDR
-         Outputs => Interfaces.Unsigned_32'Asm_Output ("=r", Reg_Value), --  %0
+         "mrs %0, mpidr_el1",
+         Outputs => Cpu_Register_Type'Asm_Output ("=r", Reg_Value), --  %0
          Volatile => True);
 
       Reg_Value := @ and MPIDR_Core_Id_Mask;
@@ -46,7 +45,7 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
    begin
       loop
          --  NOTE: Invalidate cache line to support multi-core processors without cache coherence
-         Memory_Utils.Invalidate_Data_Cache_Range (Atomic_Counter'Address, Cache_Line_Size_Bytes);
+         --  Memory_Utils.Invalidate_Data_Cache_Range (Atomic_Counter'Address, Cache_Line_Size_Bytes);
          Old_Value := Ldaex_Agnostic_Word (Atomic_Counter.Counter'Address);
          case Atomic_Operator is
             when Test_Set =>

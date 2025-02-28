@@ -1,5 +1,5 @@
 --
---  Copyright (c) 2022-2023, German Rivera
+--  Copyright (c) 2022-2025, German Rivera
 --
 --
 --  SPDX-License-Identifier: Apache-2.0
@@ -46,10 +46,10 @@ private
       (HiRTOS.Absolute_Time_Us_Type (Get_Timer_Timestamp_Cycles  / Timer_Counter_Cycles_Per_Us));
 
    ----------------------------------------------------------------------------
-   --  ARMv8-R Generic timer declarations
+   --  ARMv8-A AArch64 Generic timer declarations
    ----------------------------------------------------------------------------
 
-   type CNTFRQ_Type is new Interfaces.Unsigned_32;
+   type CNTFRQ_Type is new Interfaces.Unsigned_64;
 
    function Get_CNTFRQ return CNTFRQ_Type
       with Inline_Always;
@@ -84,14 +84,14 @@ private
    --  Counter-timer Physical Timer Control register
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MCR instructions.
    --
    type CNTP_CTL_Type is record
       ENABLE : Timer_Enable_Type := Timer_Disabled;
       IMASK : Timer_Interrupt_Mask_Type := Timer_Interrupt_Masked;
       ISTATUS : Timer_Status_Type := Timer_Condition_Not_Met;
    end record
-   with Size => 32,
+   with Size => 64,
         Bit_Order => System.Low_Order_First;
 
    for CNTP_CTL_Type use record
@@ -126,9 +126,9 @@ private
    --  to count, so the TimerValue view appears to continue to count down."
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
-   type CNTP_TVAL_Type is new Interfaces.Unsigned_32;
+   type CNTP_TVAL_Type is new Interfaces.Unsigned_64;
 
    function Get_CNTP_TVAL return CNTP_TVAL_Type
       with Inline_Always;
@@ -140,31 +140,11 @@ private
    --  Counter-timer Physical Count register (Free-running counter)
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via an MRRC instruction.
+   --  as it is not memory-mapped. It is accessed via an MRS instruction.
    --
-   type CNTPCT_Type (As_Two_Words : Boolean := True) is record
-      case As_Two_Words is
-         when True =>
-            Low_Word : Interfaces.Unsigned_32 := 0;
-            High_Word : Interfaces.Unsigned_32 := 0;
-         when False =>
-            Value : Interfaces.Unsigned_64;
-      end case;
-   end record
-      with Size => 64,
-           Unchecked_Union,
-           Bit_Order => System.Low_Order_First;
-
-   for CNTPCT_Type use record
-      Low_Word at 16#0# range 0 .. 31;
-      High_Word at 16#4# range 0 .. 31;
-      Value at 16#0# range 0 .. 63;
-   end record;
+   type CNTPCT_Type is new Interfaces.Unsigned_64;
 
    function Get_CNTPCT return CNTPCT_Type
-      with Inline_Always;
-
-   function Get_CNTPCTSS return CNTPCT_Type
       with Inline_Always;
 
    subtype CNTV_CTL_Type is CNTP_CTL_Type;

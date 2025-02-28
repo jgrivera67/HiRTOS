@@ -13,6 +13,11 @@
    "[ada]": {
       "editor.defaultFormatter": "AdaCore.ada"
    },
-   "sarif-viewer.connectToGithubCodeScanning": "off"
+   "sarif-viewer.connectToGithubCodeScanning": "off",
+   "cSpell.words": [
+      "DAIF",
+      "NZCV",
+      "PSTATE"
+   ]
   }
 }

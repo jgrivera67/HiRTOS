@@ -100,7 +100,6 @@ package body HiRTOS_Cpu_Startup_Interface is
          "fmov d31, xzr" & LF &
          "fmov v31.d[1], xzr" & LF &
          "msr fpsr, xzr",
-         Inputs => Interfaces.Unsigned_32'Asm_Input ("g", FPEXC_EN_Bit_Mask), --  %0
          Volatile => True);
    end Enable_FPU;
 

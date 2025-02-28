@@ -97,7 +97,8 @@ project HiRTOS is
       for Default_Switches ("Ada") use HiRTOS_Config.Ada_Compiler_Switches &
                                        HiRTOS_Compiler_Flags.Compiler.ADAFLAGS;
 
-      for Default_Switches ("C") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS;
+      for Default_Switches ("C") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS &
+                                     "-ffreestanding";
 
       for Default_Switches ("Asm_Cpp") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS;
    end Compiler;

@@ -10,12 +10,14 @@
 --
 
 with System;
+with Interfaces;
 with HiRTOS_Cpu_Arch_Interface;
 
 private package HiRTOS_Cpu_Arch_Interface_Private with
  SPARK_Mode => On
 is
    use HiRTOS_Cpu_Arch_Interface;
+   use type Interfaces.Unsigned_8;
 
    type SP_Selector_Type is (
       SP_EL0, --  Thread context stack pointer
@@ -128,5 +130,14 @@ is
    function Get_DAIF return DAIF_Type;
 
    function Get_PSTATE return PSTATE_Type;
+
+   --
+   --  Bit masks to use with msr DAIFset/DAIFclr:
+   --
+   DAIF_SetClr_F_Bit_Mask : constant Interfaces.Unsigned_8 := 2#1#; --  bit 0
+   DAIF_SetClr_I_Bit_Mask : constant Interfaces.Unsigned_8 := 2#10#; --  bit 1
+   DAIF_SetClr_A_Bit_Mask : constant Interfaces.Unsigned_8 := 2#100#; --  bit 2
+   DAIF_SetClr_D_Bit_Mask : constant Interfaces.Unsigned_8 := 2#1000#; --  bit 3
+   DAIF_SetClr_IF_Mask : constant Interfaces.Unsigned_8 := (DAIF_SetClr_I_Bit_Mask or DAIF_SetClr_F_Bit_Mask);
 
 end HiRTOS_Cpu_Arch_Interface_Private;

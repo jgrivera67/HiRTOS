@@ -70,10 +70,10 @@ is
 
    procedure Break_Point with Inline_Always;
 
-   function Ldaex_Word (Word_Address : System.Address) return Cpu_Register_Type with
+   function Ldaex_Agnostic_Word (Agnostic_Word_Address : System.Address) return Cpu_Register_Type with
     Inline_Always, Suppress => All_Checks;
 
-   function Stlex_Word (Word_Address : System.Address; Value : Cpu_Register_Type)
+   function Stlex_Agnostic_Word (Agnostic_Word_Address : System.Address; Value : Cpu_Register_Type)
     return Boolean with
     Inline_Always, Suppress => All_Checks;
 

@@ -42,7 +42,7 @@ is
    --  IDs of (global) shared peripheral interrupts (SPIs) in the GIC
    subtype External_Interrupt_Id_Type is Interrupt_Id_Type range 32 .. 991;
 
-   --  Priority 0 is the highest priority and prioirty 31 is the lowest
+   --  Priority 0 is the highest priority and priority 31 is the lowest
    type Interrupt_Priority_Type is mod 2**5;
 
    Highest_Interrupt_Priority : constant Interrupt_Priority_Type :=
@@ -148,11 +148,11 @@ private
    pragma SPARK_Mode (Off);
    use HiRTOS_Cpu_Multi_Core_Interface;
 
-   type CBAR_RES0_Type is mod 2**21 with
-     Size => 21;
+   type CBAR_RES0_Type is mod 2**18 with
+     Size => 18;
 
-   type CBAR_PERIPHBASE_Type is mod 2**11 with
-     Size => 11;
+   type CBAR_PERIPHBASE_Type is mod 2**26 with
+     Size => 26;
 
    --
    --  Configuration Base Address Register
@@ -160,27 +160,27 @@ private
    --   Distributor registers.)
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  aIMP_CBARs it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  aIMP_CBARs it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
-   type IMP_CBAR_Type (As_Word : Boolean := True) is record
-      case As_Word is
+   type CBAR_EL1_Type (As_Value : Boolean := True) is record
+      case As_Value is
          when True =>
-            Value : Interfaces.Unsigned_32 := 0;
+            Value : Interfaces.Unsigned_64 := 0;
          when False =>
             RES0       : CBAR_RES0_Type;
-            --  Upper 11 bits of base physical address of GIC registers
+            --  Upper 26 bits of base physical address of GIC registers
             PERIPHBASE : CBAR_PERIPHBASE_Type;
       end case;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First, Unchecked_Union;
+     Size => 64, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
-   for IMP_CBAR_Type use record
-      RES0       at 0 range  0 .. 20;
-      PERIPHBASE at 0 range 21 .. 31;
-      Value      at 0 range  0 .. 31;
+   for CBAR_EL1_Type use record
+      RES0       at 0 range  0 .. 17;
+      PERIPHBASE at 0 range 18 .. 43;
+      Value      at 0 range  0 .. 63;
    end record;
 
-   function Get_IMP_CBAR return IMP_CBAR_Type;
+   function Get_CBAR_EL1 return CBAR_EL1_Type;
 
    ----------------------------------------------------------------------------
    --  GIC distributor registers
@@ -728,22 +728,22 @@ private
    --  GIC CPU intterface registers
    ----------------------------------------------------------------------------
 
-   type INTID_Type is mod 2**10 with
-     Size => 10;
+   type INTID_Type is mod 2**24 with
+     Size => 24;
 
    --
    --  Interrupt Controller Interrupt Acknowledge Register
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
    type ICC_IAR_Type is record
       INTID : INTID_Type := INTID_Type'First;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_IAR_Type use record
-      INTID at 0 range 0 .. 9;
+      INTID at 0 range 0 .. 23;
    end record;
 
    --
@@ -763,15 +763,15 @@ private
    --  Interrupt Controller End Of Interrupt Register
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
    type ICC_EOIR_Type is record
       INTID : INTID_Type := INTID_Type'First;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_EOIR_Type use record
-      INTID at 0 range 0 .. 9;
+      INTID at 0 range 0 .. 23;
    end record;
 
    --
@@ -793,15 +793,15 @@ private
    --  Interrupt Controller Highest Priority Pending Interrupt Register
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
    type ICC_HPPIR_Type is record
       INTID : INTID_Type := INTID_Type'First;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_HPPIR_Type use record
-      INTID at 0 range 0 .. 9;
+      INTID at 0 range 0 .. 23;
    end record;
 
    --
@@ -832,17 +832,17 @@ private
    --  Interrupt Controller Binary Point Register
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
-   type ICC_BPR_Type (As_Word : Boolean := True) is record
-      case As_Word is
+   type ICC_BPR_Type (As_Value : Boolean := True) is record
+      case As_Value is
          when True =>
-            Value : Interfaces.Unsigned_32 := 0;
+            Value : Interfaces.Unsigned_64 := 0;
          when False =>
             Binary_Point : Binary_Point_Type;
       end case;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First, Unchecked_Union;
+     Size => 64, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
    for ICC_BPR_Type use record
       Binary_Point at 0 range 0 .. 2;
@@ -866,15 +866,15 @@ private
    --  Interrupt Controller Deactivate Interrupt
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
    type ICC_DIR_Type is record
       INTID : INTID_Type := INTID_Type'First;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_DIR_Type use record
-      INTID at 0 range 0 .. 9;
+      INTID at 0 range 0 .. 23;
    end record;
 
    function Get_ICC_DIR return ICC_DIR_Type with
@@ -892,12 +892,12 @@ private
    --  priority.
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
    type ICC_PMR_Type is record
       Priority : GIC_Interrupt_Priority_Type;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_PMR_Type use record
       Priority at 0 range 3 .. 7;
@@ -921,11 +921,11 @@ private
       --  of the lowest set bit from ICC_AP0R0 and ICC_AP1R0.
       --
       --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-      --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+      --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
       --
       Priority : Interfaces.Unsigned_8;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_RPR_Type use record
       Priority at 0 range 0 .. 7;
@@ -965,19 +965,19 @@ private
    type PRIbits_Type is mod 2**3 with
      Size => 3;
 
-   ARM_Cortex_R52_PRIbits : constant PRIbits_Type := 2#100#; --  5 - 1
+   ARM_Cortex_A72_PRIbits : constant PRIbits_Type := 2#100#; --  5 - 1
 
    --  Number of physical interrupt identifier bits supported
    type CTLR_IDbits_Type is mod 2**3 with
      Size => 3;
 
-   ARM_Cortex_R52_ICC_CTLR_IDbits : constant CTLR_IDbits_Type := 2#000#; --  16
+   ARM_Cortex_A72_ICC_CTLR_IDbits : constant CTLR_IDbits_Type := 2#000#; --  16
 
    --
    --  Interrupt Controller Control Register (EL1)
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
    type ICC_CTLR_Type is record
       CBPR    : CBPR_Type := Use_ICC_BPR0_For_Interrupt_Preemption_Disabled;
@@ -985,7 +985,7 @@ private
       PRIbits : PRIbits_Type     := PRIbits_Type'First;
       IDbits  : CTLR_IDbits_Type := CTLR_IDbits_Type'First;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_CTLR_Type use record
       CBPR    at 0 range  0 ..  0;
@@ -1014,13 +1014,13 @@ private
    --  This indicates that system registers are used to access the GIC CPU interface.
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
    type ICC_SRE_Type is record
       SRE : GIC_CPU_Interface_System_Registers_Enable_Type :=
-        GIC_CPU_Interface_System_Registers_Disabled;
+              GIC_CPU_Interface_System_Registers_Disabled;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First;
+     Size => 64, Bit_Order => System.Low_Order_First;
 
    for ICC_SRE_Type use record
       SRE at 0 range 0 .. 0;
@@ -1047,17 +1047,17 @@ private
    --  signaled with IRQ.
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
-   type ICC_IGRPEN_Type (As_Word : Boolean := True) is record
-      case As_Word is
+   type ICC_IGRPEN_Type (As_Value : Boolean := True) is record
+      case As_Value is
          when True =>
-            Value : Interfaces.Unsigned_32 := 0;
+            Value : Interfaces.Unsigned_64 := 0;
          when False =>
             Enable : Interrupt_Group_Enable_Type := Interrupt_Group_Disabled;
       end case;
    end record with
-     Size => 32, Bit_Order => System.Low_Order_First, Unchecked_Union;
+     Size => 64, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
    for ICC_IGRPEN_Type use record
       Enable at 0 range 0 .. 0;
@@ -1100,13 +1100,12 @@ private
    --  the GICR_IGROUPR configuration.
    --
    --  NOTE: We don't need to declare this register with Volatile_Full_Access,
-   --  as it is not memory-mapped. It is accessed via MRC/MCR instructions.
+   --  as it is not memory-mapped. It is accessed via MRS/MSR instructions.
    --
-   type ICC_SGIR_Type (As_Two_Words : Boolean := False) is record
-      case As_Two_Words is
+   type ICC_SGIR_Type (As_Value : Boolean := False) is record
+      case As_Value is
          when True =>
-            Lower_Word : Interfaces.Unsigned_32;
-            Upper_Word : Interfaces.Unsigned_32;
+            Value : Interfaces.Unsigned_64;
          when False =>
             Target_List : ICC_SGIR_Target_List_Type   :=
               ICC_SGIR_Target_List_Type'First;
@@ -1124,54 +1123,19 @@ private
      Size => 64, Bit_Order => System.Low_Order_First, Unchecked_Union;
 
    for ICC_SGIR_Type use record
-      Target_List at 0 range  0 ..  4;
+      Target_List at 0 range  0 .. 15;
       Aff1        at 0 range 16 .. 23;
       INTID       at 0 range 24 .. 27;
       Aff2        at 0 range 32 .. 39;
       IRM         at 0 range 40 .. 40;
       Aff3        at 0 range 48 .. 55;
-      Lower_Word  at 0 range  0 .. 31;
-      Upper_Word  at 4 range  0 .. 31;
+      Value       at 0 range  0 .. 63;
    end record;
 
    procedure Set_ICC_SGIR
      (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
       ICC_SGIR_Value      : ICC_SGIR_Type) with
      Inline_Always;
-
-   --
-   --  Memory-mapped banked interface to the GIC CPU interface for each CPU core
-   --
-   type GICC_Type is limited record
-      GICC_CTLR  : ICC_CTLR_Type with
-        Volatile_Full_Access;
-      GICC_PMR   : ICC_PMR_Type with
-        Volatile_Full_Access;
-      GICC_BPR   : ICC_BPR_Type with
-        Volatile_Full_Access;
-      GICC_IAR   : ICC_IAR_Type with
-        Volatile_Full_Access;
-      GICC_EOIR  : ICC_EOIR_Type with
-        Volatile_Full_Access;
-      GICC_RPR   : ICC_RPR_Type with
-        Volatile_Full_Access;
-      GICC_HPPIR : ICC_HPPIR_Type with
-        Volatile_Full_Access;
-      GICC_DIR   : ICC_DIR_Type with
-        Volatile_Full_Access;
-   end record with
-     Volatile;
-
-   for GICC_Type use record
-      GICC_CTLR  at 16#0000# range 0 .. 31;
-      GICC_PMR   at 16#0004# range 0 .. 31;
-      GICC_BPR   at 16#0008# range 0 .. 31;
-      GICC_IAR   at 16#000c# range 0 .. 31;
-      GICC_EOIR  at 16#0010# range 0 .. 31;
-      GICC_RPR   at 16#0014# range 0 .. 31;
-      GICC_HPPIR at 16#0018# range 0 .. 31;
-      GICC_DIR   at 16#1000# range 0 .. 31;
-   end record;
 
    ----------------------------------------------------------------------------
    --  Interrupt controller state variables

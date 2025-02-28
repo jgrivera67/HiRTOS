@@ -12,7 +12,6 @@
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => Off is
-   use ASCII;
 
    function Get_SCTLR_EL1 return SCTLR_EL1_Type is
       SCTLR_EL1_Value : SCTLR_EL1_Type;
@@ -37,7 +36,7 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => Off i
       CPACR_EL1_Value : CPACR_EL1_Type;
    begin
       System.Machine_Code.Asm (
-         "mrs %0, cparc_el1",
+         "mrs %0, cpacr_el1",
          Outputs => CPACR_EL1_Type'Asm_Output ("=r", CPACR_EL1_Value), --  %0
          Volatile => True);
 
@@ -89,5 +88,43 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => Off i
          Inputs => CONTEXTIDR_EL1_Type'Asm_Input ("r", CONTEXTIDR_Value), --  %0
          Volatile => True);
    end Set_CONTEXTIDR_EL1;
-   
+
+   function Get_ESR_EL1 return ESR_EL1_Type is
+      ESR_EL1_Value : ESR_EL1_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrs %0, esr_el1",
+         Outputs => ESR_EL1_Type'Asm_Output ("=r", ESR_EL1_Value), --  %0
+         Volatile => True);
+
+      return ESR_EL1_Value;
+   end Get_ESR_EL1;
+
+   procedure Set_ESR_EL1 (ESR_EL1_Value : ESR_EL1_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "msr esr_el1, %0",
+         Inputs => ESR_EL1_Type'Asm_Input ("r", ESR_EL1_Value), --  %0
+         Volatile => True);
+   end Set_ESR_EL1;
+
+   function Get_FAR_EL1 return FAR_EL1_Type is
+      FAR_EL1_Value : FAR_EL1_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrs %0, far_el1",
+         Outputs => FAR_EL1_Type'Asm_Output ("=r", FAR_EL1_Value), --  %0
+         Volatile => True);
+
+      return FAR_EL1_Value;
+   end Get_FAR_EL1;
+
+   procedure Set_FAR_EL1 (FAR_EL1_Value : FAR_EL1_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "msr far_el1, %0",
+         Inputs => FAR_EL1_Type'Asm_Input ("r", FAR_EL1_Value), --  %0
+         Volatile => True);
+   end Set_FAR_EL1;
+
 end HiRTOS_Cpu_Arch_Interface.System_Registers;

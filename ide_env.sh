@@ -1,6 +1,6 @@
 ALIRE_DIR=/opt/alire
 #export PATH=$ALIRE_DIR/bin:/opt/tkdiff:/opt/fuzz/bin:/opt/arm-gnu-toolchain/bin:/opt/gnatstudio:$PATH
-export PATH=$ALIRE_DIR/bin:~/.alire/bin:/opt/tkdiff:/opt/fuzz/bin:/opt/arm-gnu-toolchain/bin:$PATH
+export PATH=/opt/gcc-14.2.0-3-aarch64/bin:$ALIRE_DIR/bin:~/.alire/bin:/opt/tkdiff:/opt/fuzz/bin:/opt/arm-gnu-toolchain/bin:$PATH
 
 export OS=macOS
 

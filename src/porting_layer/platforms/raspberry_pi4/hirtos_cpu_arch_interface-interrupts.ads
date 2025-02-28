@@ -36,7 +36,7 @@ is
    UART0_Interrupt_Id : constant Interrupt_Controller.External_Interrupt_Id_Type :=
       VC_Peripheral_PL011_UARTs_Interrupt_Id;
 
-   UART2_Interrupt_Id : constant Interrupt_Controller.External_Interrupt_Id_Type := 
+   UART2_Interrupt_Id : constant Interrupt_Controller.External_Interrupt_Id_Type :=
       VC_Peripheral_PL011_UARTs_Interrupt_Id;
 
    UART3_Interrupt_Id : constant Interrupt_Controller.External_Interrupt_Id_Type :=

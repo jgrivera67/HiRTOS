@@ -17,19 +17,9 @@ package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
    use HiRTOS_Cpu_Arch_Interface.System_Registers;
    use HiRTOS_Cpu_Arch_Interface_Private;
-   use type Interfaces.Unsigned_8;
-
-   --
-   --  Bit masks to use with msr DAIFset/DAIFclr:
-   --
-   DAIF_SetClr_F_Bit_Mask : constant Interfaces.Unsigned_8 := 2#1#; --  bit 0
-   DAIF_SetClr_I_Bit_Mask : constant Interfaces.Unsigned_8 := 2#10#; --  bit 1
-   DAIF_SetClr_A_Bit_Mask : constant Interfaces.Unsigned_8 := 2#100#; --  bit 2
-   DAIF_SetClr_D_Bit_Mask : constant Interfaces.Unsigned_8 := 2#1000#; --  bit 3
-   DAIF_SetClr_IF_Mask : constant Interfaces.Unsigned_8 := (DAIF_SetClr_I_Bit_Mask or DAIF_SetClr_F_Bit_Mask);
 
    function Get_Cpu_Status_Register return Cpu_Register_Type is
-      (Cpu_Register_Type (Get_PSTATE.Value));
+      (Get_PSTATE.Value);
 
    function Get_Call_Address return System.Address is
       Reg_Value : Cpu_Register_Type;
@@ -67,7 +57,7 @@ package body HiRTOS_Cpu_Arch_Interface is
       DAIF_Value : constant DAIF_Type := Get_DAIF;
    begin
       if Cpu_In_Hypervisor_Mode then
-         return DAIF_Value.F = Interrupt_Disabled and DAIF_Value.I = Interrupt_Disabled;
+         return DAIF_Value.F = Interrupt_Disabled and then DAIF_Value.I = Interrupt_Disabled;
       else
          return DAIF_Value.I = Interrupt_Disabled;
       end if;
@@ -125,7 +115,7 @@ package body HiRTOS_Cpu_Arch_Interface is
    procedure Enable_Cpu_Interrupting is
    begin
       System.Machine_Code.Asm (
-         "dsb" & LF &
+         "dsb sy" & LF &
          "isb" & LF &
          "msr DAIFclr, %0",
          Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_IF_Mask),  --  %0
@@ -146,41 +136,44 @@ package body HiRTOS_Cpu_Arch_Interface is
       return CurrentEL_Value = EL2;
    end Cpu_In_Hypervisor_Mode;
 
-   function Ldaex_Word (Word_Address : System.Address) return Cpu_Register_Type is
+   function Ldaex_Agnostic_Word (Agnostic_Word_Address : System.Address) return Cpu_Register_Type is
       Result : Cpu_Register_Type;
    begin
       System.Machine_Code.Asm (
-          "ldaex %0, [%1]",
+          "ldaxr %0, [%1]",
            Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
-           Inputs => System.Address'Asm_Input ("r", Word_Address), --  %1
+           Inputs => System.Address'Asm_Input ("r", Agnostic_Word_Address), --  %1
            Volatile => True);
 
       return Result;
-   end Ldaex_Word;
+   end Ldaex_Agnostic_Word;
 
-   function Stlex_Word (Word_Address : System.Address;
-                        Value : Cpu_Register_Type) return Boolean
+   function Stlex_Agnostic_Word (Agnostic_Word_Address : System.Address;
+                                 Value : Cpu_Register_Type) return Boolean
    is
-      Result : Cpu_Register_Type;
+      use type Interfaces.Unsigned_32;
+      Result : Interfaces.Unsigned_32;
    begin
-      System.Machine_Code.Asm ("stlex %0, %1, [%2]",
+      System.Machine_Code.Asm (
+           "stlxr w0, %1, [%2]" & LF &
+           "mov %0, x0",
            Outputs =>
               --  NOTE: Use "=&r" to ensure a different register is used
-              Cpu_Register_Type'Asm_Output ("=&r", Result),   -- %0
+              Interfaces.Unsigned_32'Asm_Output ("=&r", Result),   -- %0
            Inputs =>
               [Cpu_Register_Type'Asm_Input ("r", Value),      -- %1
-               System.Address'Asm_Input ("r", Word_Address)], -- %2
-           Clobber => "memory",
+               System.Address'Asm_Input ("r", Agnostic_Word_Address)], -- %2
+           Clobber => "x0, memory",
            Volatile => True);
 
       return Result = 0;
-   end Stlex_Word;
+   end Stlex_Agnostic_Word;
 
    function Ldaex_Byte (Byte_Address : System.Address) return Interfaces.Unsigned_8 is
       Result : Cpu_Register_Type;
    begin
       System.Machine_Code.Asm (
-          "ldaexb %0, [%1]",
+          "ldaxrb %0, [%1]",
            Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
            Inputs => System.Address'Asm_Input ("r", Byte_Address), --  %1
            Volatile => True);
@@ -191,13 +184,14 @@ package body HiRTOS_Cpu_Arch_Interface is
    function Stlex_Byte (Byte_Address : System.Address;
                         Value : Interfaces.Unsigned_8) return Boolean
    is
-      Result : Cpu_Register_Type;
+      use type Interfaces.Unsigned_32;
+      Result : Interfaces.Unsigned_32;
    begin
       System.Machine_Code.Asm (
-         "stlexb %0, %1, [%2]",
+         "stlxrb %0, %1, [%2]",
          Outputs =>
             --  NOTE: Use "=&r" to ensure a different register is used
-            Cpu_Register_Type'Asm_Output ("=&r", Result),   -- %0
+            Interfaces.Unsigned_32'Asm_Output ("=&r", Result),   -- %0
          Inputs =>
             [Interfaces.Unsigned_8'Asm_Input ("r", Value),  -- %1
              System.Address'Asm_Input ("r", Byte_Address)], -- %2
@@ -232,8 +226,8 @@ package body HiRTOS_Cpu_Arch_Interface is
    procedure Strong_Memory_Barrier is
    begin
       System.Machine_Code.Asm (
-         "dsb 0xF"  & LF &
-         "isb 0xF",
+         "dsb sy"  & LF &
+         "isb",
          Clobber => "memory",
          Volatile => True);
    end Strong_Memory_Barrier;
@@ -270,7 +264,7 @@ package body HiRTOS_Cpu_Arch_Interface is
       Invalidate_Instruction_Cache;
       SCTLR_Value := Get_SCTLR_EL1;
       SCTLR_Value.C := Cacheable;
-      SCTLR_Value.I := Instruction_Access_Cacheable; 
+      SCTLR_Value.I := Instruction_Access_Cacheable;
       Set_SCTLR_EL1 (SCTLR_Value);
       Strong_Memory_Barrier;
    end Enable_Caches;
