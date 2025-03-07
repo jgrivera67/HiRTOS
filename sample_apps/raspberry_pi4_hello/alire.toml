@@ -31,4 +31,4 @@ hirtos = "development"
 [actions.'case(os)'.windows]
 [actions.'case(os)'.'...']
 type = "post-build"
-command = ["sh", "-c", "aarch64-elf-objdump -dSstl bin/raspberry_pi4_hello.elf > bin/raspberry_pi4_hello.lst"]
+command = ["sh", "-c", "aarch64-elf-objdump -dSstl bin/raspberry_pi4_hello.elf > bin/raspberry_pi4_hello.lst; aarch64-elf-objcopy -O binary bin/raspberry_pi4_hello.elf bin/raspberry_pi4_hello.bin"]

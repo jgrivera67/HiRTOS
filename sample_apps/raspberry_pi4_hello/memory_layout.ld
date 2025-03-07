@@ -37,10 +37,14 @@
 ENTRY(reset_handler);
 
 CACHE_LINE_ALIGNMENT = 64;
+TOTAL_RAM = 1M;
+#BOOT_ADDRESS = 0x80000; # Address when booting from SD card
+BOOT_ADDRESS = 0x0; # address when booting from UART
 
 MEMORY
 {
-  RAM(rwx) : ORIGIN = 0x80000, LENGTH = 1024K
+  #RECYCLED_RAM(rw) : ORIGIN = 0x0, LENGTH = BOOT_ADDRESS
+  RAM(rwx) : ORIGIN =  BOOT_ADDRESS, LENGTH = TOTAL_RAM - BOOT_ADDRESS
 }
 
 SECTIONS
@@ -50,7 +54,7 @@ SECTIONS
     . = ALIGN(CACHE_LINE_ALIGNMENT);
     __global_text_region_start = .;
 
-    KEEP (*(.text.privileged.interrupt_vector_table))
+    KEEP (*(.text.privileged.reset_handler))
 
     *(.text.privileged.*)
 

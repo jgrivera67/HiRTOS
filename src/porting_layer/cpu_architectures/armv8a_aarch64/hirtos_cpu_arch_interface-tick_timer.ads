@@ -42,9 +42,6 @@ is
 
 private
 
-   function Get_Timer_Timestamp_Us return HiRTOS.Absolute_Time_Us_Type is
-      (HiRTOS.Absolute_Time_Us_Type (Get_Timer_Timestamp_Cycles  / Timer_Counter_Cycles_Per_Us));
-
    ----------------------------------------------------------------------------
    --  ARMv8-A AArch64 Generic timer declarations
    ----------------------------------------------------------------------------
@@ -167,5 +164,8 @@ private
 
    function Get_CNTVCT return CNTVCT_Type
       with Inline_Always;
+
+   function Get_Timer_Timestamp_Us return HiRTOS.Absolute_Time_Us_Type is
+      (HiRTOS.Absolute_Time_Us_Type (Get_Timer_Timestamp_Cycles  / (Get_CNTFRQ / 1_000_000)));
 
 end HiRTOS_Cpu_Arch_Interface.Tick_Timer;

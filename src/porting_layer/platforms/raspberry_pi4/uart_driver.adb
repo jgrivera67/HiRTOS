@@ -78,8 +78,9 @@ package body Uart_Driver is
    procedure Put_Char (C : Character) is
       UARTFR_Value : UARTFR_Register;
       UARTDR_Value : UARTDR_Register;
-      UART_Periph_Pointer : constant access UART_Peripheral :=
-         UART_Periph_Pointers (Get_Cpu_Id);
+      --  NOTE For RaspberryPI, we don't use a separate UART per CPU as only UART0 is
+      --  going to be used.
+      UART_Periph_Pointer : constant access UART_Peripheral := UART_Periph_Pointers (0);
    begin
       loop
          UARTFR_Value := UART_Periph_Pointer.UARTFR;

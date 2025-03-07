@@ -20,12 +20,12 @@ is
    --
    Num_Cpu_Cores : constant := 4;
 
-   Cpu_Clock_Frequency_Hz : constant := 1_800_000_000; -- 1_500_000_000;
+   Cpu_Clock_Frequency_Hz : constant := 1_500_000_000; -- 1_800_000_000;
 
    System_Clock_Frequency_Hz : constant := 100_000_000;
 
    GICD_Base_Address : constant System.Address :=
-     System'To_Address (16#4_C004_0000#);
+     System'To_Address (16#ff84_1000#);
 
    Global_Text_Region_Start_Address : constant System.Address;
    Global_Text_Region_End_Address : constant System.Address;
@@ -185,9 +185,9 @@ private
       Stacks_Section_End_Linker_Symbol'Address;
 
    Global_Mmio_Region_Start_Address : constant System.Address :=
-      System'To_Address (16#4_7c00_0000#);
+      System'To_Address (16#fc00_0000#);
 
    Global_Mmio_Region_End_Address : constant System.Address :=
-      System'To_Address (16#5_0000_0000#);
+      System'To_Address (16#ffff_fff0#);
 
 end HiRTOS_Platform_Parameters;

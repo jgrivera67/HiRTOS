@@ -25,11 +25,11 @@ is
    function Get_Char return Character;
 
 private
-   UART0_Base : constant System.Address := System'To_Address (16#7e20_1000#);
-   UART2_Base : constant System.Address := System'To_Address (16#7e20_1400#);
-   UART3_Base : constant System.Address := System'To_Address (16#7e20_1600#);
-   UART4_Base : constant System.Address := System'To_Address (16#7e20_1800#);
-   UART5_Base : constant System.Address := System'To_Address (16#7e20_1a00#);
+   UART0_Base : constant System.Address := System'To_Address (16#fe20_1000#);
+   UART2_Base : constant System.Address := System'To_Address (16#fe20_1400#);
+   UART3_Base : constant System.Address := System'To_Address (16#fe20_1600#);
+   UART4_Base : constant System.Address := System'To_Address (16#fe20_1800#);
+   UART5_Base : constant System.Address := System'To_Address (16#fe20_1a00#);
 
    --  Data Register.
    type UARTDR_Register is record

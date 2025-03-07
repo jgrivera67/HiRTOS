@@ -218,7 +218,7 @@ package body HiRTOS_Cpu_Arch_Interface is
 
    procedure Memory_Barrier is
    begin
-      System.Machine_Code.Asm ("dmb 0xF",
+      System.Machine_Code.Asm ("dmb sy",
          Clobber => "memory",
          Volatile => True);
    end Memory_Barrier;

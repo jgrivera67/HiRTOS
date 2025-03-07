@@ -9,6 +9,7 @@ with App_Threads;
 with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS;
 with HiRTOS.Debug;
+with HiRTOS_Low_Level_Debug_Interface; --???
 with Interfaces;
 with GNAT.Source_Info;
 
@@ -29,6 +30,7 @@ procedure App_Main is
    end Print_Console_Greeting;
 
 begin -- Main
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** Hello perro joe ***" & ASCII.LF); --???
    HiRTOS.Initialize;
    Print_Console_Greeting;
 

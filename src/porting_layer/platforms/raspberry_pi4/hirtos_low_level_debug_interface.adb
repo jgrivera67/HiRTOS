@@ -7,6 +7,7 @@
 
 with Uart_Driver;
 with Number_Conversion_Utils;
+with HiRTOS_Cpu_Multi_Core_Interface;
 
 package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    procedure Initialize_Led;
@@ -14,6 +15,8 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    --??? Baud_Rate : constant := 115_200;
 
    --??? UART_Clock_Frequency_Hz : constant := 48_000_000; --- 48 MHz
+
+   Debug_Uart_Spinlock : HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Type;
 
    ----------------------------------------------------------------------------
    --  Public Subprograms
@@ -32,6 +35,7 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
 
    procedure Print_String (S : String; End_Line : Boolean := False) is
    begin
+      --???HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Acquire (Debug_Uart_Spinlock);
       for C of S loop
          Uart_Driver.Put_Char (C);
          if C = ASCII.LF then
@@ -43,6 +47,7 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
          Uart_Driver.Put_Char (ASCII.LF);
          Uart_Driver.Put_Char (ASCII.CR);
       end if;
+      --???HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Release (Debug_Uart_Spinlock);
    end Print_String;
 
    --------------------------

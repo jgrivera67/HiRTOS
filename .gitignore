@@ -3,12 +3,13 @@
 *.elf
 *.bin
 *.map
+*.lst
 
 # Ada Library Information
 *.ali
 
 # vim backup files
 .*.sw[op]
+/bin/
 /obj/
-/lib/
 /alire/

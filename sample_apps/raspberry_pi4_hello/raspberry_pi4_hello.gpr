@@ -33,8 +33,8 @@ project Raspberry_Pi4_Hello is
         --"-nolibc",
           "-lgcc", -- needed for __aeabi_uldivmod
           "-Wl,-Map=" & "../../bin/" & Executable_Prefix & ".map",
-	  "-Xlinker", "--gc-sections",
-	  "-T../../memory_layout.ld");
+          "-Xlinker", "--gc-sections",
+          "-T../../memory_layout.ld");
    end Linker;
 
    package Builder is

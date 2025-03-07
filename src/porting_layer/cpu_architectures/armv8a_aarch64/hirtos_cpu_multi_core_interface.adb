@@ -112,6 +112,7 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
 
    procedure Spinlock_Acquire (Spinlock : in out Spinlock_Type) is
    begin
+      --  TODO: Change this to use ticket spinlocks
       while Atomic_Test_Set (Atomic_Counter_Type (Spinlock), 1) = 1 loop
          HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
       end loop;

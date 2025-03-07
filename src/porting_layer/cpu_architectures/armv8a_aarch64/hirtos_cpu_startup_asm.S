@@ -76,28 +76,28 @@
 /*
  * Imported symbols
  */
-	.extern isr_stack			                  /* defined in startup.adb */
-	.extern ada_reset_handler			          /* defined in startup.adb */
+        .extern isr_stack                                          /* defined in startup.adb */
+        .extern ada_reset_handler                                  /* defined in startup.adb */
 
-	.extern same_el_with_sp_el0_synchronous_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern same_el_with_sp_el0_irq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern same_el_with_sp_el0_fiq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern same_el_with_sp_el0_serror_exception_handler      /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_el0_synchronous_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_el0_irq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_el0_fiq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_el0_serror_exception_handler      /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
-	.extern same_el_with_sp_elx_synchronous_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern same_el_with_sp_elx_irq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern same_el_with_sp_elx_fiq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern same_el_with_sp_elx_serror_exception_handler      /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_elx_synchronous_exception_handler /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_elx_irq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_elx_fiq_interrupt_handler         /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern same_el_with_sp_elx_serror_exception_handler      /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
-	.extern lower_el_synchronous_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern lower_el_irq_interrupt_handler                    /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern lower_el_fiq_interrupt_handler                    /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern lower_el_serror_exception_handler                 /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern lower_el_synchronous_exception_handler            /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern lower_el_irq_interrupt_handler                    /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern lower_el_fiq_interrupt_handler                    /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern lower_el_serror_exception_handler                 /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
-	.extern aarch32_lower_el_synchronous_exception_handler   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern aarch32_lower_el_irq_interrupt_handler           /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern aarch32_lower_el_fiq_interrupt_handler           /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
-	.extern aarch32_lower_el_serror_exception_handler        /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern aarch32_lower_el_synchronous_exception_handler   /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern aarch32_lower_el_irq_interrupt_handler           /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern aarch32_lower_el_fiq_interrupt_handler           /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
+        .extern aarch32_lower_el_serror_exception_handler        /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
 
 /**
  * ARMv8-A EL1 interrupt vector table
@@ -105,75 +105,75 @@
  *  ARMv8 Architecture Reference Manual)
  */
         .section .text.privileged.interrupt_vector_table, "ax"
-	.align 11 // 2^11-aligned (2K byte-aligned)
+        .align 11 // 2^11-aligned (2K byte-aligned)
         .global interrupt_vector_table
 interrupt_vector_table:
         // Vectors when taking exception/interrupt from same privileged ELx (x > 0) that was using SP EL0
         b same_el_with_sp_el0_synchronous_exception_handler // offset 0x0
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b same_el_with_sp_el0_irq_interrupt_handler         // offset 0x80
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b same_el_with_sp_el0_fiq_interrupt_handler         // offset 0x100
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b same_el_with_sp_el0_serror_exception_handler      // offset 0x180
 
         // Vectors when taking exception/interrupt from same privileged ELx (x > 0) that was using SP ELx
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b same_el_with_sp_elx_synchronous_exception_handler // offset 0x200
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b same_el_with_sp_elx_irq_interrupt_handler         // offset 0x280
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b same_el_with_sp_elx_fiq_interrupt_handler         // offset 0x300
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b same_el_with_sp_elx_serror_exception_handler      // offset 0x380
 
         // Vectors when taking exception/interrupt from lower ELx (x >= 0) that was running in aarch64 mode
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b lower_el_synchronous_exception_handler // offset 0x400
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b lower_el_irq_interrupt_handler         // offset 0x480
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b lower_el_fiq_interrupt_handler         // offset 0x500
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b lower_el_serror_exception_handler      // offset 0x580
 
         // Vectors when taking exception/interrupt from lower ELx (x >= 0) that was running in aarch32 mode
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b aarch32_lower_el_synchronous_exception_handler // offset 0x600
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b aarch32_lower_el_irq_interrupt_handler         // offset 0x680
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b aarch32_lower_el_fiq_interrupt_handler         // offset 0x700
-	.align 7 // 2^7-aligned (128 byte-aligned)
+        .align 7 // 2^7-aligned (128 byte-aligned)
         b aarch32_lower_el_serror_exception_handler      // offset 0x780
 
 /**
  * Get sctlr
  * @post \_dest_reg_ = value of sctlr_el1
  */
-	.macro GET_SCTLR _dest_reg_
+        .macro GET_SCTLR _dest_reg_
         mrc p15, 0, \_dest_reg_, c0, c0, 0
-	.endm
+        .endm
 
 
 /**
  * Set sctlr
  * @post sctlr = \_dest_reg_
  */
-	.macro SET_SCTLR _dest_reg_
+        .macro SET_SCTLR _dest_reg_
         mcr p15, 0, \_dest_reg_, c1, c0, 0
-	.endm
+        .endm
 
 /**
  * Get CPU id from MPIDR
  * @post CPU id is in \_dest_reg_
  */
-	.macro GET_CPU_ID _dest_reg_
+        .macro GET_CPU_ID _dest_reg_
         mrs \_dest_reg_, mpidr_el1
         and \_dest_reg_, \_dest_reg_, #MPIDR_CORE_ID_MASK
         // NOTE: lsr below is not necessary as shift is 0
         //lsr \_dest_reg_, \_dest_reg_, #MPIDR_CORE_ID_SHIFT
-	.endm
+        .endm
 
 /**
  * Initializes general-purpose CPUs registers to a known value
@@ -184,7 +184,7 @@ interrupt_vector_table:
  *
  * @pre  CPU is in HYP mode (EL2)
  */
-	.macro INIT_CPU_REGS
+        .macro INIT_CPU_REGS
         mov     x0,   xzr
         mov     x1,   xzr
         mov     x2,   xzr
@@ -216,29 +216,31 @@ interrupt_vector_table:
         mov     x28,  xzr
         mov     x29,  xzr
         mov     x30,  xzr
-	.endm
+        .endm
 
 /**
  * Set VBAR_EL1 register
  * Modifies registers x0
  */
-	.macro SET_VBAR_EL1 _vector_base_addr_
-        ldr x0, =\_vector_base_addr_
+        .macro SET_VBAR_EL1 _vector_base_addr_
+        adrp x0, \_vector_base_addr_
+        add x0, x0, #:lo12:\_vector_base_addr_
         msr vbar_el1, x0
-	.endm
+        .endm
 
 /**
  * Set VBAR_EL2 register
  * Modifies registers x0
  */
-	.macro SET_VBAR_EL2 _vector_base_addr_
-        ldr x0, =\_vector_base_addr_
+        .macro SET_VBAR_EL2 _vector_base_addr_
+        adrp x0, \_vector_base_addr_
+        add x0, x0, #:lo12:\_vector_base_addr_
         msr vbar_el2, x0
-	.endm
+        .endm
 
-	.section .globals_initialized_at_load_time
+        .section .globals_initialized_at_load_time
    .align 6 // 64-byte aligned
-	.global hirtos_secondary_cores_start_gate
+        .global hirtos_secondary_cores_start_gate
 hirtos_secondary_cores_start_gate:
    .word
    .space CACHE_LINE_SIZE
@@ -256,15 +258,15 @@ hirtos_booted_as_partition:
 /**
  * System Reset handler entry point
  */
-	.section .text.privileged.reset_handler
-	.align 2
-	.global reset_handler
+        .section .text.privileged.reset_handler
+        .align 2
+        .global reset_handler
         .func reset_handler
 reset_handler:
-	/*
+        /*
          * Disable all exceptions and interrupts:
          */
-	msr	DAIFset, #(DAIF_SETCLR_D_BIT_MASK | DAIF_SETCLR_A_BIT_MASK | DAIF_SETCLR_I_BIT_MASK | DAIF_SETCLR_F_BIT_MASK)
+        msr DAIFset, #(DAIF_SETCLR_D_BIT_MASK | DAIF_SETCLR_A_BIT_MASK | DAIF_SETCLR_I_BIT_MASK | DAIF_SETCLR_F_BIT_MASK)
 
         INIT_CPU_REGS
 
@@ -282,9 +284,12 @@ reset_handler:
         b      2f
 1:
         mov    w1, #1
-2:   
-        ldr    x0, =hirtos_booted_as_partition
-        strb   w1, [x0]
+2:
+        adrp x2, hirtos_booted_as_partition
+        add x2, x2, #:lo12:hirtos_booted_as_partition
+        strb   w1, [x2]
+        // x0 is still CurrentEL's EL field
+        cmp    x0, #PSTATE_EL_EL2_MASK
         bne    reset_handler_el1
 
 #if 0 //???
@@ -293,7 +298,7 @@ reset_handler:
          * as this cannot be done from EL1.
          */
         ldr x0, =#SYSTEM_CLOCK_FREQUENCY_HZ
-        mcr p15, 0, x0, c14, c0, 0
+        msr cntfrq_el0, x0
 #endif
 
 #if defined(HIRTOS_SEPARATION_KERNEL)
@@ -312,7 +317,8 @@ reset_handler:
          */
         mov x0, #(PSTATE_DAIF_MASK | PSTATE_EL_EL1_MASK)
         msr spsr_el2, x0
-        ldr x0, =reset_handler_el1
+        adrp x0, reset_handler_el1
+        add x0, x0, #:lo12:reset_handler_el1
         msr elr_el2, x0
         eret
 #endif // defined(HIRTOS_SEPARATION_KERNEL)
@@ -325,7 +331,8 @@ reset_handler_common:
          * Set ISR stack (SP_EL0 stack pointer) for calling CPU:
          */
         GET_CPU_ID x0           // x0 = CPU id
-        ldr     x1, =isr_stacks
+        adrp x1, isr_stacks
+        add x1, x1, #:lo12:isr_stacks
         mov     x2, #ISR_STACK_SIZE
         mul     x3, x0, x2      // x3 = byte offset of per-cpu stack base
         add     x1, x1, x3      // x1 = per-cpu stack base address
@@ -340,15 +347,15 @@ reset_handler_common:
         /*
          * Enable async SError exceptions:
          */
-        msr	DAIFclr, #DAIF_SETCLR_A_BIT_MASK
+        msr        DAIFclr, #DAIF_SETCLR_A_BIT_MASK
                                 // x0 = CPU id
-	     bl ada_reset_handler
+             bl ada_reset_handler
 
         /*
          * We should never come here:
          */
 1:      wfi
-	     b 1b
+             b 1b
         .endfunc
 
 /**

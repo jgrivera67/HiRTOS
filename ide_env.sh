@@ -244,4 +244,58 @@ function flash_esp32c6
        $bin_file
 }
 
+function flash_raspberry4
+{
+    typeset bin_file
+    typeset tty_dev
+    typeset usage_msg
+
+    usage_msg="Usage: $FUNCNAME <bin file>"
+
+    if [ $# != 1 ]; then
+        echo $usage_msg
+        return 1
+    fi
+
+    bin_file=$1
+    if [ ! -f $bin_file ]; then
+        echo "*** ERROR: file $bin_file does not exist"
+        return 1
+    fi
+
+   # Flash App image on SD card:
+   cp $bin_file /Volumes/bootfs/kernel8.img
+   sync
+}
+
+function send_bin_over_uart {
+   typeset bin_file
+   typeset tty_port
+
+   if [ $# != 2 ]; then
+        echo "Usage: $FUNCNAME <bin file> <tty port>"
+        return 1
+   fi
+
+   bin_file=$1
+   tty_port=$2
+   stty -f $tty_port 115200  #configure to the baud rate of the embedded system
+   #lsx --xmodem --binary $bin_file > $tty_port < $tty_port
+   ~/my-projects/aarch64_bare_metal_ada/uart_boot_loader_client/bin/uart_boot_loader_client $bin_file > $tty_port < $tty_port
+}
+
+function my_uart {
+   typeset tty_port
+
+   if [ $# != 1 ]; then
+        echo "Usage: $FUNCNAME <tty port>"
+        return 1
+   fi
+
+   tty_port=$1
+
+   #picocom -b 115200 --send-cmd="lsx -vv --xmodem --binary" --receive-cmd="lrx -vv" $tty_port
+   picocom -b 115200 --send-cmd="$HOME/my-projects/uart_boot_loader/uart_boot_loader_client/bin/uart_boot_loader_client" $tty_port
+}
+
 . ~/my-projects/third-party/alire/scripts/alr-completion.bash
