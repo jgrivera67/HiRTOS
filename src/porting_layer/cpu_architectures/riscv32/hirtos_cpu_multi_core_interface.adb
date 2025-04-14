@@ -60,13 +60,19 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
                New_Value := Old_Value and Value;
          end case;
 
-         exit when Stlex_Word (Atomic_Counter.Counter'Address, New_Value);
+         exit when Stlex_Agnostic_Word (Atomic_Counter.Counter'Address, New_Value);
       end loop;
 
       --  NOTE: Flush cache line to support multi-core processors without cache coherence
       Memory_Utils.Flush_Data_Cache_Range (Atomic_Counter'Address, Cache_Line_Size_Bytes);
       return Old_Value;
    end Atomic_Operation;
+
+   procedure Atomic_Counter_Initialize (Atomic_Counter_Obj : out Atomic_Counter_Type;
+                                        Value : Cpu_Register_Type) is
+   begin
+      Atomic_Counter_Obj.Counter := Value;
+   end Atomic_Counter_Initialize;
 
    function Atomic_Test_Set (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
     return Cpu_Register_Type is

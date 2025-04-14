@@ -73,6 +73,12 @@ package body HiRTOS_Cpu_Multi_Core_Interface is
       return Old_Value;
    end Atomic_Operation;
 
+   procedure Atomic_Counter_Initialize (Atomic_Counter_Obj : out Atomic_Counter_Type;
+                                        Value : Cpu_Register_Type) is
+   begin
+      Atomic_Counter_Obj.Counter := Value;
+   end Atomic_Counter_Initialize;
+
    function Atomic_Test_Set (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
     return Cpu_Register_Type is
       (Atomic_Operation (Test_Set, Atomic_Counter, Value));

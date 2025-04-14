@@ -125,7 +125,7 @@ package body HiRTOS_Cpu_Startup_Interface is
    begin
       --  This does not work on ARM FVP:
       --??? HiRTOS_Cpu_Arch_Interface.Enable_Caches;
-      Enable_FPU;
+      --??? Enable_FPU;
 
       if Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First then
          --

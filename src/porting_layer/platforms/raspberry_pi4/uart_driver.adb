@@ -20,12 +20,10 @@ package body Uart_Driver is
                                     Integer_Div : out Interfaces.Unsigned_16;
                                     Fractional_Div : out Bit_Sized_Integer_Types.Six_Bits_Type) is
          use type Interfaces.Unsigned_32;
-         --  64 * F_UARTCLK / (16 * Baudrate) = 4 * F_UARTCLK / Baudrate
-         Divider : constant Interfaces.Unsigned_32 :=
-            4 * UART_Clock_Frequency_Hz / Baudrate;
       begin
-         Integer_Div := Interfaces.Unsigned_16 (Interfaces.Shift_Left (Divider, 6) and 16#ffff#);
-         Fractional_Div := Bit_Sized_Integer_Types.Six_Bits_Type (Divider and 2#111111#);
+         --  F_UARTCLK / (16 * Baudrate)
+         Integer_Div := Interfaces.Unsigned_16 (UART_Clock_Frequency_Hz / (16 * Baudrate));
+         Fractional_Div := Bit_Sized_Integer_Types.Six_Bits_Type (0);
       end Calculate_Divisors;
 
       UARTIBRD_Value : UARTIBRD_Register;
@@ -38,7 +36,33 @@ package body Uart_Driver is
       UART_Periph_Pointer : constant access UART_Peripheral :=
          UART_Periph_Pointers (Get_Cpu_Id);
 
+      procedure Disable_Uart is
+      begin
+         --  Disable UART Tx/Rx and UART peripheral itself:
+         UARTCR_Value := UART_Periph_Pointer.UARTCR;
+         UARTCR_Value.TXE := 2#0#;
+         UARTCR_Value.RXE := 2#0#;
+         UARTCR_Value.UARTEN := 2#0#;
+         UART_Periph_Pointer.UARTCR := UARTCR_Value;
+
+         UARTLCR_H_Value := UART_Periph_Pointer.UARTLCR_H;
+         UARTLCR_H_Value.FEN := 2#0#;
+         UART_Periph_Pointer.UARTLCR_H := UARTLCR_H_Value;
+      end Disable_Uart;
+
+      procedure Enable_Uart is
+      begin
+         --  Enable UART Tx/Rx and UART peripheral itself:
+         UARTCR_Value := UART_Periph_Pointer.UARTCR;
+         UARTCR_Value.TXE := 2#1#;
+         UARTCR_Value.RXE := 2#1#;
+         UARTCR_Value.UARTEN := 2#1#;
+         UART_Periph_Pointer.UARTCR := UARTCR_Value;
+      end Enable_Uart;
+
    begin
+      Disable_Uart;
+
       --  Set baud rate:
       Calculate_Divisors (Baud_Rate, UARTIBRD_Value.BAUD_DIVINT, UARTFBRD_Value.BAUD_DIVFRAC);
 
@@ -52,8 +76,8 @@ package body Uart_Driver is
       UARTLCR_H_Value.FEN := 2#1#;
       UART_Periph_Pointer.UARTLCR_H := UARTLCR_H_Value;
 
-      --  Disable (mask) all interrupts:
-      UARTIMSC_Value := (others => 2#0#);
+      --  Enable Rx interrupt and disable other interrupts:
+      UARTIMSC_Value := (RXIM => 2#1#, others => 2#0#);
       UART_Periph_Pointer.UARTIMSC := UARTIMSC_Value;
 
       --  Clear any pending interrupt:
@@ -67,12 +91,7 @@ package body Uart_Driver is
       UARTIFLS_Value.RXIFLSEL := 2#000#;
       UART_Periph_Pointer.UARTIFLS := UARTIFLS_Value;
 
-      --  Enable UART Tx/Rx and UART peripheral itself:
-      UARTCR_Value := UART_Periph_Pointer.UARTCR;
-      UARTCR_Value.TXE := 2#1#;
-      UARTCR_Value.RXE := 2#1#;
-      UARTCR_Value.UARTEN := 2#1#;
-      UART_Periph_Pointer.UARTCR := UARTCR_Value;
+      Enable_Uart;
    end Initialize_Uart;
 
    procedure Put_Char (C : Character) is
@@ -90,6 +109,18 @@ package body Uart_Driver is
       UARTDR_Value.DATA := Interfaces.Unsigned_8 (Character'Pos (C));
       UART_Periph_Pointer.UARTDR := UARTDR_Value;
    end Put_Char;
+
+   procedure Flush_Output is
+      UARTFR_Value : UARTFR_Register;
+      --  NOTE For RaspberryPI, we don't use a separate UART per CPU as only UART0 is
+      --  going to be used.
+      UART_Periph_Pointer : constant access UART_Peripheral := UART_Periph_Pointers (0);
+   begin
+      loop
+         UARTFR_Value := UART_Periph_Pointer.UARTFR;
+         exit when UARTFR_Value.TXFE = 1;
+      end loop;
+   end Flush_Output;
 
    function Get_Char return Character is
       UARTFR_Value : UARTFR_Register;

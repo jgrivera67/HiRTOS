@@ -510,7 +510,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
          Saved_PC : constant System.Address := HiRTOS.Interrupt_Handling.Get_Interrupted_PC;
       begin
          HiRTOS_Low_Level_Debug_Interface.Print_String (
-            "*** Breakpoint exception ignored (not suported yet)" & ASCII.LF);
+            "*** Breakpoint exception ignored (not supported yet)" & ASCII.LF);
 
          pragma Assert (Get_Mepc_Register = To_Integer (Saved_PC));
          HiRTOS.Interrupt_Handling.Set_Interrupted_PC (

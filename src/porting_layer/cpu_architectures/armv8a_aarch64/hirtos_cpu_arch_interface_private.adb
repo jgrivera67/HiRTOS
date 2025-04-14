@@ -77,4 +77,44 @@ package body HiRTOS_Cpu_Arch_Interface_Private is
       return PSTATE_Value;
    end Get_PSTATE;
 
+   function Get_ELR_EL1 return Cpu_Register_Type is
+      ELR_EL1_Value : Cpu_Register_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrs %0, elr_el1",
+         Outputs => Cpu_Register_Type'Asm_Output ("=r", ELR_EL1_Value), --  %0
+         Volatile => True);
+
+      return ELR_EL1_Value;
+   end Get_ELR_EL1;
+
+   procedure Set_ELR_EL1 (ELR_EL1_Value : Cpu_Register_Type) is
+   begin
+      System.Machine_Code.Asm (
+         "msr elr_el1, %0",
+         Inputs => Cpu_Register_Type'Asm_Input ("r", ELR_EL1_Value), --  %0
+         Volatile => True);
+   end Set_ELR_EL1;
+
+   function Get_ELR_EL2 return Cpu_Register_Type is
+      ELR_EL2_Value : Cpu_Register_Type;
+   begin
+      System.Machine_Code.Asm (
+         "mrs %0, elr_el2",
+         Outputs => Cpu_Register_Type'Asm_Output ("=r", ELR_EL2_Value), --  %0
+         Volatile => True);
+
+      return ELR_EL2_Value;
+   end Get_ELR_EL2;
+
+   procedure Enable_Debug_Exceptions is
+   begin
+      System.Machine_Code.Asm (
+         "dsb sy" & LF &
+         "isb" & LF &
+         "msr DAIFclr, %0",
+         Inputs => Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_D_Bit_Mask),  --  %0
+         Volatile => True);
+   end Enable_Debug_Exceptions;
+
 end HiRTOS_Cpu_Arch_Interface_Private;

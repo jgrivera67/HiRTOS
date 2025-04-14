@@ -139,6 +139,8 @@ package body HiRTOS.Mutex is
       Mutex_Obj.Id := Mutex_Id;
       Mutex_Obj.Ceiling_Priority := Ceiling_Priority;
       Initialize_Thread_Priority_Queue (Mutex_Obj.Waiting_Threads_Queue);
+      Mutex_Obj.Owner_Thread_Id := Invalid_Thread_Id;
+      Mutex_Obj.Recursive_Count := 0;
       Mutex_Obj.Initialized := True;
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_Mutex;

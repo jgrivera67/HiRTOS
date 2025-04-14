@@ -419,6 +419,7 @@ private
      with No_Return,
           Export,
           Convention => C,
-          External_Name => "__gnat_last_chance_handler";
+          External_Name => "__gnat_last_chance_handler",
+          Unreferenced;
 
 end HiRTOS;

@@ -9,6 +9,8 @@
 --  @summary RTOS to target platform interface - ARMv8-A system registers
 --
 
+with Bit_Sized_Integer_Types;
+with Interfaces;
 package HiRTOS_Cpu_Arch_Interface.System_Registers
    with SPARK_Mode => On
 is
@@ -240,13 +242,114 @@ is
 
    procedure Set_CONTEXTIDR_EL1 (CONTEXTIDR_Value : CONTEXTIDR_EL1_Type);
 
-   type ESR_EL1_Type is new Interfaces.Unsigned_64; --  TODO: Define the right fields
+   type ESR_EL1_IFSC_Type is (ESR_EL1_IFSC_Address_Size_Fault_TTBRx,
+                              ESR_EL1_IFSC_Translation_Fault_1st_Level,
+                              ESR_EL1_IFSC_Translation_Fault_2nd_Level)
+      with Size => 6;
+
+   for ESR_EL1_IFSC_Type use (ESR_EL1_IFSC_Address_Size_Fault_TTBRx => 2#000000#,
+                              ESR_EL1_IFSC_Translation_Fault_1st_Level => 2#000101#,
+                              ESR_EL1_IFSC_Translation_Fault_2nd_Level => 2#000110#);
+
+   type ESR_EL1_EA_Type is (ESR_EL1_EA_External_Abort_Marked_DECERR,
+                            ESR_EL1_EA_External_Abort_Marked_SLVERR)
+      with Size => 1;
+
+   for ESR_EL1_EA_Type use (ESR_EL1_EA_External_Abort_Marked_DECERR => 2#0#,
+                            ESR_EL1_EA_External_Abort_Marked_SLVERR => 2#1#);
+
+   --
+   --  NOTE: The actual size of this type should be 24 bits, but Ada does not allow to define
+   --  a variant record of 24 bits
+   --
+   type ESR_EL1_ISS_Type (As_Value : Boolean := True) is record
+      case As_Value is
+         when True =>
+            Value : Bit_Sized_Integer_Types.Twenty_Four_Bits_Type := 0;
+         when False =>
+            INST_ABORT_IFSC : ESR_EL1_IFSC_Type;
+            INST_ABORT_EA : ESR_EL1_EA_Type;
+      end case;
+   end record with
+      Size => 32, Bit_Order => System.Low_Order_First, Unchecked_Union;
+
+   for ESR_EL1_ISS_Type use record
+      Value at 0 range 0 .. 24;
+      INST_ABORT_IFSC at 0 range 0 .. 5;
+      INST_ABORT_EA at 0 range 9 .. 9;
+   end record;
+
+   type ESR_EL1_EC_Type is (ESR_EL1_EC_Unknown,
+                            ESR_EL1_EC_Trapped_WFI_WFE,
+                            ESR_EL1_EC_Trapped_Access_SME_SVE_Advanced_SIMD_FP,
+                            ESR_EL1_EC_Illegal_State,
+                            ESR_EL1_EC_Aarch64_SVC,
+                            ESR_EL1_EC_Trapped_MSR_MRS_System_Inst_In_AArch64,
+                            ESR_EL1_EC_Instruction_Abort_Lower_EL,
+                            ESR_EL1_EC_Instruction_Abort_Current_EL,
+                            ESR_EL1_EC_PC_ALignment_Fault,
+                            ESR_EL1_EC_Data_Abort_Lower_EL,
+                            ESR_EL1_EC_Data_Abort_Current_EL,
+                            ESR_EL1_EC_SP_Alignment_Fault,
+                            ESR_EL1_EC_Trapped_Floating_Point_Exception,
+                            ESR_EL1_EC_SError_Exception,
+                            ESR_EL1_EC_Breakpoint_Lower_EL,
+                            ESR_EL1_EC_Breakpoint_Current_EL,
+                            ESR_EL1_EC_Software_Step_Exception_Lower_EL,
+                            ESR_EL1_EC_Software_Step_Exception_Current_EL,
+                            ESR_EL1_EC_Watchpoint_Lower_EL,
+                            ESR_EL1_EC_Watchpoint_Current_EL,
+                            ESR_EL1_EC_BRK_Instruction_In_Aarch64)
+      with Size => 6;
+
+   for ESR_EL1_EC_Type use (ESR_EL1_EC_Unknown => 2#0#,
+                            ESR_EL1_EC_Trapped_WFI_WFE => 2#1#,
+                            ESR_EL1_EC_Trapped_Access_SME_SVE_Advanced_SIMD_FP => 2#00_0111#,
+                            ESR_EL1_EC_Illegal_State => 2#0_1110#,
+                            ESR_EL1_EC_Aarch64_SVC => 2#1_0101#,
+                            ESR_EL1_EC_Trapped_MSR_MRS_System_Inst_In_AArch64 => 2#1_1000#,
+                            ESR_EL1_EC_Instruction_Abort_Lower_EL => 2#10_0000#,
+                            ESR_EL1_EC_Instruction_Abort_Current_EL => 2#10_0001#,
+                            ESR_EL1_EC_PC_ALignment_Fault => 2#10_0010#,
+                            ESR_EL1_EC_Data_Abort_Lower_EL => 2#10_0100#,
+                            ESR_EL1_EC_Data_Abort_Current_EL => 2#10_0101#,
+                            ESR_EL1_EC_SP_Alignment_Fault => 2#10_0110#,
+                            ESR_EL1_EC_Trapped_Floating_Point_Exception => 2#10_1100#,
+                            ESR_EL1_EC_SError_Exception => 2#10_1111#,
+                            ESR_EL1_EC_Breakpoint_Lower_EL => 2#11_0000#,
+                            ESR_EL1_EC_Breakpoint_Current_EL => 2#11_0001#,
+                            ESR_EL1_EC_Software_Step_Exception_Lower_EL => 2#11_0010#,
+                            ESR_EL1_EC_Software_Step_Exception_Current_EL => 2#11_0011#,
+                            ESR_EL1_EC_Watchpoint_Lower_EL => 2#11_0100#,
+                            ESR_EL1_EC_Watchpoint_Current_EL => 2#11_0101#,
+                            ESR_EL1_EC_BRK_Instruction_In_Aarch64 => 2#11_1100#);
+
+   type ESR_EL1_Type (As_Value : Boolean := True) is record
+      case As_Value is
+         when True =>
+            Value : Interfaces.Unsigned_64 := 0;
+         when False =>
+            ISS : Bit_Sized_Integer_Types.Twenty_Four_Bits_Type;
+            IL : Bit_Sized_Integer_Types.Bit_Type;
+            EC : ESR_EL1_EC_Type;
+            ISS2 : Bit_Sized_Integer_Types.Twenty_Three_Bits_Type;
+      end case;
+   end record with
+      Size => 64, Bit_Order => System.Low_Order_First, Unchecked_Union;
+
+   for ESR_EL1_Type use record
+      Value at 0 range 0 .. 63;
+      ISS at 0 range 0 .. 24;
+      IL at 0 range 25 .. 25;
+      EC at 0 range 26 .. 31;
+      ISS2 at 0 range 32 .. 55;
+   end record;
 
    function Get_ESR_EL1 return ESR_EL1_Type;
 
    procedure Set_ESR_EL1 (ESR_EL1_Value : ESR_EL1_Type);
 
-   type FAR_EL1_Type is new Interfaces.Unsigned_64; --  TODO: Define the right fields
+   type FAR_EL1_Type is new Interfaces.Unsigned_64;
 
    function Get_FAR_EL1 return FAR_EL1_Type;
 

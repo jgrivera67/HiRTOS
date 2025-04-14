@@ -36,7 +36,7 @@ is
             Stack_Size_In_Bytes /
             (System.Storage_Elements.Integer_Address'Size / System.Storage_Unit)) of Stack_Entry_Type with
      Convention => C,
-     Alignment  => HiRTOS_Cpu_Arch_Parameters.Stack_Pointer_Alignment;
+     Alignment  => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
 
    type Execution_Stack_Type is limited record
       Stack_Overflow_Guard : Stack_Overflow_Guard_Type;

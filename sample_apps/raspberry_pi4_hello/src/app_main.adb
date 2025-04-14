@@ -30,11 +30,14 @@ procedure App_Main is
    end Print_Console_Greeting;
 
 begin -- Main
-   HiRTOS_Low_Level_Debug_Interface.Print_String("**** Hello perro joe ***" & ASCII.LF); --???
+   HiRTOS_Low_Level_Debug_Interface.Print_String("* JGR1" & ASCII.LF); --???
    HiRTOS.Initialize;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("* JGR2" & ASCII.LF); --???
    Print_Console_Greeting;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("* JGR4" & ASCII.LF); --???
 
    App_Threads.Initialize;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("* JGR5" & ASCII.LF); --???
    HiRTOS.Start_Thread_Scheduler;
 
    pragma Assert (False);

@@ -31,7 +31,7 @@ private package HiRTOS.Mutex_Private is
       Ceiling_Priority : Thread_Priority_Type := Invalid_Thread_Priority;
       Waiting_Threads_Queue : Thread_Priority_Queue_Type;
    end record with
-     Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+     Alignment => HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes;
 
    type Mutex_Array_Type is array (Valid_Mutex_Id_Type) of Mutex_Type;
 

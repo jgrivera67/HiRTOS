@@ -114,11 +114,11 @@ is
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
       with Pre => Cpu_In_Privileged_Mode and then
-                  To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  Size_In_Bytes > 0 and then
-                  Size_In_Bytes mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0,
+                  --???To_Integer (Start_Address) mod
+                  --???   HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  Size_In_Bytes > 0, --??? and then
+                  --???Size_In_Bytes mod
+                  --???   HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0,
             Post => Is_Memory_Region_Enabled (Region_Id);
 
    procedure Configure_Memory_Region (
@@ -148,11 +148,11 @@ is
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
       with Pre => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment > 1 and then
-                  To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  Size_In_Bytes > 0 and then
-                  Size_In_Bytes mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0;
+                  --???To_Integer (Start_Address) mod
+                  --???   HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  Size_In_Bytes > 0; --???and then
+                  --???Size_In_Bytes mod
+                  --???   HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0;
 
    procedure Initialize_Memory_Region_Descriptor (
       Region_Descriptor : out Memory_Region_Descriptor_Type;
@@ -161,10 +161,10 @@ is
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
-      with Pre => To_Integer (Start_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
-                  To_Integer (End_Address) mod
-                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+      with Pre => --???To_Integer (Start_Address) mod
+                  --???   HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  --???To_Integer (End_Address) mod
+                  --???   HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
                   To_Integer (Start_Address) < To_Integer (End_Address);
 
    procedure Initialize_Memory_Region_Descriptor_Disabled (

@@ -16,7 +16,8 @@ is
    type Interrupt_Nesting_Level_Type is limited private;
 
    procedure Initialize
-      with Pre => Cpu_Interrupting_Disabled,
+      with Pre => Cpu_In_Privileged_Mode and then
+                  Cpu_Interrupting_Disabled,
            Post => not Cpu_Interrupting_Disabled;
 
    procedure Initialize_Interrupt_Nesting_Level_Stack

@@ -8,8 +8,7 @@ with HiRTOS_Cpu_Arch_Parameters;
 with Interfaces.C;
 with System.Storage_Elements;
 
-package Memory_Utils
-is
+package Memory_Utils is
    use Interfaces;
    use System.Storage_Elements;
    use type System.Address;
@@ -124,7 +123,8 @@ is
                   and then
                   Size mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0
                   and then
-                  To_Integer (Start_Address) + Size > To_Integer (Start_Address);
+                  (To_Integer (Start_Address) + Size > To_Integer (Start_Address) or else
+                   Size = 0);
 
    procedure Flush_Invalidate_Data_Cache_Range (Start_Address : System.Address; Size : Integer_Address)
       with Pre => To_Integer (Start_Address) mod HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0

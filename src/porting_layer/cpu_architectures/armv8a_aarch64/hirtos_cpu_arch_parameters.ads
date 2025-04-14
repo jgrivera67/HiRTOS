@@ -25,9 +25,14 @@ is
    Cache_Line_Size_Bytes : constant := 64;
 
    --
+   --  Size in bytes of an MMU page
+   --
+   Page_Size_In_Bytes : constant := 4 * 1024;
+
+   --
    --  Alignment in bytes for a memory protection region
    --
-   Memory_Region_Alignment : constant := 64;
+   Memory_Region_Alignment : constant := Page_Size_In_Bytes;
 
    --
    --  Required alignment in bytes for the stack pointer
@@ -43,6 +48,11 @@ is
    --  Size in bytes of the 'BL' machine instruction
    --
    Call_Instruction_Size_In_Bytes : constant := 4;
+
+   --
+   --  Size in bytes of the 'BRK' machine instruction
+   --
+   Break_Instruction_Size_In_Bytes : constant := 4;
 
    --
    --  Number of usable external interrupt priorities (levels) in

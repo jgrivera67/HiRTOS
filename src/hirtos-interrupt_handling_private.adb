@@ -5,6 +5,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 
+with HiRTOS_Low_Level_Debug_Interface; --???
 package body HiRTOS.Interrupt_Handling_Private is
 
    procedure Initialize_Interrupt_Nesting_Level
@@ -16,17 +17,18 @@ package body HiRTOS.Interrupt_Handling_Private is
 
    procedure Initialize is
    begin
+   HiRTOS_Low_Level_Debug_Interface.Print_String("*** JGR1" & ASCII.LF); --???
       HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Initialize;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("*** JGR2" & ASCII.LF); --???
       HiRTOS_Cpu_Arch_Interface.Enable_Cpu_Interrupting;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("*** JGR3" & ASCII.LF); --???
    end Initialize;
 
    procedure Initialize_Interrupt_Nesting_Level_Stack
      (Interrupt_Nesting_Level_Stack : out Interrupt_Nesting_Level_Stack_Type)
    is
    begin
-      for Nesting_Level of Interrupt_Nesting_Level_Stack
-        .Interrupt_Nesting_Level_Array
-      loop
+      for Nesting_Level of Interrupt_Nesting_Level_Stack.Interrupt_Nesting_Level_Array loop
          Initialize_Interrupt_Nesting_Level (Nesting_Level);
       end loop;
 

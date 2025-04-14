@@ -42,6 +42,9 @@ is
 
    function Atomic_Counter_Initializer (Value : Cpu_Register_Type) return Atomic_Counter_Type;
 
+   procedure Atomic_Counter_Initialize (Atomic_Counter_Obj : out Atomic_Counter_Type;
+                                        Value : Cpu_Register_Type);
+
    function Atomic_Test_Set (Atomic_Counter : in out Atomic_Counter_Type; Value : Cpu_Register_Type)
     return Cpu_Register_Type
     with SPARK_Mode => Off;

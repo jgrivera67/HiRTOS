@@ -9,6 +9,7 @@
 --  @summary HiRTOS compile-time configuration parameters
 --
 
+with HiRTOS_Cpu_Arch_Parameters;
 with HiRTOS_Platform_Parameters;
 
 package HiRTOS_Config_Parameters
@@ -55,12 +56,13 @@ is
    --
    --  Number of thread priorities
    --
-   Num_Thread_Priorities : constant := 32;
+   Num_Thread_Priorities : constant :=
+      HiRTOS_Cpu_Arch_Parameters.Machine_Word_Width_In_Bits;
 
    --
    --  Thread stack minimum size in bytes
    --
-   Thread_Stack_Min_Size_In_Bytes : constant := 1024;
+   Thread_Stack_Min_Size_In_Bytes : constant := 4 * 1024;
 
    --
    --  RTOS tick timer period in microseconds

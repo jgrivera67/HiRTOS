@@ -12,6 +12,7 @@
 with HiRTOS_Cpu_Arch_Interface.System_Registers;
 with System.Machine_Code;
 with HiRTOS_Cpu_Arch_Interface_Private;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS_Cpu_Arch_Interface is
    use ASCII;
@@ -139,8 +140,10 @@ package body HiRTOS_Cpu_Arch_Interface is
    function Ldaex_Agnostic_Word (Agnostic_Word_Address : System.Address) return Cpu_Register_Type is
       Result : Cpu_Register_Type;
    begin
+      HiRTOS_Low_Level_Debug_Interface.Print_String("TODO: do ldaxr" & ASCII.LF); --???
       System.Machine_Code.Asm (
-          "ldaxr %0, [%1]",
+          --"ldaxr %0, [%1]",
+          "ldr %0, [%1]", -- TODO: Remove this when when can use ldaxr
            Outputs => Cpu_Register_Type'Asm_Output ("=r", Result), --  %0
            Inputs => System.Address'Asm_Input ("r", Agnostic_Word_Address), --  %1
            Volatile => True);
@@ -154,9 +157,12 @@ package body HiRTOS_Cpu_Arch_Interface is
       use type Interfaces.Unsigned_32;
       Result : Interfaces.Unsigned_32;
    begin
+      HiRTOS_Low_Level_Debug_Interface.Print_String("TODO: do stlxr" & ASCII.LF); --???
       System.Machine_Code.Asm (
-           "stlxr w0, %1, [%2]" & LF &
-           "mov %0, x0",
+           --"stlxr w0, %1, [%2]" & LF &
+           --"mov %0, x0",
+           "str %1, [%2]" & LF &   -- TODO: Remove this when when can use stlxr
+           "mov %0, #0",           -- TODO: Remove this when when can use stlxr
            Outputs =>
               --  NOTE: Use "=&r" to ensure a different register is used
               Interfaces.Unsigned_32'Asm_Output ("=&r", Result),   -- %0

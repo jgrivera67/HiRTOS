@@ -7,11 +7,12 @@
 
 --
 --  @summary RTOS to target platform interface - Interrupt controller driver
---
+--  for ARM GIC-400 (GICv2)
 
-with System.Machine_Code;
 with HiRTOS_Cpu_Startup_Interface;
 with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS.Memory_Protection;
+with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Interrupt_Controller with
   SPARK_Mode => Off
@@ -37,25 +38,32 @@ is
          HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
            (GICD'Address, GICD'Size, Old_Mmio_Range);
 
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR1" & ASCII.LF); --???
          --  Disable interrupts from group0 and group1 before configuring the GIC:
          GICD_CTLR_Value            := GICD.GICD_CTLR;
          GICD_CTLR_Value.EnableGrp0 := Group_Interrupts_Disabled;
          GICD_CTLR_Value.EnableGrp1 := Group_Interrupts_Disabled;
          GICD.GICD_CTLR             := GICD_CTLR_Value;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR2" & ASCII.LF); --???
          HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
          loop
             GICD_CTLR_Value := GICD.GICD_CTLR;
             exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
          end loop;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR3" & ASCII.LF); --???
 
          GICD_TYPER_Value := GICD.GICD_TYPER;
-         pragma Assert (GICD_TYPER_Value.IDBits = ARM_Cortex_R52_GICD_TYPER_IDbits);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR4 "); --???
+   HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal(Interfaces.Unsigned_32 (GICD_TYPER_Value.IDBits), End_Line => True); --???
+         pragma Assert (GICD_TYPER_Value.IDBits = ARM_Cortex_A72_GICD_TYPER_IDbits);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR5" & ASCII.LF); --???
 
          Max_Number_Interrupt_Sources :=
            (32 * Interfaces.Unsigned_16 (GICD_TYPER_Value.ITLinesNumber)) + 1;
          pragma Assert
            (Max_Number_Interrupt_Sources <= Interfaces.Unsigned_16 (Max_Num_Interrupts_Supported));
 
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR6" & ASCII.LF); --???
          --
          --  Disable and clear all SPIs:
          --
@@ -66,10 +74,12 @@ is
          end loop;
 
          HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR7" & ASCII.LF); --???
          loop
             GICD_CTLR_Value := GICD.GICD_CTLR;
             exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
          end loop;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR8" & ASCII.LF); --???
 
          --  Enable reception of interrupts from group0/group1 in the GIC:
          GICD_CTLR_Value            := GICD.GICD_CTLR;
@@ -79,87 +89,51 @@ is
          GICD.GICD_CTLR             := GICD_CTLR_Value;
 
          HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR9" & ASCII.LF); --???
          loop
             GICD_CTLR_Value := GICD.GICD_CTLR;
             exit when GICD_CTLR_Value.RWP = Register_Write_Not_Pending;
          end loop;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR10" & ASCII.LF); --???
 
          HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
 
          Interrupt_Controller_Obj.Max_Number_Interrupt_Sources :=
            Max_Number_Interrupt_Sources;
          Interrupt_Controller_Obj.GIC_Distributor_Initialized  := True;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR11" & ASCII.LF); --???
          HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** JGR12" & ASCII.LF); --???
       end Initialize_GIC_Distributor;
 
-      procedure Initialize_GIC_Redistributor (Cpu_Id : Valid_Cpu_Core_Id_Type)
-      is
-         GICR             : GICR_Type renames GICD.GICR_Array (Cpu_Id);
-         Old_Mmio_Range   : HiRTOS.Memory_Protection.Memory_Range_Type;
-         GICR_TYPER_Value : GICR_TYPER_Type;
-         GICR_WAKER_Value : GICR_WAKER_Type;
-      begin
-         HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
-           (GICR'Address, GICR'Size, Old_Mmio_Range);
-
-         GICR_TYPER_Value := GICR.GICR_Control_Page.GICR_TYPER;
-
-         pragma Assert
-           (GICR_TYPER_Value.Processor_Number =
-            GICR_TYPER_Processor_Number_Type (Cpu_Id));
-
-         --
-         --  Disable and clear all SGIs ands PPIs:
-         --
-         GICR.GICR_SGI_And_PPI_Page.GICR_ICENABLER0 := [others => 2#1#];
-         GICR.GICR_SGI_And_PPI_Page.GICR_ICPENDR0 := [others => 2#1#];
-         GICR.GICR_SGI_And_PPI_Page.GICR_ICACTIVER0 := [others => 2#1#];
-
-         --
-         --  Wake up GIC redistributor:
-         --  If Children_Asleep is set, clear Processor_Sleep and wait till Children_Asleep is cleared.
-         --
-         GICR_WAKER_Value := GICR.GICR_Control_Page.GICR_WAKER;
-         if GICR_WAKER_Value.Children_Asleep = All_Interfaces_Target_Quiescent
-         then
-            GICR_WAKER_Value.Processor_Sleep  :=
-              Target_Not_In_Processor_Sleep_State;
-            GICR.GICR_Control_Page.GICR_WAKER := GICR_WAKER_Value;
-            HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
-            loop
-               GICR_WAKER_Value := GICR.GICR_Control_Page.GICR_WAKER;
-               exit when GICR_WAKER_Value.Children_Asleep =
-                 All_Interfaces_Target_Not_Quiescent;
-            end loop;
-         end if;
-
-         HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
-      end Initialize_GIC_Redistributor;
-
       procedure Initialize_GIC_Cpu_Interface is
-         ICC_SRE_Value    : ICC_SRE_Type;
+         --  ICC_SRE_Value    : ICC_SRE_Type;
          ICC_CTLR_Value   : ICC_CTLR_Type;
          ICC_BPR_Value    : ICC_BPR_Type;
-         ICC_IGRPEN_Value : ICC_IGRPEN_Type;
+         --  ICC_IGRPEN_Value : ICC_IGRPEN_Type;
          ICC_PMR_Value    : ICC_PMR_Type;
       begin
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** Initialize_GIC_Cpu_Interface 1" & ASCII.LF); --???
          --  Check that CPU interface system registers access is supported:
-         ICC_SRE_Value := Get_ICC_SRE;
-         pragma Assert (ICC_SRE_Value.SRE = GIC_CPU_Interface_System_Registers_Enabled);
+         --  ICC_SRE_Value := Get_ICC_SRE;
+         --  pragma Assert (ICC_SRE_Value.SRE = GIC_CPU_Interface_System_Registers_Enabled);
 
          --  Enable CPU interface:
-         ICC_CTLR_Value      := Get_ICC_CTLR;
+         --  ICC_CTLR_Value := Get_ICC_CTLR;
+         ICC_CTLR_Value := GICC.ICC_CTLR;
          ICC_CTLR_Value.CBPR := Use_ICC_BPR0_For_Interrupt_Preemption_Enabled;
          ICC_CTLR_Value.EOImode :=  ICC_EOIRx_Write_Deactives_Interrupt_Enabled;
-         Set_ICC_CTLR (ICC_CTLR_Value);
+         --  Set_ICC_CTLR (ICC_CTLR_Value);
+         GICC.ICC_CTLR := ICC_CTLR_Value;
 
          --
          --  Set binary point to maximize interrupt preemptability for nested interrupts,
          --  for groups 0 (FIQ) and 1 (IRQ):
          --
          ICC_BPR_Value.Binary_Point := Binary_Point_Type'First;
-         Set_ICC_BPR (Cpu_Interrupt_Fiq, ICC_BPR_Value);
-         Set_ICC_BPR (Cpu_Interrupt_Irq, ICC_BPR_Value);
+         --  Set_ICC_BPR (Cpu_Interrupt_Fiq, ICC_BPR_Value);
+         --  Set_ICC_BPR (Cpu_Interrupt_Irq, ICC_BPR_Value);
+         GICC.ICC_BPR := ICC_BPR_Value;
 
          --
          --  Enable group0 & group1 interrupts:
@@ -170,11 +144,11 @@ is
          --  interrupts, as they are routed to the FIQ interrupt line of
          --  the CPU core.
          --
-         ICC_IGRPEN_Value.Enable := Interrupt_Group_Enabled;
-         Set_ICC_IGRPEN
-           (Cpu_Interrupt_Fiq, ICC_IGRPEN_Value); --  group0 -> FIQ
-         Set_ICC_IGRPEN
-           (Cpu_Interrupt_Irq, ICC_IGRPEN_Value); --  group1 -> IRQ
+         --  ICC_IGRPEN_Value.Enable := Interrupt_Group_Enabled;
+         --  Set_ICC_IGRPEN
+         --    (Cpu_Interrupt_Fiq, ICC_IGRPEN_Value); --  group0 -> FIQ
+         --  Set_ICC_IGRPEN
+         --    (Cpu_Interrupt_Irq, ICC_IGRPEN_Value); --  group1 -> IRQ
 
          --
          --  Set current interrupt priority mask to accept all interrupt priorities
@@ -186,53 +160,56 @@ is
          --  priority value) than the value set in ICC_PMR.
          --
          ICC_PMR_Value.Priority := GIC_Interrupt_Priority_Type'Last;
-         Set_ICC_PMR (ICC_PMR_Value);
+         --  Set_ICC_PMR (ICC_PMR_Value);
+         GICC.ICC_PMR := ICC_PMR_Value;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("***** Initialize_GIC_Cpu_Interface 2" & ASCII.LF); --???
       end Initialize_GIC_Cpu_Interface;
 
       Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
       Old_Cpu_Interrupting_State : Cpu_Register_Type;
-      Old_Data_Range             : HiRTOS.Memory_Protection.Memory_Range_Type;
-      Old_Flags                  : Cpu_Register_Type with
-        Unreferenced;
+      Old_Flags : Cpu_Register_Type with Unreferenced;
+      CBAR_EL1_Value : constant CBAR_EL1_Type := Get_CBAR_EL1;
+      PERIPHBASE_Addr : constant Interfaces.Unsigned_64 :=
+         Interfaces.Shift_Left (Interfaces.Unsigned_64 (CBAR_EL1_Value.PERIPHBASE), 18);
 
    begin
-      HiRTOS.Enter_Cpu_Privileged_Mode;
-      HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
-        (Interrupt_Controller_Obj'Address, Interrupt_Controller_Obj'Size,
-         Old_Data_Range);
-
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR1 "); --???
+   HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal(PERIPHBASE_Addr, End_Line => True); --???
       if not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
          Old_Cpu_Interrupting_State := Disable_Cpu_Interrupting;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR2" & ASCII.LF); --???
 
          if Cpu_Id = Valid_Cpu_Core_Id_Type'First then
             pragma Assert (not Per_Cpu_Initialized);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR3" & ASCII.LF); --???
             Initialize_GIC_Distributor;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR4" & ASCII.LF); --???
          else
             while not Interrupt_Controller_Obj.GIC_Distributor_Initialized loop
                HiRTOS_Cpu_Arch_Interface.Wait_For_Multicore_Event;
             end loop;
          end if;
 
-         Initialize_GIC_Redistributor (Cpu_Id);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR5" & ASCII.LF); --???
          Initialize_GIC_Cpu_Interface;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR7" & ASCII.LF); --???
 
          Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
       else
          Interrupt_Controller_Obj.GIC_Distributor_Initialized := True;
       end if;
 
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR8" & ASCII.LF); --???
       Old_Flags := Atomic_Fetch_Or (Interrupt_Controller_Obj.Per_Cpu_Initialized_Flags,
                                     Bit_Mask (Bit_Index_Type (Cpu_Id)));
-
-      HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
-      HiRTOS.Exit_Cpu_Privileged_Mode;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("**** JGR9" & ASCII.LF); --???
    end Initialize;
 
    procedure Configure_Internal_Interrupt
      (Internal_Interrupt_Id         : Internal_Interrupt_Id_Type;
-      Priority                      : Valid_Interrupt_Priority_Type;
-      Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type;
-      Trigger_Mode                  : Interrupt_Trigger_Mode_Type;
+      Priority                      : Valid_Interrupt_Priority_Type with Unreferenced;
+      Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type with Unreferenced;
+      Trigger_Mode                  : Interrupt_Trigger_Mode_Type with Unreferenced;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
       Interrupt_Handler_Arg         : System.Address := System.Null_Address)
    is
@@ -241,22 +218,22 @@ is
         Interrupt_Handler_Type renames
         Interrupt_Controller_Obj.Internal_Interrupt_Handlers
           (Cpu_Id, Internal_Interrupt_Id);
-      GICR                     : GICR_Type renames GICD.GICR_Array (Cpu_Id);
-      Old_Mmio_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
+      --  GICR                     : GICR_Type renames GICD.GICR_Array (Cpu_Id);
+      --  Old_Mmio_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
       Old_Data_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
-      ICFGR_Register_Index     : constant Integer                :=
-        Integer (Internal_Interrupt_Id) / GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
-      ICFGR_Field_Index        : constant Integer                :=
-        Integer (Internal_Interrupt_Id) mod GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
-      IPRIORITY_Register_Index : constant Integer                :=
-        Integer (Internal_Interrupt_Id) /
-        GIC_IPRIORITYR_Slot_Array_Type'Length;
-      IPRIORITY_Field_Index    : constant Integer                :=
-        Integer (Internal_Interrupt_Id) mod
-        GIC_IPRIORITYR_Slot_Array_Type'Length;
-      GIC_ICFGR_Value          : GIC_ICFGR_Type;
-      GIC_IPRIORITYR_Value     : GIC_IPRIORITYR_Type;
-      GIC_IGROUPR_Value        : GIC_IGROUPR_Type;
+      --  ICFGR_Register_Index     : constant Integer                :=
+      --    Integer (Internal_Interrupt_Id) / GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
+      --  ICFGR_Field_Index        : constant Integer                :=
+      --    Integer (Internal_Interrupt_Id) mod GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
+      --  IPRIORITY_Register_Index : constant Integer                :=
+      --    Integer (Internal_Interrupt_Id) /
+      --    GIC_IPRIORITYR_Slot_Array_Type'Length;
+      --  IPRIORITY_Field_Index    : constant Integer                :=
+      --    Integer (Internal_Interrupt_Id) mod
+      --    GIC_IPRIORITYR_Slot_Array_Type'Length;
+      --  GIC_ICFGR_Value          : GIC_ICFGR_Type;
+      --  GIC_IPRIORITYR_Value     : GIC_IPRIORITYR_Type;
+      --  GIC_IGROUPR_Value        : GIC_IGROUPR_Type;
    begin
       pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point = null);
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
@@ -267,45 +244,45 @@ is
       Interrupt_Handler.Interrupt_Handler_Arg         := Interrupt_Handler_Arg;
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
 
-      HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
-        (GICR'Address, GICR'Size, Old_Mmio_Range);
+      --  HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
+      --    (GICR'Address, GICR'Size, Old_Mmio_Range);
 
       --
       --  Configure interrupt trigger mode:
       --
-      GIC_ICFGR_Value                                                    :=
-        GICR.GICR_SGI_And_PPI_Page.GICR_ICFGR_Array (ICFGR_Register_Index);
-      GIC_ICFGR_Value.Interrupt_Trigger_Mode_Array (ICFGR_Field_Index)   :=
-        GIC_ICFGR_Interrupt_Trigger_Mode_Type (Trigger_Mode);
-      GICR.GICR_SGI_And_PPI_Page.GICR_ICFGR_Array (ICFGR_Register_Index) :=
-        GIC_ICFGR_Value;
+      --  GIC_ICFGR_Value                                                    :=
+      --    GICR.GICR_SGI_And_PPI_Page.GICR_ICFGR_Array (ICFGR_Register_Index);
+      --  GIC_ICFGR_Value.Interrupt_Trigger_Mode_Array (ICFGR_Field_Index)   :=
+      --    GIC_ICFGR_Interrupt_Trigger_Mode_Type (Trigger_Mode);
+      --  GICR.GICR_SGI_And_PPI_Page.GICR_ICFGR_Array (ICFGR_Register_Index) :=
+      --    GIC_ICFGR_Value;
 
       --
       --  Configure interrupt priority:
       --
-      GIC_IPRIORITYR_Value         :=
-        GICR.GICR_SGI_And_PPI_Page.GICR_IPRIORITYR_Array
-          (IPRIORITY_Register_Index);
-      GIC_IPRIORITYR_Value.Slot_Array (IPRIORITY_Field_Index)
-        .Interrupt_Priority        :=
-        GIC_Interrupt_Priority_Type (Priority);
-      GICR.GICR_SGI_And_PPI_Page.GICR_IPRIORITYR_Array
-        (IPRIORITY_Register_Index) :=
-        GIC_IPRIORITYR_Value;
+      --  GIC_IPRIORITYR_Value         :=
+      --    GICR.GICR_SGI_And_PPI_Page.GICR_IPRIORITYR_Array
+      --      (IPRIORITY_Register_Index);
+      --  GIC_IPRIORITYR_Value.Slot_Array (IPRIORITY_Field_Index)
+      --    .Interrupt_Priority        :=
+      --    GIC_Interrupt_Priority_Type (Priority);
+      --  GICR.GICR_SGI_And_PPI_Page.GICR_IPRIORITYR_Array
+      --    (IPRIORITY_Register_Index) :=
+      --    GIC_IPRIORITYR_Value;
 
       --
       --  Assign interrupt to an interrupt group:
       --
-      GIC_IGROUPR_Value := GICR.GICR_SGI_And_PPI_Page.GICR_IGROUPR0;
-      GIC_IGROUPR_Value (Integer (Internal_Interrupt_Id)) :=
-        GIC_Interrupt_Group_Type (Cpu_Interrupt_Line);
-      GICR.GICR_SGI_And_PPI_Page.GICR_IGROUPR0            := GIC_IGROUPR_Value;
+      --  GIC_IGROUPR_Value := GICR.GICR_SGI_And_PPI_Page.GICR_IGROUPR0;
+      --  GIC_IGROUPR_Value (Integer (Internal_Interrupt_Id)) :=
+      --    GIC_Interrupt_Group_Type (Cpu_Interrupt_Line);
+      --  GICR.GICR_SGI_And_PPI_Page.GICR_IGROUPR0            := GIC_IGROUPR_Value;
 
       --
       --  NOTE: The interrupt starts to fire on the CPU only after Enable_Internal_Interrupt()
       --  is called.
       --
-      HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
+      --  HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
    end Configure_Internal_Interrupt;
 
    procedure Configure_External_Interrupt
@@ -340,7 +317,6 @@ is
       GIC_ICFGR_Value           : GIC_ICFGR_Type;
       GIC_IPRIORITYR_Value      : GIC_IPRIORITYR_Type;
       GIC_IGROUPR_Value         : GIC_IGROUPR_Type;
-      GICD_IROUTER_Value        : GICD_IROUTER_Type;
    begin
       pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point = null);
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
@@ -387,15 +363,6 @@ is
         GIC_Interrupt_Group_Type (Cpu_Interrupt_Line);
       GICD.GICD_IGROUPR_Array (IGROUPR_Register_Index) := GIC_IGROUPR_Value;
 
-      --
-      --  Route interrupt to ther calling CPU:
-      --
-      GICD_IROUTER_Value                                        :=
-        GICD.GICD_IROUTER_Array (Integer (External_Interrupt_Id));
-      GICD_IROUTER_Value.Aff0 := GICD_IROUTER_Affinity_Type (Cpu_Id);
-      GICD.GICD_IROUTER_Array (Integer (External_Interrupt_Id)) :=
-        GICD_IROUTER_Value;
-
       HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
       HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Release
         (Interrupt_Controller_Obj.Spinlock);
@@ -410,18 +377,19 @@ is
    procedure Enable_Internal_Interrupt
      (Internal_Interrupt_Id : Internal_Interrupt_Id_Type)
    is
-      GIC_ISENABLER_Value : GIC_ISENABLER_Type := [others => 0];
-      Cpu_Id              : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
-      GICR                : GICR_Type renames GICD.GICR_Array (Cpu_Id);
-      Old_Mmio_Range      : HiRTOS.Memory_Protection.Memory_Range_Type;
+      --  GIC_ISENABLER_Value : GIC_ISENABLER_Type := [others => 0];
+      --  Cpu_Id              : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
+      --  GICR                : GICR_Type renames GICD.GICR_Array (Cpu_Id);
+      --  Old_Mmio_Range      : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
-      HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
-        (GICR'Address, GICR'Size, Old_Mmio_Range);
+      --  HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
+      --    (GICR'Address, GICR'Size, Old_Mmio_Range);
 
-      GIC_ISENABLER_Value (Integer (Internal_Interrupt_Id)) := 1;
-      GICR.GICR_SGI_And_PPI_Page.GICR_ISENABLER0 := GIC_ISENABLER_Value;
+      --  GIC_ISENABLER_Value (Integer (Internal_Interrupt_Id)) := 1;
+      --  GICR.GICR_SGI_And_PPI_Page.GICR_ISENABLER0 := GIC_ISENABLER_Value;
 
-      HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
+      --  HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
+      null;
    end Enable_Internal_Interrupt;
 
    procedure Enable_External_Interrupt
@@ -461,19 +429,20 @@ is
    procedure Disable_Internal_Interrupt
      (Internal_Interrupt_Id : Internal_Interrupt_Id_Type)
    is
-      GIC_ICENABLER_Value : GIC_ICENABLER_Type;
-      Cpu_Id              : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
-      GICR                : GICR_Type renames GICD.GICR_Array (Cpu_Id);
-      Old_Mmio_Range      : HiRTOS.Memory_Protection.Memory_Range_Type;
+      --  GIC_ICENABLER_Value : GIC_ICENABLER_Type;
+      --  Cpu_Id              : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
+      --  GICR                : GICR_Type renames GICD.GICR_Array (Cpu_Id);
+      --  Old_Mmio_Range      : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
-      HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
-        (GICR'Address, GICR'Size, Old_Mmio_Range);
+      --  HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
+      --    (GICR'Address, GICR'Size, Old_Mmio_Range);
 
-      GIC_ICENABLER_Value                                   := [others => 0];
-      GIC_ICENABLER_Value (Integer (Internal_Interrupt_Id)) := 1;
-      GICR.GICR_SGI_And_PPI_Page.GICR_ICENABLER0 := GIC_ICENABLER_Value;
+      --  GIC_ICENABLER_Value                                   := [others => 0];
+      --  GIC_ICENABLER_Value (Integer (Internal_Interrupt_Id)) := 1;
+      --  GICR.GICR_SGI_And_PPI_Page.GICR_ICENABLER0 := GIC_ICENABLER_Value;
 
-      HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
+      --  HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
+      null;
    end Disable_Internal_Interrupt;
 
    procedure Disable_External_Interrupt
@@ -514,8 +483,7 @@ is
      (Cpu_Interrupt_Line : Cpu_Interrupt_Line_Type)
    is
       use type Interfaces.Unsigned_16;
-      ICC_IAR_Value              : constant ICC_IAR_Type            :=
-        Get_ICC_IAR (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line));
+      ICC_IAR_Value              : constant ICC_IAR_Type           := GICC.ICC_IAR;
       Interrupt_Id               : constant Interfaces.Unsigned_16 := Interfaces.Unsigned_16 (ICC_IAR_Value.INTID);
       Cpu_Id : constant Valid_Cpu_Core_Id_Type  := Get_Cpu_Id;
       Old_Cpu_Interrupting_State : Cpu_Register_Type with
@@ -568,22 +536,21 @@ is
       --
       HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
       ICC_EOIR_Value.INTID := INTID_Type (Interrupt_Id);
-      Set_ICC_EOIR (GIC_Interrupt_Group_Type (Cpu_Interrupt_Line), ICC_EOIR_Value);
+      GICC.ICC_EOIR := ICC_EOIR_Value;
    end GIC_Interrupt_Handler;
 
    procedure Trigger_Software_Generated_Interrupt (Soft_Gen_Interrupt_Id : Soft_Gen_Interrupt_Id_Type;
                                                    Cpu_Id : HiRTOS_Cpu_Multi_Core_Interface.Cpu_Core_Id_Type) is
-      ICC_SGIR_Value : HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.ICC_SGIR_Type;
+      GICD_SGIR_Value : GICD_SGIR_Type;
    begin
-      ICC_SGIR_Value.Target_List :=
-         ICC_SGIR_Target_List_Type (HiRTOS_Cpu_Arch_Interface.Bit_Mask (Bit_Index_Type (Cpu_Id)));
-      ICC_SGIR_Value.INTID := SGI_INTID_Type (Soft_Gen_Interrupt_Id);
-      Set_ICC_SGIR (HiRTOS_Cpu_Arch_Interface.Interrupt_Controller.Cpu_Interrupt_Irq,
-                    ICC_SGIR_Value);
+      GICD_SGIR_Value.Target_List :=
+         GICD_SGIR_Target_List_Type (HiRTOS_Cpu_Arch_Interface.Bit_Mask (Bit_Index_Type (Cpu_Id)));
+      GICD_SGIR_Value.INTID := SGI_INTID_Type (Soft_Gen_Interrupt_Id);
+      GICD.GICD_SGIR := GICD_SGIR_Value;
    end Trigger_Software_Generated_Interrupt;
 
    function Get_Highest_Interrupt_Priority_Disabled return Interrupt_Priority_Type is
-      ICC_PMR_Value : constant ICC_PMR_Type := Get_ICC_PMR;
+      ICC_PMR_Value : constant ICC_PMR_Type := GICC.ICC_PMR;
    begin
       return Interrupt_Priority_Type (ICC_PMR_Value.Priority);
    end Get_Highest_Interrupt_Priority_Disabled;
@@ -592,7 +559,7 @@ is
       ICC_PMR_Value : ICC_PMR_Type;
    begin
       ICC_PMR_Value.Priority := GIC_Interrupt_Priority_Type (Priority);
-      Set_ICC_PMR (ICC_PMR_Value);
+      GICC.ICC_PMR := ICC_PMR_Value;
    end Set_Highest_Interrupt_Priority_Disabled;
 
    ----------------------------------------------------------------------------
@@ -610,314 +577,5 @@ is
 
       return CBAR_EL1_Value;
    end Get_CBAR_EL1;
-
-   function Get_ICC_IAR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_IAR_Type
-   is
-      ICC_IAR_Value : ICC_IAR_Type;
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("mrs %0, icc_iar0_el1",
-            Outputs  => ICC_IAR_Type'Asm_Output ("=r", ICC_IAR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("mrs %0, icc_iar1_el1",
-            Outputs  => ICC_IAR_Type'Asm_Output ("=r", ICC_IAR_Value), --  %0
-            Volatile => True);
-      end if;
-
-      return ICC_IAR_Value;
-   end Get_ICC_IAR;
-
-   procedure Set_ICC_IAR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-      ICC_IAR_Value       : ICC_IAR_Type)
-   is
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("msr icc_iar0_el1, %0",
-            Inputs   => ICC_IAR_Type'Asm_Input ("r", ICC_IAR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("msr icc_iar1_el1, %0",
-            Inputs   => ICC_IAR_Type'Asm_Input ("r", ICC_IAR_Value), --  %0
-            Volatile => True);
-      end if;
-   end Set_ICC_IAR;
-
-   function Get_ICC_EOIR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_EOIR_Type
-   is
-      ICC_EOIR_Value : ICC_EOIR_Type;
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("mrs %0, icc_eoir0_el1",
-            Outputs  => ICC_EOIR_Type'Asm_Output ("=r", ICC_EOIR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("mrs %0, icc_eoir1_el1",
-            Outputs  => ICC_EOIR_Type'Asm_Output ("=r", ICC_EOIR_Value), --  %0
-            Volatile => True);
-      end if;
-
-      return ICC_EOIR_Value;
-   end Get_ICC_EOIR;
-
-   procedure Set_ICC_EOIR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-      ICC_EOIR_Value      : ICC_EOIR_Type)
-   is
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("msr icc_eoir0_el1, %0",
-            Inputs   => ICC_EOIR_Type'Asm_Input ("r", ICC_EOIR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("msr icc_eoir1_el1, %0",
-            Inputs   => ICC_EOIR_Type'Asm_Input ("r", ICC_EOIR_Value), --  %0
-            Volatile => True);
-      end if;
-   end Set_ICC_EOIR;
-
-   function Get_ICC_HPPIR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_HPPIR_Type
-   is
-      ICC_HPPIR_Value : ICC_HPPIR_Type;
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("mrs %0, icc_hppir0_el1",
-            Outputs  =>
-              ICC_HPPIR_Type'Asm_Output ("=r", ICC_HPPIR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("mrs %0, icc_hppir1_el1",
-            Outputs  =>
-              ICC_HPPIR_Type'Asm_Output ("=r", ICC_HPPIR_Value), --  %0
-            Volatile => True);
-      end if;
-
-      return ICC_HPPIR_Value;
-   end Get_ICC_HPPIR;
-
-   procedure Set_ICC_HPPIR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-      ICC_HPPIR_Value     : ICC_HPPIR_Type)
-   is
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("msr icc_hppir0_el1, %0",
-            Inputs   => ICC_HPPIR_Type'Asm_Input ("r", ICC_HPPIR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("msr icc_hppir1_el1, %0",
-            Inputs   => ICC_HPPIR_Type'Asm_Input ("r", ICC_HPPIR_Value), --  %0
-            Volatile => True);
-      end if;
-   end Set_ICC_HPPIR;
-
-   function Get_ICC_BPR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_BPR_Type
-   is
-      ICC_BPR_Value : ICC_BPR_Type;
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("mrs %0, icc_bpr0_el1",
-            Outputs  => ICC_BPR_Type'Asm_Output ("=r", ICC_BPR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("mrs %0, icc_bpr1_el1",
-            Outputs  => ICC_BPR_Type'Asm_Output ("=r", ICC_BPR_Value), --  %0
-            Volatile => True);
-      end if;
-
-      return ICC_BPR_Value;
-   end Get_ICC_BPR;
-
-   procedure Set_ICC_BPR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-      ICC_BPR_Value       : ICC_BPR_Type)
-   is
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("msr icc_bpr0_el1, %0",
-            Inputs   => ICC_BPR_Type'Asm_Input ("r", ICC_BPR_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("msr icc_bpr1_el1, %0",
-            Inputs   => ICC_BPR_Type'Asm_Input ("r", ICC_BPR_Value), --  %0
-            Volatile => True);
-      end if;
-   end Set_ICC_BPR;
-
-   function Get_ICC_DIR return ICC_DIR_Type is
-      ICC_DIR_Value : ICC_DIR_Type;
-   begin
-      System.Machine_Code.Asm
-        ("mrs %0, icc_dir_el1",
-         Outputs  => ICC_DIR_Type'Asm_Output ("=r", ICC_DIR_Value), --  %0
-         Volatile => True);
-
-      return ICC_DIR_Value;
-   end Get_ICC_DIR;
-
-   procedure Set_ICC_DIR (ICC_DIR_Value : ICC_DIR_Type) is
-   begin
-      System.Machine_Code.Asm
-        ("msr icc_dir_el1, %0",
-         Inputs   => ICC_DIR_Type'Asm_Input ("r", ICC_DIR_Value), --  %0
-         Volatile => True);
-   end Set_ICC_DIR;
-
-   function Get_ICC_PMR return ICC_PMR_Type is
-      ICC_PMR_Value : ICC_PMR_Type;
-   begin
-      System.Machine_Code.Asm
-        ("mrs %0, icc_pmr_el1",
-         Outputs  => ICC_PMR_Type'Asm_Output ("=r", ICC_PMR_Value), --  %0
-         Volatile => True);
-
-      return ICC_PMR_Value;
-   end Get_ICC_PMR;
-
-   procedure Set_ICC_PMR (ICC_PMR_Value : ICC_PMR_Type) is
-   begin
-      System.Machine_Code.Asm
-        ("msr icc_pmr_el1, %0",
-         Inputs   => ICC_PMR_Type'Asm_Input ("r", ICC_PMR_Value), --  %0
-         Volatile => True);
-   end Set_ICC_PMR;
-
-   function Get_ICC_RPR return ICC_RPR_Type is
-      ICC_RPR_Value : ICC_RPR_Type;
-   begin
-      System.Machine_Code.Asm
-        ("mrs %0, icc_rpr_el1",
-         Outputs  => ICC_RPR_Type'Asm_Output ("=r", ICC_RPR_Value), --  %0
-         Volatile => True);
-
-      return ICC_RPR_Value;
-   end Get_ICC_RPR;
-
-   procedure Set_ICC_RPR (ICC_RPR_Value : ICC_RPR_Type) is
-   begin
-      System.Machine_Code.Asm
-        ("msr icc_rpr_el1, %0",
-         Inputs   => ICC_RPR_Type'Asm_Input ("r", ICC_RPR_Value), --  %0
-         Volatile => True);
-   end Set_ICC_RPR;
-
-   function Get_ICC_CTLR return ICC_CTLR_Type is
-      ICC_CTLR_Value : ICC_CTLR_Type;
-   begin
-      System.Machine_Code.Asm
-        ("mrs %0, icc_ctlr_el1",
-         Outputs  => ICC_CTLR_Type'Asm_Output ("=r", ICC_CTLR_Value), --  %0
-         Volatile => True);
-
-      return ICC_CTLR_Value;
-   end Get_ICC_CTLR;
-
-   procedure Set_ICC_CTLR (ICC_CTLR_Value : ICC_CTLR_Type) is
-   begin
-      System.Machine_Code.Asm
-        ("msr icc_ctlr_el1, %0",
-         Inputs   => ICC_CTLR_Type'Asm_Input ("r", ICC_CTLR_Value), --  %0
-         Volatile => True);
-   end Set_ICC_CTLR;
-
-   function Get_ICC_SRE return ICC_SRE_Type is
-      ICC_SRE_Value : ICC_SRE_Type;
-   begin
-      System.Machine_Code.Asm
-        ("mrs %0, icc_sre_el1",
-         Outputs  => ICC_SRE_Type'Asm_Output ("=r", ICC_SRE_Value), --  %0
-         Volatile => True);
-
-      return ICC_SRE_Value;
-   end Get_ICC_SRE;
-
-   procedure Set_ICC_SRE (ICC_SRE_Value : ICC_SRE_Type) is
-   begin
-      System.Machine_Code.Asm
-        ("msr icc_sre_el1, %0",
-         Inputs   => ICC_SRE_Type'Asm_Input ("r", ICC_SRE_Value), --  %0
-         Volatile => True);
-   end Set_ICC_SRE;
-
-   function Get_ICC_IGRPEN
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type) return ICC_IGRPEN_Type
-   is
-      ICC_IGRPEN_Value : ICC_IGRPEN_Type;
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("mrs %0, icc_igrpen0_el1",
-            Outputs  =>
-              ICC_IGRPEN_Type'Asm_Output ("=r", ICC_IGRPEN_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("mrs %0, icc_igrpen1_el1",
-            Outputs  =>
-              ICC_IGRPEN_Type'Asm_Output ("=r", ICC_IGRPEN_Value), --  %0
-            Volatile => True);
-      end if;
-
-      return ICC_IGRPEN_Value;
-   end Get_ICC_IGRPEN;
-
-   procedure Set_ICC_IGRPEN
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-      ICC_IGRPEN_Value    : ICC_IGRPEN_Type)
-   is
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("msr icc_igrpen0_el1, %0",
-            Inputs => ICC_IGRPEN_Type'Asm_Input ("r", ICC_IGRPEN_Value), --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("msr icc_igrpen1_el1, %0",
-            Inputs => ICC_IGRPEN_Type'Asm_Input ("r", ICC_IGRPEN_Value), --  %0
-            Volatile => True);
-      end if;
-   end Set_ICC_IGRPEN;
-
-   procedure Set_ICC_SGIR
-     (GIC_Interrupt_Group : GIC_Interrupt_Group_Type;
-      ICC_SGIR_Value      : ICC_SGIR_Type)
-   is
-   begin
-      if GIC_Interrupt_Group = GIC_Interrupt_Group0 then
-         System.Machine_Code.Asm
-           ("msr icc_sgi0r_el1, %0",
-            Inputs   =>
-              Interfaces.Unsigned_64'Asm_Input ("r", ICC_SGIR_Value.Value),  --  %0
-            Volatile => True);
-      else
-         System.Machine_Code.Asm
-           ("msr icc_sgi1r_el1, %0",
-            Inputs   =>
-              Interfaces.Unsigned_64'Asm_Input ("r", ICC_SGIR_Value.Value),  --  %0
-            Volatile => True);
-      end if;
-   end Set_ICC_SGIR;
 
 end HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;

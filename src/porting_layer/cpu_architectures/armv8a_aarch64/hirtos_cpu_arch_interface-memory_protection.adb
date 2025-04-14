@@ -175,7 +175,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection is
       Fault_Status_Registers : out Fault_Status_Registers_Type)
    is
    begin
-      Fault_Status_Registers.ESR_EL1_Value := 0; --  TODO: Initialize to right default (others => <>);
+      Fault_Status_Registers.ESR_EL1_Value := (others => <>);
       Fault_Status_Registers.FAR_EL1_Value := 0; --  TODO: Initialize to right default (others => <>);
       Fault_Status_Registers.SCTLR_EL1_Value := System_Registers.Get_SCTLR_EL1;
    end Initialize_Fault_Status_Registers;

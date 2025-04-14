@@ -131,6 +131,12 @@ package body HiRTOS.Timer is
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access (Timer_Obj'Address, Timer_Obj'Size,
                                                               Old_Data_Range);
       Timer_Obj.Id := Timer_Id;
+      Timer_Obj.Periodic := False;
+      Timer_Obj.Running := False;
+      Timer_Obj.Timer_Wheel_Revolutions := 0;
+      Timer_Obj.Timer_Wheel_Revolutions_Left := 0;
+      Timer_Obj.Expiration_Callback := null;
+      Timer_Obj.Wheel_Spoke_Index := Invalid_Timer_Wheel_Spoke_Index;
       Timer_Obj.Initialized := True;
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_Timer;

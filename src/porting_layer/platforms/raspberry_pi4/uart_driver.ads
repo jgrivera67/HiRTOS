@@ -22,6 +22,8 @@ is
 
    procedure Put_Char (C : Character);
 
+   procedure Flush_Output;
+
    function Get_Char return Character;
 
 private

@@ -36,10 +36,10 @@
 
 ENTRY(reset_handler);
 
-CACHE_LINE_ALIGNMENT = 64;
-TOTAL_RAM = 1M;
+PAGE_ALIGNMENT = 4 * 1024;
+TOTAL_RAM = 1024M;
 #BOOT_ADDRESS = 0x80000; # Address when booting from SD card
-BOOT_ADDRESS = 0x0; # address when booting from UART
+BOOT_ADDRESS = 0x100000; # address when booting from UART
 
 MEMORY
 {
@@ -51,14 +51,14 @@ SECTIONS
 {
  .text :
   {
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     __global_text_region_start = .;
 
     KEEP (*(.text.privileged.reset_handler))
 
     *(.text.privileged.*)
 
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     __privileged_text_region_end = .;
     PROVIDE (__unprivileged_text_start = .);
 
@@ -144,14 +144,14 @@ SECTIONS
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
 
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     PROVIDE (__visible_text_end = .);
     __global_text_region_end = .;
   } >RAM
 
   .rodata :
   {
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     PROVIDE_HIDDEN (__rodata_start = .);
     *(.rdata)
     *(.rodata .rodata.*)
@@ -161,14 +161,14 @@ SECTIONS
     *(.srodata.cst2)
     *(.srodata .srodata.*)
     *(.gnu.linkonce.r.*)
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     PROVIDE_HIDDEN (__rodata_end = .);
     PROVIDE( __data_load = . );
   } >RAM
 
   .data :  AT (__data_load)
   {
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     __global_data_region_start = .;
     PROVIDE( __data_start = . );
     *(.data .data.*)
@@ -188,7 +188,7 @@ SECTIONS
     *(.gnu.linkonce.b.*)
     *(COMMON)
     PROVIDE( __bss_end = . );
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     __global_data_region_end = .;
   } >RAM
 
@@ -198,30 +198,30 @@ SECTIONS
     * Privileged uninitialized global variables (only accessible in privileged mode)
     * are located the beginning of the bss section
     */
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     __privileged_bss_start = .;
     *hirtos*.o (.bss.*)
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     __privileged_bss_end = .;
   } >RAM
 
   .globals_initialized_at_load_time (NOLOAD) :
   {
-    . = ALIGN(CACHE_LINE_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
+    . = ALIGN(PAGE_ALIGNMENT); /* Needs to be in its own cache line to be flushed */
     __globals_initialized_at_load_time_start = .;
     *(.globals_initialized_at_load_time)
-    . = ALIGN(CACHE_LINE_ALIGNMENT); /* End boundary for data cache flushing */
+    . = ALIGN(PAGE_ALIGNMENT); /* End boundary for data cache flushing */
     __globals_initialized_at_load_time_end = .;
   } >RAM
 
   .stack (NOLOAD)  :
   {
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     _stacks_start = .;
-    *(.isr_stack)
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    *(.isr_stacks)
+    . = ALIGN(PAGE_ALIGNMENT);
     *(.thread_stacks)
-    . = ALIGN(CACHE_LINE_ALIGNMENT);
+    . = ALIGN(PAGE_ALIGNMENT);
     _stacks_end = .;
   } >RAM
 }

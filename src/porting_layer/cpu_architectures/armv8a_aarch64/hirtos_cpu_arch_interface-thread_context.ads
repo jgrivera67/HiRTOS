@@ -27,7 +27,11 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    --
    --  Perform the first thread thread context switch
    --
-   procedure First_Thread_Context_Switch with No_Return;
+   procedure First_Thread_Context_Switch with
+      Import,
+      Convention => C,
+      External_Name => "first_thread_context_switch",
+      No_Return;
 
    --
    --  Perform a synchronous thread context switch
@@ -47,14 +51,17 @@ package HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => On is
    procedure Switch_Cpu_To_Unprivileged_Mode with
       Pre  => Cpu_In_Privileged_Mode and then not Cpu_Interrupting_Disabled,
       Post => not Cpu_In_Privileged_Mode,
-      No_Inline;
-   pragma Machine_Attribute (Switch_Cpu_To_Unprivileged_Mode, "naked");
+      Import, --  defined in hirtos_cpu_arch_interface_interrupt_handling_asm.S
+      Convention => C,
+      External_Name => "switch_cpu_to_unprivileged_mode";
 
    function  Get_Saved_PC (Cpu_Context : Cpu_Context_Type) return System.Address;
 
    procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : System.Address);
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
+
+   function Get_Saved_X0 (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type;
 
 private
    use HiRTOS_Cpu_Arch_Interface_Private;
@@ -200,5 +207,8 @@ private
 
    function Get_Saved_CPSR (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
       (Cpu_Context.Integer_Registers.SPSR.Value);
+
+   function Get_Saved_X0 (Cpu_Context : Cpu_Context_Type) return Cpu_Register_Type is
+      (Cpu_Context.Integer_Registers.X0);
 
 end HiRTOS_Cpu_Arch_Interface.Thread_Context;

@@ -25,4 +25,7 @@ is
 
    procedure Set_Led (On : Boolean);
 
+   procedure Initialize_Self_Hosted_Debugger with
+      Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode;
+
 end HiRTOS.Debug;

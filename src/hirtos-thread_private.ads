@@ -89,7 +89,7 @@ is
          HiRTOS.Memory_Protection_Private.Thread_Memory_Regions_Type;
       Stats : Thread_Stats_Type;
    end record with
-     Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+     Alignment => HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes;
 
    --
    --  Each thread has its own condvar

@@ -10,11 +10,9 @@
 --  for ARMv8-R architecture
 --
 
-with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => Off is
-   use ASCII;
 
    procedure Thread_Unintended_Exit_Catcher is
    begin
@@ -68,28 +66,14 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => Off is
       );
    end Initialize_Thread_Cpu_Context;
 
-   procedure First_Thread_Context_Switch is
-      Old_Cpu_Interrupting : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
-   begin
-      --
-      --  NOTE: To start executing the first thread, we pretend that we are returning from an
-      --  interrupt, since before RTOS tasking is started, we have been executing in the reset
-      --  exception handler.
-      --
-      Old_Cpu_Interrupting := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
-      HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Interrupt_Handler_Epilog;
-   end First_Thread_Context_Switch;
-
    procedure Synchronous_Thread_Context_Switch is
    begin
       --
       --  Initiate a synchronous thread context switch by doing
-      --  a Supervisor call, passing 0 in r0
+      --  a Supervisor call with immediate 0
       --
       System.Machine_Code.Asm (
-         "mov x0, #0" & LF &
          "svc #0",
-         Clobber => "x0",
          Volatile => True);
    end Synchronous_Thread_Context_Switch;
 
@@ -108,50 +92,18 @@ package body HiRTOS_Cpu_Arch_Interface.Thread_Context with SPARK_Mode => Off is
          pragma Assert (DAIF_Value.I = Interrupt_Enabled);
 
          --
-         --  Switch to privileged mode:
+         --  Switch to privileged mode by making a supervisor call with immediate 1:
          --
          --  NOTE: The SVC exception handler sets `Cpu_Privileged_Nesting_Counter` to 1
          --
          System.Machine_Code.Asm (
-            "mov x0, #1" & LF &
-            "svc #0",
-            Clobber => "x0",
+            "svc #1",
             Volatile => True);
 
          --
          --  NOTE: We returned here in privileged mode.
          --
    end Switch_Cpu_To_Privileged_Mode;
-
-   --
-   --  Transitions the CPU from EL1 (privileged mode) to EL0 (unprivileged mode) with interrupts enabled.
-   --
-   procedure Switch_Cpu_To_Unprivileged_Mode is
-      SPSR_Value : constant PSTATE_Type :=
-         (As_Value => False, SPSel => SP_EL0, CurrentEL => EL0, M => Execution_State_AArch64,
-          DAIF => (D => Interrupt_Enabled, A => Interrupt_Enabled,
-                   I => Interrupt_Enabled, F => Interrupt_Enabled),
-          others => <>);
-   begin
-      --
-      --  Transition from EL1 to EL0, by returning from an EL1 exception into EL0.
-      --  Return to EL0 with all exceptions/interrupts enabled and using SP_EL0 stack pointer.
-      --
-      System.Machine_Code.Asm (
-         --  Disable CPU interrupting, so that we don't get interrupted before executing eret:
-         "msr DAIFset, %0" & LF &
-         "isb" & LF &
-         --  Set exception return address to be the caller's return address:
-         "msr elr_el1, lr" & LF &
-         --  SPSR_EL1 to El0, SP_EL0, interrupts enabled:
-         "msr spsr_el1, %1" & LF &
-         --  return from exception:
-        "eret",
-         Inputs =>
-            [Interfaces.Unsigned_8'Asm_Input ("g", DAIF_SetClr_IF_Mask),  --  %0
-             Cpu_Register_Type'Asm_Input ("r", SPSR_Value.Value)], --  %1
-         Volatile => True);
-   end Switch_Cpu_To_Unprivileged_Mode;
 
    procedure Set_Saved_PC (Cpu_Context : in out Cpu_Context_Type; PC_Value : System.Address)
    is

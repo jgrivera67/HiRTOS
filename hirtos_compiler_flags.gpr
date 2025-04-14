@@ -62,8 +62,9 @@ abstract project Hirtos_Compiler_Flags is
       when "arm_cortex_a72" =>
               CPU_Arch := "armv8a_aarch64";
               Target_Compiler_Selector := "aarch64-elf";
-              CPU_Core_Switches := ("-mcpu=cortex-a72+nosimd",
-                                    "-march=armv8-a",
+              CPU_Core_Switches := ("-march=armv8-a",
+                                    "-mcpu=cortex-a72+nosimd",
+                                  --"-mgeneral-regs-only",
                                     "-mlittle-endian",
                                     "-mabi=lp64",
                                     "-I/opt/gcc-14.2.0-aarch64-elf/lib/gcc/aarch64-elf/14.2.0/include",
@@ -132,6 +133,7 @@ abstract project Hirtos_Compiler_Flags is
                   ,"-nostdinc"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) source files.
                   ,"-nostdlib"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) ALI files.
                   ,"-gdwarf-4"  --  To generate correct source-line info
+                --, "-gnatd.v"  --  Enforce SPARK rules of elaboration
                   );
 
       Development_Only_Flags := ("-Og", -- No optimization

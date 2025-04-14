@@ -37,6 +37,10 @@ project Raspberry_Pi4_Hello is
           "-T../../memory_layout.ld");
    end Linker;
 
+   package Binder is
+      for Default_Switches ("Ada") use ("-l");
+   end Binder;
+
    package Builder is
       for Executable ("app_main.adb") use Executable_Prefix;
       for Executable_Suffix use ".elf";

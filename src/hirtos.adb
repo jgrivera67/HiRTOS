@@ -5,6 +5,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 
+with HiRTOS.Debug;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread;
 with HiRTOS.Thread_Private;
@@ -18,6 +19,7 @@ with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Thread_Context;
 with HiRTOS_Cpu_Arch_Interface.Tick_Timer;
+with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Platform_Interface;
 with Memory_Utils;
 with GNAT.Source_Info;
@@ -66,7 +68,9 @@ is
                        HiRTOS_Cpu_Startup_Interface.HiRTOS_Secondary_Cores_Start_Gate_Value);
          HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
 
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR1" & ASCII.LF); --???
          HiRTOS_Lib_Elaboration;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR2" & ASCII.LF); --???
          if not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
             HiRTOS_Platform_Interface.Initialize_Platform;
          end if;
@@ -103,6 +107,7 @@ is
    procedure Initialize_RTOS with
    SPARK_Mode => Off
    is
+      use HiRTOS_Cpu_Arch_Interface;
       use type System.Storage_Elements.Integer_Address;
 
       procedure Print_Greeting (Cpu_Id : Valid_Cpu_Core_Id_Type) is
@@ -127,22 +132,44 @@ is
       --
       --  Per-cpu initializations:
       --
+      HiRTOS.Memory_Protection_Private.Initialize;
       HiRTOS_Low_Level_Debug_Interface.Initialize;
       Print_Greeting (Cpu_Id);
 
-      HiRTOS.Memory_Protection_Private.Initialize;
+      RTOS_Cpu_Instance.Last_Chance_Handler_Running := False;
+      RTOS_Cpu_Instance.Tick_Timer_Thread_Work_Requested := False;
+      RTOS_Cpu_Instance.Thread_Scheduler_State := Thread_Scheduler_Stopped;
+      RTOS_Cpu_Instance.Current_Atomic_Level := Atomic_Level_None;
+      RTOS_Cpu_Instance.Current_Cpu_Execution_Mode := Cpu_Executing_Reset_Handler;
+      RTOS_Cpu_Instance.Current_Thread_Id := Invalid_Thread_Id;
+      RTOS_Cpu_Instance.Timer_Ticks_Since_Boot := 0;
+
+      HiRTOS.Debug.Initialize_Self_Hosted_Debugger;
       HiRTOS.Interrupt_Handling_Private.Initialize;
       HiRTOS_Cpu_Arch_Interface.Tick_Timer.Initialize;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR3" & ASCII.LF); --???
 
+      Atomic_Counter_Initialize (RTOS_Cpu_Instance.Next_Free_Thread_Id,
+                                 Cpu_Register_Type (Thread_Id_Type'First));
+      Atomic_Counter_Initialize (RTOS_Cpu_Instance.Next_Free_Mutex_Id,
+                                 Cpu_Register_Type (Mutex_Id_Type'First));
+      Atomic_Counter_Initialize (RTOS_Cpu_Instance.Next_Free_Condvar_Id,
+                                 Cpu_Register_Type (Condvar_Id_Type'First));
+      Atomic_Counter_Initialize (RTOS_Cpu_Instance.Next_Free_Timer_Id,
+                                 Cpu_Register_Type (Timer_Id_Type'First));
       RTOS_Cpu_Instance.Interrupt_Stack_Base_Address := ISR_Stack_Info.Base_Address;
       RTOS_Cpu_Instance.Interrupt_Stack_End_Address := System.Storage_Elements.To_Address (
          System.Storage_Elements.To_Integer (ISR_Stack_Info.Base_Address) + ISR_Stack_Info.Size_In_Bytes);
       RTOS_Cpu_Instance.Cpu_Id := Cpu_Id;
 
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR4" & ASCII.LF); --???
       HiRTOS.Interrupt_Handling_Private.Initialize_Interrupt_Nesting_Level_Stack
          (RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR5" & ASCII.LF); --???
       HiRTOS.Initialize_Thread_Priority_Queue (RTOS_Cpu_Instance.Runnable_Threads_Queue);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR6" & ASCII.LF); --???
       HiRTOS.Timer_Private.Initialize_Timer_Wheel (RTOS_Cpu_Instance.Timer_Wheel);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR7" & ASCII.LF); --???
 
       HiRTOS.Thread.Create_Thread
         (Idle_Thread_Proc'Access,
@@ -152,6 +179,7 @@ is
          Idle_Thread_Stacks (Cpu_Id)'Size / System.Storage_Unit,
          RTOS_Cpu_Instance.Idle_Thread_Id);
 
+   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR8" & ASCII.LF); --???
       HiRTOS.Thread.Create_Thread
         (HiRTOS.Timer_Private.Timer_Thread_Proc'Access,
          System.Null_Address,
@@ -159,6 +187,8 @@ is
          Timer_Thread_Stacks (Cpu_Id)'Address,
          Timer_Thread_Stacks (Cpu_Id)'Size / System.Storage_Unit,
          RTOS_Cpu_Instance.Tick_Timer_Thread_Id);
+
+      RTOS_Cpu_Instance.Initialized  := True;
    end Initialize_RTOS;
 
    procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
@@ -170,26 +200,25 @@ is
          Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
          RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
            HiRTOS_Obj.RTOS_Cpu_Instances (Cpu_Id);
+         Old_Cpu_Interrupting_State : HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type with Unreferenced;
       begin
+         Old_Cpu_Interrupting_State := HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
          HiRTOS_Low_Level_Debug_Interface.Set_Led (True);
 
          --
          --  Calculate length of the null-terminated 'Msg' string:
          --
          for Msg_Char of Msg_Text loop
-            Msg_Length := Msg_Length + 1;
             exit when Msg_Char = ASCII.NUL;
+            Msg_Length := Msg_Length + 1;
          end loop;
 
          if RTOS_Cpu_Instance.Last_Chance_Handler_Running then
             HiRTOS_Low_Level_Debug_Interface.Print_String (
-               "*** Recursive call to Last_Chance_Handler: " &
-               Msg_Text (1 .. Msg_Length) & "' at line ");
-            HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
-                                                                  End_Line => True);
-            loop
-               HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
-            end loop;
+               "*** Recursive call to Last_Chance_Handler: '");
+            HiRTOS_Low_Level_Debug_Interface.Print_String (Msg_Text (1 .. Msg_Length));
+            HiRTOS_Low_Level_Debug_Interface.Print_String ("'" & ASCII.LF);
+            HiRTOS_Cpu_Arch_Interface.Park_Cpu;
          end if;
 
          RTOS_Cpu_Instance.Last_Chance_Handler_Running := True;
@@ -197,21 +226,18 @@ is
          --
          --  Print exception message to UART:
          --
+         HiRTOS_Low_Level_Debug_Interface.Print_String (ASCII.LF & "*** Exception: '");
+         HiRTOS_Low_Level_Debug_Interface.Print_String (Msg_Text (1 .. Msg_Length));
          if Line /= 0 then
-            HiRTOS_Low_Level_Debug_Interface.Print_String (
-               ASCII.LF & "*** Exception: '" & Msg_Text (1 .. Msg_Length) &
-               "' at line ");
+            HiRTOS_Low_Level_Debug_Interface.Print_String ("' at line ");
             HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Line),
                                                                   End_Line => True);
          else
-            HiRTOS_Low_Level_Debug_Interface.Print_String (
-               ASCII.LF &
-               "*** Exception: '" & Msg_Text (1 .. Msg_Length) & "'" & ASCII.LF);
+            HiRTOS_Low_Level_Debug_Interface.Print_String ("'" & ASCII.LF);
          end if;
 
-         loop
-            HiRTOS_Cpu_Arch_Interface.Wait_For_Interrupt;
-         end loop;
+         HiRTOS_Cpu_Arch_Interface.Break_Point;
+         HiRTOS_Cpu_Arch_Interface.Park_Cpu;
       end Privileged_Last_Chance_Handler;
 
    begin
@@ -511,4 +537,6 @@ is
       Exit_Cpu_Privileged_Mode;
    end Hypercall;
 
+begin --???
+   HiRTOS_Low_Level_Debug_Interface.Print_String("### JGR: HiRTOS" & ASCII.LF); --???
 end HiRTOS;

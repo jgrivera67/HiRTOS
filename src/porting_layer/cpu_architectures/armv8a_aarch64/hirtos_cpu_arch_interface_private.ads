@@ -140,4 +140,12 @@ is
    DAIF_SetClr_D_Bit_Mask : constant Interfaces.Unsigned_8 := 2#1000#; --  bit 3
    DAIF_SetClr_IF_Mask : constant Interfaces.Unsigned_8 := (DAIF_SetClr_I_Bit_Mask or DAIF_SetClr_F_Bit_Mask);
 
+   function Get_ELR_EL1 return Cpu_Register_Type;
+
+   procedure Set_ELR_EL1 (ELR_EL1_Value : Cpu_Register_Type);
+
+   function Get_ELR_EL2 return Cpu_Register_Type;
+
+   procedure Enable_Debug_Exceptions;
+
 end HiRTOS_Cpu_Arch_Interface_Private;

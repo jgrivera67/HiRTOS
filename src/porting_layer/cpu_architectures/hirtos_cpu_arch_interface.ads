@@ -150,4 +150,10 @@ is
    procedure Hypercall (Op_Code : Interfaces.Unsigned_8) with
      Pre => not Cpu_In_Hypervisor_Mode;
 
+   procedure Park_Cpu with
+      Pre => Cpu_In_Privileged_Mode,
+      Import,
+      External_Name => "park_cpu", --  defined in hirtos_cpu_startup_asm.S
+      No_Return;
+
 end HiRTOS_Cpu_Arch_Interface;

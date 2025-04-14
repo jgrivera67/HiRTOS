@@ -34,6 +34,7 @@ project HiRTOS is
    for Library_Kind use Library_Type;
 
    for Library_Standalone use "standard";
+   --for Library_Standalone use "no";
 
    Platform_Specific_Interfaces := ();
    case Hirtos_Config.Platform is
@@ -58,6 +59,7 @@ project HiRTOS is
                               "HiRTOS_Config_Parameters",
                               "Generic_Execution_Stack",
                               "Generic_Linked_List",
+                              "Generic_Number_Conversion_Utils",
                               "HiRTOS.Interrupt_Handling_Private",
                               "HiRTOS.Memory_Protection_Private",
                               "HiRTOS.Thread_Private",
@@ -102,4 +104,8 @@ project HiRTOS is
 
       for Default_Switches ("Asm_Cpp") use HiRTOS_Compiler_Flags.Compiler.COMMON_FLAGS;
    end Compiler;
+
+   package Binder is
+      for Default_Switches ("Ada") use ("-l");
+   end Binder;
 end HIRTOS;

@@ -13,7 +13,7 @@ with Interfaces;
 with System;
 
 package HiRTOS_Platform_Parameters
-   with SPARK_Mode => On, No_Elaboration_Code_All
+   with SPARK_Mode => On
 is
    --
    --  Number of CPU cores
@@ -22,10 +22,15 @@ is
 
    Cpu_Clock_Frequency_Hz : constant := 1_500_000_000; -- 1_800_000_000;
 
-   System_Clock_Frequency_Hz : constant := 100_000_000;
+   System_Clock_Frequency_Hz : constant := 54_000_000;
 
    GICD_Base_Address : constant System.Address :=
      System'To_Address (16#ff84_1000#);
+
+   GICC_Base_Address : constant System.Address :=
+     System'To_Address (16#ff84_2000#);
+
+   Num_External_Interrupts : constant := 192;
 
    Global_Text_Region_Start_Address : constant System.Address;
    Global_Text_Region_End_Address : constant System.Address;

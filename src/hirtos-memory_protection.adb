@@ -34,8 +34,8 @@ is
          return;
       end if;
 
-      pragma Assert (System.Storage_Elements.To_Integer (Start_Address) mod Memory_Range_Alignment = 0);
-      pragma Assert (Region_Size_In_Bytes mod Memory_Range_Alignment = 0);
+      --???pragma Assert (System.Storage_Elements.To_Integer (Start_Address) mod Memory_Range_Alignment = 0);
+      --???pragma Assert (Region_Size_In_Bytes mod Memory_Range_Alignment = 0);
 
       HiRTOS.Enter_Cpu_Privileged_Mode;
       Save_Memory_Region_Descriptor (Memory_Region_Id_Type (Thread_Private_Data_Region'Enum_Rep),

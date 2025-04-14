@@ -12,6 +12,7 @@ with HiRTOS.Condvar;
 with HiRTOS.RTOS_Private;
 with HiRTOS.Thread_Private;
 with HiRTOS.Memory_Protection_Private;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS.Thread is
    use System.Storage_Elements;
@@ -287,10 +288,14 @@ package body HiRTOS.Thread is
       HiRTOS.Condvar.Create_Condvar (Thread_Obj.Builtin_Condvar_Id);
       Thread_Obj.Waiting_On_Condvar_Id := Invalid_Condvar_Id;
       Thread_Obj.Waiting_On_Mutex_Id := Invalid_Mutex_Id;
+   HiRTOS_Low_Level_Debug_Interface.Print_String("Initialize_Thread 1" & ASCII.LF); --???
       Mutex_List_Package.List_Init (Thread_Obj.Owned_Mutexes_List, Thread_Id);
+   HiRTOS_Low_Level_Debug_Interface.Print_String("Initialize_Thread 2" & ASCII.LF); --???
       HiRTOS.Memory_Protection_Private.Initialize_Thread_Memory_Regions (
          Stack_Base_Address, Stack_End_Address, Thread_Obj.Saved_Thread_Memory_Regions);
 
+      Thread_Obj.Last_Condvar_Wait_Timed_Out := False;
+      Thread_Obj.Last_Mutex_Acquire_Timed_Out := False;
       Thread_Obj.Privilege_Nesting_Counter := 0;
       Thread_Obj.Time_Slice_Left_Us := Thread_Time_Slice_Us;
       Thread_Obj.Stats := (others => <>);

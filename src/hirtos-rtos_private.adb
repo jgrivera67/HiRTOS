@@ -6,6 +6,7 @@
 --
 
 with HiRTOS.Memory_Protection;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS.RTOS_Private is
 
@@ -17,6 +18,8 @@ package body HiRTOS.RTOS_Private is
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (RTOS_Cpu_Instance'Address, RTOS_Cpu_Instance'Size, Old_Data_Range);
       Thread_Id := Valid_Thread_Id_Type (Atomic_Fetch_Add (RTOS_Cpu_Instance.Next_Free_Thread_Id, 1));
+      HiRTOS_Low_Level_Debug_Interface.Print_String("Allocate_THread_ID: "); --???
+      HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal(Interfaces.Unsigned_32 (Thread_Id), End_Line => True); --???
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Allocate_Thread_Object;
 

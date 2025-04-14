@@ -227,7 +227,6 @@ package body HiRTOS.Interrupt_Handling is
 
    procedure Set_Interrupted_PC (PC_Value : System.Address)
    is
-      use System.Storage_Elements;
       RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
          HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
       Saved_Stack_Pointer : constant System.Address :=

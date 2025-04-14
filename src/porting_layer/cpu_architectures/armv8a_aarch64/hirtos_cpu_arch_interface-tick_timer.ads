@@ -166,6 +166,7 @@ private
       with Inline_Always;
 
    function Get_Timer_Timestamp_Us return HiRTOS.Absolute_Time_Us_Type is
-      (HiRTOS.Absolute_Time_Us_Type (Get_Timer_Timestamp_Cycles  / (Get_CNTFRQ / 1_000_000)));
+      (HiRTOS.Absolute_Time_Us_Type (Get_Timer_Timestamp_Cycles  /
+                                     Timer_Timestamp_Cycles_Type (Get_CNTFRQ / 1_000_000)));
 
 end HiRTOS_Cpu_Arch_Interface.Tick_Timer;

@@ -108,11 +108,15 @@ is
 
 private
 
+   --
+   --  CAUTION: Initializing the fields of this record causes problems during
+   --  package elaboration of global linked lists when compiling with aarch64-elf-gnat.
+   --
    type List_Anchor_Type is record
-      List_Id : List_Id_Type := Null_List_Id;
-      Head    : Element_Id_Type := Null_Element_Id;
-      Tail    : Element_Id_Type := Null_Element_Id;
-      Length  : Natural := 0;
+      List_Id : List_Id_Type; --  := Null_List_Id;
+      Head    : Element_Id_Type; --  := Null_Element_Id;
+      Tail    : Element_Id_Type; --  := Null_Element_Id;
+      Length  : Natural; --  := 0;
    end record;
    --
    --  NOTE: The type invariant is commented out as gnatprove fails with error:

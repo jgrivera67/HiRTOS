@@ -202,6 +202,8 @@ package body HiRTOS.Condvar is
                                                               Old_Data_Range);
       Condvar_Obj.Id := Condvar_Id;
       Initialize_Thread_Priority_Queue (Condvar_Obj.Waiting_Threads_Queue);
+      Condvar_Obj.Wakeup_Atomic_Level := Atomic_Level_None;
+      Condvar_Obj.Wakeup_Mutex_Id := Invalid_Mutex_Id;
       Condvar_Obj.Initialized := True;
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
    end Initialize_Condvar;

@@ -94,7 +94,7 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => Off i
    begin
       System.Machine_Code.Asm (
          "mrs %0, esr_el1",
-         Outputs => ESR_EL1_Type'Asm_Output ("=r", ESR_EL1_Value), --  %0
+         Outputs => Interfaces.Unsigned_64'Asm_Output ("=r", ESR_EL1_Value.Value), --  %0
          Volatile => True);
 
       return ESR_EL1_Value;
@@ -104,7 +104,7 @@ package body HiRTOS_Cpu_Arch_Interface.System_Registers with SPARK_Mode => Off i
    begin
       System.Machine_Code.Asm (
          "msr esr_el1, %0",
-         Inputs => ESR_EL1_Type'Asm_Input ("r", ESR_EL1_Value), --  %0
+         Inputs => Interfaces.Unsigned_64'Asm_Input ("r", ESR_EL1_Value.Value), --  %0
          Volatile => True);
    end Set_ESR_EL1;
 

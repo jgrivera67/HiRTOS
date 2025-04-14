@@ -14,6 +14,7 @@ with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
 with HiRTOS_Cpu_Startup_Interface;
 with System.Machine_Code;
+with HiRTOS_Low_Level_Debug_Interface; --???
 
 package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
 
@@ -33,6 +34,8 @@ package body HiRTOS_Cpu_Arch_Interface.Tick_Timer with SPARK_Mode => Off is
       CNTFRQ_Value : CNTFRQ_Type;
    begin
       CNTFRQ_Value := Get_CNTFRQ;
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("CNTFRQ = "); --???
+      HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (CNTFRQ_Value), End_Line => True); --???
       pragma Assert (CNTFRQ_Value = CNTFRQ_Type (HiRTOS_Platform_Parameters.System_Clock_Frequency_Hz));
 
       --

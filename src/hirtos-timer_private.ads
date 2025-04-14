@@ -51,7 +51,7 @@ is
    --  the timer expires.
    --  @Timer Timer_Wheel_Revolutions_Left: Number of timer wheel revolutions left
    --  before timer expiration.
-   --  @Expiration_Callback: Poinrer to timer expiration callback
+   --  @Expiration_Callback: Pointer to timer expiration callback
    --  @Expiration_Callback_Arg: Callback-specific argument
    --  @Wheel_Spoke_Index: Timer wheel hash table index of the hash chain where this
    --  timer was inserted.
@@ -67,7 +67,7 @@ is
       Expiration_Callback_Arg : System.Storage_Elements.Integer_Address;
       Wheel_Spoke_Index : Timer_Wheel_Spoke_Index_Type := Invalid_Timer_Wheel_Spoke_Index;
    end record with
-     Alignment => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment;
+     Alignment => HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes;
      --  Type_Invariant => Timer_Wheel_Revolutions_Left <= Timer_Wheel_Revolutions;
 
    type Timer_Array_Type is array (Valid_Timer_Id_Type) of Timer_Type;
