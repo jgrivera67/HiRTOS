@@ -5,8 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef HIRTOS_CPU_ARCH_INTERFACE_ASM_H
-#define HIRTOS_CPU_ARCH_INTERFACE_ASM_H
+#pragma once
 
 #define BIT(_bit_index) (1u << (_bit_index))
 
@@ -100,4 +99,7 @@
 
 #define UART_BOOT_LOAD_ADDR 0x100000u
 
-#endif // HIRTOS_CPU_ARCH_INTERFACE_ASM_H
+/*
+ * Bit masks for CPUECTLR_EL1 register bit fields
+ */
+#define CPUECTLR_EL1_SMPEN_MASK BIT(6u)

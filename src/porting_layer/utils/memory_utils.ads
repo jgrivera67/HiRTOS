@@ -18,7 +18,13 @@ package Memory_Utils is
    function How_Many (M : Unsigned_32; N : Unsigned_32) return Unsigned_32
    is (((M - 1) / N) + 1);
 
+   function How_Many (M : Integer_Address; N : Integer_Address) return Integer_Address
+   is (((M - 1) / N) + 1);
+
    function Round_Up (M : Unsigned_32; N : Unsigned_32) return Unsigned_32
+   is (How_Many (M, N) * N);
+
+   function Round_Up (M : Integer_Address; N : Integer_Address) return Integer_Address
    is (How_Many (M, N) * N);
 
    function Round_Down (M : Unsigned_32; N : Unsigned_32) return Unsigned_32

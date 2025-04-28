@@ -76,6 +76,10 @@ is
 
    procedure Spinlock_Release (Spinlock : in out Spinlock_Type);
 
+   procedure Fair_Spinlock_Acquire (Spinlock : in out Fair_Spinlock_Type);
+
+   procedure Fair_Spinlock_Release (Spinlock : in out Fair_Spinlock_Type);
+
 private
    use HiRTOS_Cpu_Arch_Parameters;
 

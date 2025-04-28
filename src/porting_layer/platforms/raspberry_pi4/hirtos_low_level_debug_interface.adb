@@ -46,8 +46,7 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    -- Get_Char --
    --------------
 
-   function Get_Char return Character is
-      (Uart_Driver.Get_Char);
+   function Get_Char return Character renames Uart_Driver.Get_Char;
 
    ------------------
    -- Print_String --

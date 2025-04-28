@@ -10,6 +10,7 @@
 /*
  * Imported symbols
  */
+        .extern interrupt_vector_table           /* defined in hirtos_cpu_arch_interface_interrupt_handling_asm.S */
         .extern isr_stacks                       /* defined in hirtos_cpu_arch_interface-interrupt_handling.adb */
         .extern ada_reset_handler                /* defined in hirtos_cpu_startup_interface.adb */
 
@@ -145,6 +146,9 @@ reset_handler:
         SET_VBAR_EL2 interrupt_vector_table
         b reset_handler_common
 #else
+        /*
+         * Clear SCTLR_EL1:
+         */
         msr sctlr_el1, xzr
 
         /*
@@ -155,6 +159,8 @@ reset_handler:
 
         /*
          * Set the execution state for EL1 to be AArch64:
+         *
+         * NOTE: VM bit is 0 meaning that stage 2 address translation is disabled
          */
         mov x0, #HCR_EL2_RW_MASK
         msr hcr_el2, x0
@@ -174,6 +180,19 @@ reset_handler_el1:
         SET_VBAR_EL1 interrupt_vector_table
 
 reset_handler_common:
+        /*
+         * Enables the processor to receive instruction cache and TLB maintenance operations broadcast from other
+         * processors in the cluster.
+         *
+         * NOTE: This must be done before enabling the caches and MMU, or performing any cache and TLB
+         * maintenance operations.
+         */
+#if 0 // This does not work on Raspberry PI
+        mrs x0, s3_1_c15_c2_1 // read cpuectlr_el1
+        orr x0, x0, #CPUECTLR_EL1_SMPEN_MASK
+        msr s3_1_c15_c2_1, x0 // write cpuectlr_el1
+#endif
+
         /*
          * Set ISR stack (SP_EL0 stack pointer) for calling CPU:
          */
@@ -223,6 +242,18 @@ park_cpu:
         adr x0, reset_handler
         cmp x0, #UART_BOOT_LOAD_ADDR
         bne 1f
+
+        /*
+         * Clear SCTLR_EL1:
+         *
+         * NOTE: Among other things, this ensures that the MMU is disabled, so that we
+         * can execute instructions where the UART boot loader is located.
+         */
+        msr sctlr_el1, xzr
+
+        /*
+         * Jump back to UART boot loader:
+         */
         mov x0, #KERNEL8_IMG_BOOT_ADDR
         br x0
 

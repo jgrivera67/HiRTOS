@@ -190,9 +190,9 @@ private
       Stacks_Section_End_Linker_Symbol'Address;
 
    Global_Mmio_Region_Start_Address : constant System.Address :=
-      System'To_Address (16#fc00_0000#);
+      System'To_Address (16#c000_0000#);
 
    Global_Mmio_Region_End_Address : constant System.Address :=
-      System'To_Address (16#ffff_fff0#);
+      System'To_Address (16#f000_0000#);
 
 end HiRTOS_Platform_Parameters;

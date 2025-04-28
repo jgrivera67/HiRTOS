@@ -333,10 +333,6 @@ interrupt_vector_table:
  * Entry point of the synchronous exception that fires at the current privileged ELx (x > 0)
  * that was using the SP EL0 stack pointer (thread context).
  *
- * For SVC exceptions, register x0 indicates the action to perform:
- * - 0 perform RTOS task synchronous context switch
- * - 1 switch to privileged mode and return to the caller
- *
  * NOTE: Right after entering an EL1 exception, sp is SP_EL1,
  * which we don't use, as we handle exceptions using SP_EL0.
  *
