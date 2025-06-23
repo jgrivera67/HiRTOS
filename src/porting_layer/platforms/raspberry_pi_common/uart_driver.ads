@@ -10,6 +10,7 @@
 --
 with HiRTOS_Cpu_Multi_Core_Interface;
 with Bit_Sized_Integer_Types;
+private with Peripherals_Mmio_Map;
 with Interfaces;
 with System;
 
@@ -27,11 +28,6 @@ is
    function Get_Char return Character;
 
 private
-   UART0_Base : constant System.Address := System'To_Address (16#fe20_1000#);
-   UART2_Base : constant System.Address := System'To_Address (16#fe20_1400#);
-   UART3_Base : constant System.Address := System'To_Address (16#fe20_1600#);
-   UART4_Base : constant System.Address := System'To_Address (16#fe20_1800#);
-   UART5_Base : constant System.Address := System'To_Address (16#fe20_1a00#);
 
    --  Data Register.
    type UARTDR_Register is record
@@ -477,19 +473,19 @@ private
    --  UART peripheral instances
    --
    UART0_Periph : aliased UART_Peripheral
-   with Import, Address => UART0_Base;
+   with Import, Address => Peripherals_Mmio_Map.UART0_Base;
 
    UART2_Periph : aliased UART_Peripheral
-   with Import, Address => UART2_Base;
+   with Import, Address => Peripherals_Mmio_Map.UART2_Base;
 
    UART3_Periph : aliased UART_Peripheral
-   with Import, Address => UART3_Base;
+   with Import, Address => Peripherals_Mmio_Map.UART3_Base;
 
    UART4_Periph : aliased UART_Peripheral
-   with Import, Address => UART4_Base;
+   with Import, Address => Peripherals_Mmio_Map.UART4_Base;
 
    UART5_Periph : aliased UART_Peripheral
-   with Import, Address => UART5_Base;
+   with Import, Address => Peripherals_Mmio_Map.UART5_Base;
 
    UART_Periph_Pointers : constant
       array (Valid_Cpu_Core_Id_Type) of access UART_Peripheral :=

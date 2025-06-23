@@ -117,4 +117,15 @@ package body HiRTOS_Cpu_Arch_Interface_Private is
          Volatile => True);
    end Enable_Debug_Exceptions;
 
+   procedure Invalidate_Data_Cache_Range (Start_Address : System.Address;
+                                          End_Address : System.Address) is
+      Cache_Line_Address : System.Address := Start_Address;
+   begin
+      loop
+         Invalidate_Data_Cache_Line (Cache_Line_Address);
+         Cache_Line_Address := To_Address (To_Integer (@) + Cache_Line_Size_In_Bytes);
+         exit when Cache_Line_Address = End_Address;
+      end loop;
+   end Invalidate_Data_Cache_Range;
+
 end HiRTOS_Cpu_Arch_Interface_Private;

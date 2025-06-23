@@ -17,7 +17,7 @@ package Hirtos_Config is
    type Build_Profile_Kind is (release, validation, development);
    Build_Profile : constant Build_Profile_Kind := development;
 
-   type Platform_Kind is (arm_fvp, esp32_c3, raspberry_pi4);
+   type Platform_Kind is (arm_fvp, esp32_c3, raspberry_pi4, raspberry_pi5);
    Platform : constant Platform_Kind := raspberry_pi4;
 
 end Hirtos_Config;

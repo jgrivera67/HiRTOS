@@ -148,4 +148,14 @@ is
 
    procedure Enable_Debug_Exceptions;
 
+   use type System.Address;
+
+   procedure Invalidate_Data_Cache_Range (Start_Address : System.Address;
+                                          End_Address : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (Start_Address) mod
+                     Cache_Line_Size_In_Bytes = 0 and then
+                   System.Storage_Elements.To_Integer (End_Address) mod
+                     Cache_Line_Size_In_Bytes = 0 and then
+                   Start_Address < End_Address;
+
 end HiRTOS_Cpu_Arch_Interface_Private;

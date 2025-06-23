@@ -92,8 +92,16 @@
  */
 #define PAGE_SIZE (4u * 1024u)
 
-#define MPIDR_CORE_ID_MASK      MULTI_BIT_MASK(7u, MPIDR_CORE_ID_SHIFT)
-#define MPIDR_CORE_ID_SHIFT     0
+/*
+ * MPIDR_EL1 bit fields
+ */
+#define MPIDR_EL1_AFF0_LSB 0u
+#define MPIDR_EL1_AFF0_WIDTH 8u
+#define MPIDR_EL1_AFF1_LSB 8u
+#define MPIDR_EL1_AFF1_WIDTH 8u
+#define MPIDR_EL1_AFF2_LSB 16u
+#define MPIDR_EL1_AFF2_WIDTH 8u
+#define MPIDR_EL1_MT_MASK BIT(24u)
 
 #define KERNEL8_IMG_BOOT_ADDR 0x80000u
 

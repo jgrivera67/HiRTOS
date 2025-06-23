@@ -288,19 +288,15 @@ package body HiRTOS_Cpu_Arch_Interface is
 
    procedure Invalidate_Data_Cache is
    begin
-      Strong_Memory_Barrier;
-      System.Machine_Code.Asm (
-         "dc zva, xzr",
-         Clobber => "memory",
-         Volatile => True);
-      Strong_Memory_Barrier;
+      null;
    end Invalidate_Data_Cache;
 
    procedure Invalidate_Instruction_Cache is
    begin
       Strong_Memory_Barrier;
+      --  Invalidate all to Point of Unification, Inner Shareable:
       System.Machine_Code.Asm (
-         "ic iallu",
+         "ic ialluis",
          Clobber => "memory",
          Volatile => True);
       Strong_Memory_Barrier;

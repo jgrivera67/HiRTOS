@@ -524,6 +524,24 @@ private
       GICD_PIDR_Array       : GICD_PIDR_Array_Type;
    end record with Volatile;
 
+C_ASSERT(offsetof(struct gicd, GICD_CTLR) == 0x0u);
+C_ASSERT(offsetof(struct gicd, GICD_TYPER) == 0x4u);
+C_ASSERT(offsetof(struct gicd, GICD_IIDR) == 0x8u);
+C_ASSERT(offsetof(struct gicd, GICD_IGROUPRx) == 0x84u);
+C_ASSERT(offsetof(struct gicd, GICD_ISENABLERx) == 0x104u);
+C_ASSERT(offsetof(struct gicd, GICD_ICENABLERx) == 0x184u);
+C_ASSERT(offsetof(struct gicd, GICD_ISPENDRx) == 0x204u);
+C_ASSERT(offsetof(struct gicd, GICD_ICPENDRx) == 0x284u);
+C_ASSERT(offsetof(struct gicd, GICD_ISACTIVERx) == 0x304u);
+C_ASSERT(offsetof(struct gicd, GICD_ICACTIVERx) == 0x384u);
+C_ASSERT(offsetof(struct gicd, GICD_IPRIORITYRx) == 0x420u);
+C_ASSERT(offsetof(struct gicd, GICD_ICFGRx) == 0xc08u);
+C_ASSERT(offsetof(struct gicd, GICD_IROUTERx) == 0x6100u);
+// NOTE: PIDR4 is at a lower offset (0xffd0) than PIDR0 (0xffe0)
+C_ASSERT(offsetof(struct gicd, GICD_PIDRx) == 0xFFD0u);
+C_ASSERT(offsetof(struct gicd, GICD_CIDRx) == 0xFFF0u);
+C_ASSERT(offsetof(struct gicd, GICRx) == 0x100000u);
+
    for GICD_Type use record
       GICD_CTLR             at       16#0# range 0 .. 31;
       GICD_TYPER            at       16#4# range 0 .. 31;

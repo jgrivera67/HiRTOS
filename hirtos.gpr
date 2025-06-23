@@ -16,13 +16,25 @@ project HiRTOS is
    for Library_Name use "HiRTOS";
    for Library_Version use Project'Library_Name & ".a." & Hirtos_Config.Crate_Version;
 
+   Platform_Specific_Src_Dirs := ();
+   case HiRTOS_Config.Platform is
+      when "raspberry_pi4" | "raspberry_pi5" =>
+         Platform_Specific_Src_Dirs := (
+            "src/porting_layer/platforms/raspberry_pi_common",
+            "src/porting_layer/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch & "/gicv2"
+         );
+      when others =>
+         null;
+   end case;
+
    for Source_Dirs use ("src",
                         "src/porting_layer/utils",
                         "src/porting_layer/cpu_architectures",
                         "src/porting_layer/cpu_architectures/" & HiRTOS_Compiler_Flags.CPU_Arch,
                         "src/porting_layer/platforms",
                         "src/porting_layer/platforms/" & Hirtos_Config.Platform & "/**",
-                        "config");
+                        "config") & Platform_Specific_Src_Dirs;
+
 
    for Object_Dir use "obj/" & HiRTOS_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
@@ -43,8 +55,9 @@ project HiRTOS is
             "HiRTOS_Cpu_Arch_Interface.Interrupt_Handling.Arch_Specific",
             "HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1_MPU",
             "HiRTOS_Cpu_Arch_Interface.System_Registers");
-      when "raspberry_pi4" =>
+      when "raspberry_pi4"  | "raspberry_pi5" =>
          Platform_Specific_Interfaces := (
+            "HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1",
             "HiRTOS_Cpu_Arch_Interface.System_Registers");
       when "esp32_c3" =>
          Platform_Specific_Interfaces := (

@@ -193,33 +193,15 @@ private
    for Group_Interrupts_Enable_Type use
      (Group_Interrupts_Disabled => 2#0#, Group_Interrupts_Enabled => 2#1#);
 
-   type Affinity_Routing_Enable_Type is
-     (Affinity_Routing_Disabled, Affinity_Routing_Enabled) with
-     Size => 1;
-
-   for Affinity_Routing_Enable_Type use
-     (Affinity_Routing_Disabled => 2#0#, Affinity_Routing_Enabled => 2#1#);
-
-   type Register_Write_Pending_Type is
-     (Register_Write_Not_Pending, Register_Write_Pending) with
-     Size => 1;
-
-   for Register_Write_Pending_Type use
-     (Register_Write_Not_Pending => 2#0#, Register_Write_Pending => 2#1#);
-
    type GICD_CTLR_Type is record
       EnableGrp0 : Group_Interrupts_Enable_Type := Group_Interrupts_Disabled;
       EnableGrp1 : Group_Interrupts_Enable_Type := Group_Interrupts_Disabled;
-      ARE        : Affinity_Routing_Enable_Type := Affinity_Routing_Disabled;
-      RWP        : Register_Write_Pending_Type  := Register_Write_Not_Pending;
    end record with
      Volatile_Full_Access, Size => 32, Bit_Order => System.Low_Order_First;
 
    for GICD_CTLR_Type use record
       EnableGrp0 at 16#0# range  0 ..  0;
       EnableGrp1 at 16#0# range  1 ..  1;
-      ARE        at 16#0# range  4 ..  4;
-      RWP        at 16#0# range 31 .. 31;
    end record;
 
    --
@@ -385,16 +367,16 @@ private
      Size => 32, Unchecked_Union, Volatile_Full_Access;
 
    --
-   --  The GICD_IPRIORITYR8-247 registers provide a 5-bit priority field for each
+   --  The GICD_IPRIORITYR0-127 registers provide a 5-bit priority field for each
    --  SPI supported by the GIC.
    --  The corresponding GICD_IPRIORITYRn number, n, is given by n = m DIV 4,
-   --  where m = 32 to 991.
+   --  where m = 0 to 31 + 480.
    --  The address offset of the required GICD_IPRIORITYRn is (0x400 + (4×n)).
    --  The byte offset of the required Priority field in this register is m MOD 4.
-   --  GICD_IPRIORITYR(8)[7:0] corresponds to INTID32 and GICD_IPRIORITYR(247)31:24]
-   --  corresponds to INTID991.
+   --  GICD_IPRIORITYR(8)[7:0] corresponds to INTID32 and GICD_IPRIORITYR(127)[31:24]
+   --  corresponds to INTID511.
    --
-   type GICD_IPRIORITYR_Array_Type is array (8 .. 247) of GIC_IPRIORITYR_Type;
+   type GICD_IPRIORITYR_Array_Type is array (0 .. 127) of GIC_IPRIORITYR_Type;
 
    type GIC_ITARGETSR_Slot_Type is array (0 .. 7) of Boolean with
      Component_Size => 1, Size => 8;

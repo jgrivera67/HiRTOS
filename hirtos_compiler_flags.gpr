@@ -6,7 +6,7 @@
 --
 abstract project Hirtos_Compiler_Flags is
 
-   type CPU_Core_Type is ("arm_cortex_m0plus", "arm_cortex_m4", "arm_cortex_r5", "arm_cortex_r52", "arm_cortex_a72", "riscv32");
+   type CPU_Core_Type is ("arm_cortex_m0plus", "arm_cortex_m4", "arm_cortex_r5", "arm_cortex_r52", "arm_cortex_a72", "arm_cortex_a76", "riscv32");
 
    CPU_Core : CPU_Core_Type := External ("CPU_Core", "arm_cortex_r52");
 
@@ -59,7 +59,7 @@ abstract project Hirtos_Compiler_Flags is
                                     "-mfpu=fp-armv8",
                                     "-fno-omit-frame-pointer");
 
-      when "arm_cortex_a72" =>
+      when "arm_cortex_a72" | "arm_cortex_a76" =>
               CPU_Arch := "armv8a_aarch64";
               Target_Compiler_Selector := "aarch64-elf";
               CPU_Core_Switches := ("-march=armv8-a",

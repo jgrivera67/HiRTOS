@@ -108,8 +108,9 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1 with SPARK_Mode => 
       SCTLR_Value := Get_SCTLR_EL1;
       SCTLR_Value.M := MMU_Enabled;
       SCTLR_Value.A :=  Alignment_Check_Enabled;
-      --SCTLR_Value.SA := SP_EL1_Alignment_Check_Enabled;
       --SCTLR_Value.SA0 := SP_EL0_Alignment_Check_Enabled;
+      --  NOTE: We don't set SA, because we never initialize SP_EL1
+      --  SCTLR_Value.SA := SP_EL1_Alignment_Check_Enabled;
       Set_SCTLR_EL1 (SCTLR_Value);
       Strong_Memory_Barrier;
    end Enable_MMU;

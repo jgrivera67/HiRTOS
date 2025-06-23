@@ -36,7 +36,7 @@
 
 ENTRY(reset_handler);
 
-PAGE_ALIGNMENT = 4 * 1024;
+PAGE_ALIGNMENT = 4K;
 TOTAL_RAM = 1024M;
 #BOOT_ADDRESS = 0x80000; # Address when booting from SD card
 BOOT_ADDRESS = 0x100000; # address when booting from UART

@@ -540,9 +540,13 @@ is
             Interrupt_Handler.Interrupt_Handler_Entry_Point (Interrupt_Handler.Interrupt_Handler_Arg);
          end;
       else
-         HiRTOS_Low_Level_Debug_Interface.Print_String ("*** Special " &
-            (if Cpu_Interrupt_Line = Cpu_Interrupt_Fiq then "FIQ" else "IRQ") & " interrupt Id received at " &
-            (if Cpu_In_Hypervisor_Mode then "EL2" else "EL1") & ": ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String ("*** Special ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String (
+            (if Cpu_Interrupt_Line = Cpu_Interrupt_Fiq then "FIQ" else "IRQ"));
+         HiRTOS_Low_Level_Debug_Interface.Print_String (" interrupt Id received at ");
+         HiRTOS_Low_Level_Debug_Interface.Print_String (
+            (if Cpu_In_Hypervisor_Mode then "EL2" else "EL1"));
+         HiRTOS_Low_Level_Debug_Interface.Print_String (": ");
          HiRTOS_Low_Level_Debug_Interface.Print_Number_Decimal (Interfaces.Unsigned_32 (Interrupt_Id),
                                                                 End_Line => True);
          --

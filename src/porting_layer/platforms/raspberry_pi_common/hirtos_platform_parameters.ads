@@ -11,6 +11,7 @@
 
 with Interfaces;
 with System;
+private with Peripherals_Mmio_Map;
 
 package HiRTOS_Platform_Parameters
    with SPARK_Mode => On
@@ -23,12 +24,6 @@ is
    Cpu_Clock_Frequency_Hz : constant := 1_500_000_000; -- 1_800_000_000;
 
    System_Clock_Frequency_Hz : constant := 54_000_000;
-
-   GICD_Base_Address : constant System.Address :=
-     System'To_Address (16#ff84_1000#);
-
-   GICC_Base_Address : constant System.Address :=
-     System'To_Address (16#ff84_2000#);
 
    Num_External_Interrupts : constant := 192;
 
@@ -190,9 +185,9 @@ private
       Stacks_Section_End_Linker_Symbol'Address;
 
    Global_Mmio_Region_Start_Address : constant System.Address :=
-      System'To_Address (16#c000_0000#);
+      Peripherals_Mmio_Map.Global_Mmio_Region_Start_Address;
 
    Global_Mmio_Region_End_Address : constant System.Address :=
-      System'To_Address (16#f000_0000#);
+      Peripherals_Mmio_Map.Global_Mmio_Region_End_Address;
 
 end HiRTOS_Platform_Parameters;

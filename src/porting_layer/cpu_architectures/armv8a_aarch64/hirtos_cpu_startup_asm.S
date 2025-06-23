@@ -17,12 +17,17 @@
 /**
  * Get CPU id from MPIDR
  * @post CPU id is in \_dest_reg_
+ * Clobbered registers: x1
  */
         .macro GET_CPU_ID _dest_reg_
         mrs \_dest_reg_, mpidr_el1
-        and \_dest_reg_, \_dest_reg_, #MPIDR_CORE_ID_MASK
-        // NOTE: lsr below is not necessary as shift is 0
-        //lsr \_dest_reg_, \_dest_reg_, #MPIDR_CORE_ID_SHIFT
+        and x1, \_dest_reg_, #MPIDR_EL1_MT_MASK
+        cbnz x1, 0f
+        ubfx \_dest_reg_, \_dest_reg_, #MPIDR_EL1_AFF0_LSB, #MPIDR_EL1_AFF0_WIDTH
+        b 1f
+0:
+        ubfx \_dest_reg_, \_dest_reg_, #MPIDR_EL1_AFF1_LSB, #MPIDR_EL1_AFF1_WIDTH
+1:
         .endm
 
 /**
@@ -270,7 +275,7 @@ park_cpu:
  * by the primary core.
  */
    .section .rodata.hirtos_secondary_cores_start_gate_value
-   .align 4 // 8-byte aligned
+   .balign 8
    .global hirtos_secondary_cores_start_gate_value
 hirtos_secondary_cores_start_gate_value:
    .dword 0xa5a5a5a5a5a5a5a5

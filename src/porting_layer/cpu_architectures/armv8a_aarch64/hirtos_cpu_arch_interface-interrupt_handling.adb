@@ -51,7 +51,7 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
    --  NOTE: The Value of this constant must match the value of ISR_STACK_SIZE in
    --  hirtos_cpu_arch_interface_asm.h
    --
-   ISR_Stack_Size_In_Bytes : constant := 2 * HiRTOS_Cpu_Arch_Parameters.Page_Size_In_Bytes;
+   ISR_Stack_Size_In_Bytes : constant := 4 * HiRTOS_Cpu_Arch_Parameters.Page_Size_In_Bytes;
 
    package ISR_Stacks_Package is new
       Generic_Execution_Stack (Stack_Size_In_Bytes => ISR_Stack_Size_In_Bytes);

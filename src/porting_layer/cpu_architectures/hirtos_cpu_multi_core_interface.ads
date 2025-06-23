@@ -72,6 +72,8 @@ is
 
    type Spinlock_Type is limited private;
 
+   type Fair_Spinlock_Type is limited private;
+
    procedure Spinlock_Acquire (Spinlock : in out Spinlock_Type);
 
    procedure Spinlock_Release (Spinlock : in out Spinlock_Type);
@@ -93,5 +95,19 @@ private
       ((Counter => Value));
 
    type Spinlock_Type is new Atomic_Counter_Type;
+
+   --
+   --  Fair spinlock object
+   --
+   type Fair_Spinlock_Type is limited record
+      --  Ticket number to be assigned to the next caller of spinlock_acquire()
+      Next_Ticket : Atomic_Counter_Type;
+      --  Ticket number assigned to the current owner of the spinlock
+      Now_Serving : Cpu_Register_Type := 0 with Volatile_Full_Access;
+      --  CPU interrupt mask before interrupts were disabled when acquiring the spinlock.
+      Old_Cpu_Interrupting : Cpu_Register_Type;
+      --  Inter-cluster CPU core ID
+      Owner : Cpu_Core_Id_Type := Invalid_Cpu_Core_Id;
+   end record with Alignment => Cache_Line_Size_In_Bytes;
 
 end HiRTOS_Cpu_Multi_Core_Interface;
