@@ -101,6 +101,8 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1 with SPARK_Mode => 
    procedure Enable_MMU is
       use System_Registers;
       SCTLR_Value : SCTLR_EL1_Type;
+      Old_Cpu_Interrupting_State : constant Cpu_Register_Type :=
+         HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
    begin
       Strong_Memory_Barrier;
       Invalidate_TLB;
@@ -108,23 +110,40 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1 with SPARK_Mode => 
       SCTLR_Value := Get_SCTLR_EL1;
       SCTLR_Value.M := MMU_Enabled;
       SCTLR_Value.A :=  Alignment_Check_Enabled;
-      --SCTLR_Value.SA0 := SP_EL0_Alignment_Check_Enabled;
+      SCTLR_Value.SA0 := SP_EL0_Alignment_Check_Enabled;
       --  NOTE: We don't set SA, because we never initialize SP_EL1
       --  SCTLR_Value.SA := SP_EL1_Alignment_Check_Enabled;
+
+      --
+      --  NOTE: SPAN needs to be disabled, otherwise exceptions will not work on Cortex-A76.
+      --  Cortex-A72 (ARMv8.0-A) does not support PAN (Privileged Access Never), but
+      --  cortex-A76 (ARMv8.2-A) does and SCTLR_EL1.SPAN is enabled by default.
+      --  When SPAN is enabled, PSTATE.PAN is set when entering an EL1 exception.
+      --  When PSTATE.PAN is enabled, accessing any memory at that is accessible from EL0,
+      --  while running at EL1, will cause memory access fault.
+      --  Since the ISR stack is accessible from EL0 (to support going to EL0 in the reset
+      --  handler), having SPAN enabled will cause the ISR stack not being accessible
+      --  when taking EL1 exceptions.
+      --
+      SCTLR_Value.SPAN := Set_Privileged_Access_Never_Disabled;
+
       Set_SCTLR_EL1 (SCTLR_Value);
       Strong_Memory_Barrier;
+      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
    end Enable_MMU;
 
    procedure Disable_MMU is
       use System_Registers;
       SCTLR_Value : SCTLR_EL1_Type;
+      Old_Cpu_Interrupting_State : constant Cpu_Register_Type :=
+         HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
    begin
       Strong_Memory_Barrier;
       SCTLR_Value := Get_SCTLR_EL1;
       SCTLR_Value.M := MMU_Disabled;
       Set_SCTLR_EL1 (SCTLR_Value);
       Strong_Memory_Barrier;
-      Invalidate_TLB;
-   end Enable_MMU;
+      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
+   end Disable_MMU;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1;

@@ -13,6 +13,7 @@ with System.Machine_Code;
 
 package body HiRTOS_Cpu_Arch_Interface_Private is
    use ASCII;
+   use System.Storage_Elements;
 
    function Get_CurrentEL return Exception_Level_Type is
       PSTATE_Value : PSTATE_Type;
@@ -123,7 +124,7 @@ package body HiRTOS_Cpu_Arch_Interface_Private is
    begin
       loop
          Invalidate_Data_Cache_Line (Cache_Line_Address);
-         Cache_Line_Address := To_Address (To_Integer (@) + Cache_Line_Size_In_Bytes);
+         Cache_Line_Address := To_Address (To_Integer (@) + HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes);
          exit when Cache_Line_Address = End_Address;
       end loop;
    end Invalidate_Data_Cache_Range;

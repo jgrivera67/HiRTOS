@@ -44,20 +44,27 @@ is
    --
    Integer_Register_Size_In_Bytes : constant := Machine_Word_Width_In_Bits / System.Storage_Unit;
 
+   Instruction_Size_In_Bytes : constant := 4;
+
    --
    --  Size in bytes of the 'BL' machine instruction
    --
-   Call_Instruction_Size_In_Bytes : constant := 4;
+   Call_Instruction_Size_In_Bytes : constant := Instruction_Size_In_Bytes;
 
    --
    --  Size in bytes of the 'BRK' machine instruction
    --
-   Break_Instruction_Size_In_Bytes : constant := 4;
+   Break_Instruction_Size_In_Bytes : constant := Instruction_Size_In_Bytes;
 
    --
    --  Number of usable external interrupt priorities (levels) in
    --  the interrupt controller
    --
    Num_Interrupt_Priorities : constant := 31;
+
+   type Cpu_Model_Type is (
+      Cortex_A72, --  Raspberry PI 4
+      Cortex_A76  --  Raspberry PI 5
+   );
 
 end HiRTOS_Cpu_Arch_Parameters;

@@ -59,7 +59,7 @@ abstract project Hirtos_Compiler_Flags is
                                     "-mfpu=fp-armv8",
                                     "-fno-omit-frame-pointer");
 
-      when "arm_cortex_a72" | "arm_cortex_a76" =>
+      when "arm_cortex_a72" =>
               CPU_Arch := "armv8a_aarch64";
               Target_Compiler_Selector := "aarch64-elf";
               CPU_Core_Switches := ("-march=armv8-a",
@@ -70,6 +70,16 @@ abstract project Hirtos_Compiler_Flags is
                                     "-I/opt/gcc-14.2.0-aarch64-elf/lib/gcc/aarch64-elf/14.2.0/include",
                                     "-fno-omit-frame-pointer");
 
+       when "arm_cortex_a76" =>
+              CPU_Arch := "armv8a_aarch64";
+              Target_Compiler_Selector := "aarch64-elf";
+              CPU_Core_Switches := ("-march=armv8-a",
+                                    "-mcpu=cortex-a76+nosimd",
+                                  --"-mgeneral-regs-only",
+                                    "-mlittle-endian",
+                                    "-mabi=lp64",
+                                    "-I/opt/gcc-14.2.0-aarch64-elf/lib/gcc/aarch64-elf/14.2.0/include",
+                                    "-fno-omit-frame-pointer");
 
       when "riscv32" =>
               CPU_Arch := "riscv32";

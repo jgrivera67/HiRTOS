@@ -12,7 +12,6 @@
 with HiRTOS.Interrupt_Handling;
 with HiRTOS_Cpu_Arch_Interface.Interrupt_Controller;
 with HiRTOS_Cpu_Arch_Interface.Interrupts;
-with HiRTOS_Cpu_Startup_Interface;
 with System.Machine_Code;
 with HiRTOS_Low_Level_Debug_Interface; --???
 

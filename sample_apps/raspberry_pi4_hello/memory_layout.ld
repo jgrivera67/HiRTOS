@@ -43,7 +43,6 @@ BOOT_ADDRESS = 0x100000; # address when booting from UART
 
 MEMORY
 {
-  #RECYCLED_RAM(rw) : ORIGIN = 0x0, LENGTH = BOOT_ADDRESS
   RAM(rwx) : ORIGIN =  BOOT_ADDRESS, LENGTH = TOTAL_RAM - BOOT_ADDRESS
 }
 
@@ -224,4 +223,15 @@ SECTIONS
     . = ALIGN(PAGE_ALIGNMENT);
     _stacks_end = .;
   } >RAM
+
+  .mmu_translation_tables (NOLOAD)  :
+  {
+    . = ALIGN(PAGE_ALIGNMENT);
+    __mmu_translation_tables_start = .;
+    *(.mmu_translation_tables)
+    . = ALIGN(PAGE_ALIGNMENT);
+    __mmu_translation_tables_end = .;
+  } >RAM
 }
+
+ASSERT(__data_start == __data_load, "__data_start and __data_load must match");

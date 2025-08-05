@@ -34,9 +34,15 @@ is
 
    Invalid_Cpu_Core_Id : constant Cpu_Core_Id_Type := Cpu_Core_Id_Type'Last;
 
+   subtype Secondary_Cpu_Core_Id_Type is Valid_Cpu_Core_Id_Type range
+      Valid_Cpu_Core_Id_Type'First + 1 .. Valid_Cpu_Core_Id_Type'Last;
+
    function Get_Cpu_Id return Valid_Cpu_Core_Id_Type
       with Inline_Always,
            Suppress => All_Checks;
+
+   procedure Start_Secondary_Cpus
+      with Pre => Get_Cpu_Id = Valid_Cpu_Core_Id_Type'First;
 
    type Atomic_Counter_Type is limited private;
 
@@ -72,15 +78,17 @@ is
 
    type Spinlock_Type is limited private;
 
-   type Fair_Spinlock_Type is limited private;
+   function Spinlock_Owner (Spinlock : Spinlock_Type) return Cpu_Core_Id_Type;
 
-   procedure Spinlock_Acquire (Spinlock : in out Spinlock_Type);
+   procedure Spinlock_Acquire (Spinlock : in out Spinlock_Type)
+      with Pre => Cpu_In_Privileged_Mode,
+           Post => Spinlock_Owner (Spinlock) = Get_Cpu_Id and then
+                   Cpu_Interrupting_Disabled;
 
-   procedure Spinlock_Release (Spinlock : in out Spinlock_Type);
-
-   procedure Fair_Spinlock_Acquire (Spinlock : in out Fair_Spinlock_Type);
-
-   procedure Fair_Spinlock_Release (Spinlock : in out Fair_Spinlock_Type);
+   procedure Spinlock_Release (Spinlock : in out Spinlock_Type)
+      with Pre => Cpu_In_Privileged_Mode and then
+                  Spinlock_Owner (Spinlock) = Get_Cpu_Id and then
+                  Cpu_Interrupting_Disabled;
 
 private
    use HiRTOS_Cpu_Arch_Parameters;
@@ -94,12 +102,12 @@ private
    function Atomic_Counter_Initializer (Value : Cpu_Register_Type) return Atomic_Counter_Type is
       ((Counter => Value));
 
-   type Spinlock_Type is new Atomic_Counter_Type;
+   type Recursive_Acquire_Count_Type is range 0 .. 32;
 
    --
    --  Fair spinlock object
    --
-   type Fair_Spinlock_Type is limited record
+   type Spinlock_Type is limited record
       --  Ticket number to be assigned to the next caller of spinlock_acquire()
       Next_Ticket : Atomic_Counter_Type;
       --  Ticket number assigned to the current owner of the spinlock
@@ -108,6 +116,10 @@ private
       Old_Cpu_Interrupting : Cpu_Register_Type;
       --  Inter-cluster CPU core ID
       Owner : Cpu_Core_Id_Type := Invalid_Cpu_Core_Id;
-   end record with Alignment => Cache_Line_Size_In_Bytes;
+      --  Counter of recursive/nested Spinlock_Acquire() calls by the owning CPU
+      Recursive_Acquire_Count : Recursive_Acquire_Count_Type := 0;
+   end record with Alignment => HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes;
 
+   function Spinlock_Owner (Spinlock : Spinlock_Type) return Cpu_Core_Id_Type is
+      (Spinlock.Owner);
 end HiRTOS_Cpu_Multi_Core_Interface;

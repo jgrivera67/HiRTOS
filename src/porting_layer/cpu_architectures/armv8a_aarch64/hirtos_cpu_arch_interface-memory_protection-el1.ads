@@ -37,14 +37,14 @@ is
       with Inline_Always;
 
    procedure Invalidate_TLB with
-      Pre => CPU_In_Privileged_Mode;
+      Pre => Cpu_In_Privileged_Mode;
 
    procedure Enable_MMU with
-      Pre => CPU_In_Privileged_Mode and then
-             CPU_Interrupting_Disabled;
+      Pre => Cpu_In_Privileged_Mode and then
+             Cpu_Interrupting_Disabled;
 
    procedure Disable_MMU with
-      Pre => CPU_In_Privileged_Mode and then
-             CPU_Interrupting_Disabled;
+      Pre => Cpu_In_Privileged_Mode and then
+             Cpu_Interrupting_Disabled;
 
 end HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1;

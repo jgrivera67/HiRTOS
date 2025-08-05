@@ -111,3 +111,22 @@
  * Bit masks for CPUECTLR_EL1 register bit fields
  */
 #define CPUECTLR_EL1_SMPEN_MASK BIT(6u)
+
+#define LEVEL1_TRANSLATION_RANGE_SIZE_IN_BYTES (1024u * 1024u * 1024u) // 1Gb
+#define LEVEL2_TRANSLATION_RANGE_SIZE_IN_BYTES (2u * 1024u * 1024u) // 2Mb
+#define PAGE_SIZE_IN_BYTES (4u * 1024u) // 4Kb
+
+#define PER_CPU_TRANSLATION_TABLES_SIZE_IN_BYTES \
+        (MAX_NUM_TRANSLATION_TABLES_PER_CPU * PAGE_SIZE)
+
+#define TRANSLATION_TABLES_SIZE_IN_BYTES \
+        (NUM_CPUS * PER_CPU_TRANSLATION_TABLES_SIZE_IN_BYTES)
+
+#define NUM_CPUS 4u
+
+/*
+ * NOTE: The value of this constant must match `Max_Num_Translation_Tables_Per_Cpu`
+ * in hirtos_cpu_arch_interface-memory_protection.ads
+ */
+#define MAX_NUM_TRANSLATION_TABLES_PER_CPU 1024u
+

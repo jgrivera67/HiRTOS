@@ -151,6 +151,15 @@ is
      (APIAKey_EL1_Pointer_Authentication_Disabled => 2#0#,
       APIAKey_EL1_Pointer_Authentication_Enabled => 2#1#);
 
+   type Set_Privileged_Access_Never_Type is
+      (Set_Privileged_Access_Never_Enabled,
+       Set_Privileged_Access_Never_Disabled)
+   with Size => 1;
+
+   for Set_Privileged_Access_Never_Type use
+     (Set_Privileged_Access_Never_Enabled => 2#0#,
+      Set_Privileged_Access_Never_Disabled => 2#1#);
+
    --
    --  System control register for EL1
    --
@@ -169,6 +178,7 @@ is
       nTWI : EL0_WFI_Trap_Disable_Type := EL0_WFI_Trap_Enabled;
       nTWE : EL0_WFE_Trap_Disable_Type := EL0_WFE_Trap_Enabled;
       WXN : Write_Permission_Implies_XN_Enable_Type := Write_Permission_Implies_XN_Disabled;
+      SPAN : Set_Privileged_Access_Never_Type := Set_Privileged_Access_Never_Enabled;
       E0E : EL0_Endianness_Type := EL0_Is_Little_Endian;
       EE : EL1_Endianness_Type := EL1_Is_Little_Endian;
       EnDA : APDAKey_EL1_Pointer_Authentication_Enable_Type := APDAKey_EL1_Pointer_Authentication_Disabled;
@@ -190,6 +200,7 @@ is
       nTWI at 0 range 16 .. 16;
       nTWE at 0 range 18 .. 18;
       WXN at 0 range 19 .. 19;
+      SPAN at 0 range 23 .. 23;
       E0E at 0 range 24 .. 24;
       EE at 0 range 25 .. 25;
       EnDA at 0 range 27 .. 27;

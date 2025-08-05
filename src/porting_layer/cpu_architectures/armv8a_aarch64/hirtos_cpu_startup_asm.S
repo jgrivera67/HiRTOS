@@ -202,9 +202,6 @@ reset_handler_common:
          * Set ISR stack (SP_EL0 stack pointer) for calling CPU:
          */
         GET_CPU_ID x0           // x0 = CPU id
-        //??? TODO: Remove this for multi-core
-        cbnz x0, park_cpu
-        //???
         adrp x1, isr_stacks
         add x1, x1, #:lo12:isr_stacks
         mov     x2, #ISR_GUARDED_STACK_SIZE
@@ -279,3 +276,18 @@ park_cpu:
    .global hirtos_secondary_cores_start_gate_value
 hirtos_secondary_cores_start_gate_value:
    .dword 0xa5a5a5a5a5a5a5a5
+
+/**
+ * MMU translation tables
+ */
+    .section .mmu_translation_tables
+#if TRANSLATION_TABLES_SIZE_IN_BYTES % LEVEL1_TRANSLATION_RANGE_SIZE_IN_BYTES == 0
+    .balign LEVEL1_TRANSLATION_RANGE_SIZE_IN_BYTES
+#elif TRANSLATION_TABLES_SIZE_IN_BYTES % LEVEL2_TRANSLATION_RANGE_SIZE_IN_BYTES == 0
+    .balign LEVEL2_TRANSLATION_RANGE_SIZE_IN_BYTES
+#else
+    .balign PAGE_SIZE_IN_BYTES
+#endif
+    .global mmu_translation_tables
+mmu_translation_tables:
+    .space TRANSLATION_TABLES_SIZE_IN_BYTES

@@ -17,7 +17,7 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
 
    UART_Clock_Frequency_Hz : constant := 48_000_000; --- 48 MHz
 
-   --??? Debug_Uart_Spinlock : HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Type;
+   Debug_Uart_Spinlock : HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Type;
 
    ----------------------------------------------------------------------------
    --  Public Subprograms
@@ -54,7 +54,7 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
 
    procedure Print_String (S : String; End_Line : Boolean := False) is
    begin
-      --???HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Acquire (Debug_Uart_Spinlock);
+      HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Acquire (Debug_Uart_Spinlock);
       for C of S loop
          Put_Char (C);
       end loop;
@@ -64,7 +64,7 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
       end if;
 
       Uart_Driver.Flush_Output;
-      --???HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Release (Debug_Uart_Spinlock);
+      HiRTOS_Cpu_Multi_Core_Interface.Spinlock_Release (Debug_Uart_Spinlock);
    end Print_String;
 
    --------------------------
