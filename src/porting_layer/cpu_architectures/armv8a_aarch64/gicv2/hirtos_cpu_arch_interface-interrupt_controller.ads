@@ -20,7 +20,9 @@ private with Interfaces;
 package HiRTOS_Cpu_Arch_Interface.Interrupt_Controller
   with SPARK_Mode => On
 is
-   Max_Num_Interrupts_Supported : constant := 992;
+   Num_External_Interrupts : constant := 480;
+
+   Max_Num_Interrupts_Supported : constant := 32 + Num_External_Interrupts;
 
    type Interrupt_Id_Type is range 0 .. Max_Num_Interrupts_Supported;
 

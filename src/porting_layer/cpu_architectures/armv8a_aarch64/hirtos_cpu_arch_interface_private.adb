@@ -10,10 +10,12 @@
 --
 
 with System.Machine_Code;
+with HiRTOS_Cpu_Arch_Interface.System_Registers;
 
 package body HiRTOS_Cpu_Arch_Interface_Private is
    use ASCII;
    use System.Storage_Elements;
+   use HiRTOS_Cpu_Arch_Interface.System_Registers;
 
    function Get_CurrentEL return Exception_Level_Type is
       PSTATE_Value : PSTATE_Type;
@@ -128,5 +130,23 @@ package body HiRTOS_Cpu_Arch_Interface_Private is
          exit when Cache_Line_Address = End_Address;
       end loop;
    end Invalidate_Data_Cache_Range;
+
+   procedure Flush_Invalidate_Data_Cache_Range (Start_Address : System.Address;
+                                                End_Address : System.Address) is
+      Cache_Line_Address : System.Address := Start_Address;
+   begin
+      loop
+         Flush_Invalidate_Data_Cache_Line (Cache_Line_Address);
+         Cache_Line_Address := To_Address (To_Integer (@) + HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes);
+         exit when Cache_Line_Address = End_Address;
+      end loop;
+   end Flush_Invalidate_Data_Cache_Range;
+
+   function Caches_Are_Enabled return Boolean is
+      SCTLR_EL1_Value : constant SCTLR_EL1_Type := Get_SCTLR_EL1;
+   begin
+      return SCTLR_EL1_Value.C = Cacheable and then
+             SCTLR_EL1_Value.I = Instruction_Access_Cacheable;
+   end Caches_Are_Enabled;
 
 end HiRTOS_Cpu_Arch_Interface_Private;

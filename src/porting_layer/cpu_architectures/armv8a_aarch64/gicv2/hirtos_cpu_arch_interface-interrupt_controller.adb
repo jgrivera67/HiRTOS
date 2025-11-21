@@ -50,6 +50,7 @@ is
          HiRTOS_Cpu_Arch_Interface.Strong_Memory_Barrier;
 
          GICD_TYPER_Value := GICD.GICD_TYPER;
+         pragma Warnings (Off, "condition can only be False if invalid values present");
          if GICD_TYPER_Value.ITLinesNumber /= 0 then
             Max_Number_Interrupt_Sources :=
               32
@@ -62,6 +63,7 @@ is
          else
             Max_Number_Interrupt_Sources := Max_Num_Interrupts_Supported;
          end if;
+         pragma Warnings (On, "condition can only be False if invalid values present");
 
          --
          --  Disable and clear all SPIs:
@@ -135,7 +137,6 @@ is
            ("***** Initialize_GIC_Cpu_Interface 2" & ASCII.LF); --???
       end Initialize_GIC_Cpu_Interface;
 
-      use type CPU.Valid_Cpu_Core_Id_Type;
       Cpu_Id                     : constant Valid_Cpu_Core_Id_Type :=
         Get_Cpu_Id;
       Old_Cpu_Interrupting_State : Cpu_Register_Type;
@@ -177,35 +178,26 @@ is
 
    procedure Configure_Internal_Interrupt
      (Internal_Interrupt_Id         : Internal_Interrupt_Id_Type;
-      Priority                      : Valid_Interrupt_Priority_Type with
-        Unreferenced;
-      Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type with
-        Unreferenced;
-      Trigger_Mode                  : Interrupt_Trigger_Mode_Type with
-        Unreferenced;
+      Priority                      : Valid_Interrupt_Priority_Type with Unreferenced;
+      Cpu_Interrupt_Line            : Cpu_Interrupt_Line_Type with Unreferenced;
+      Trigger_Mode                  : Interrupt_Trigger_Mode_Type with Unreferenced;
       Interrupt_Handler_Entry_Point : Interrupt_Handler_Entry_Point_Type;
       Interrupt_Handler_Arg         : System.Address := System.Null_Address)
    is
-      Cpu_Id                   : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
-      Interrupt_Handler        : Interrupt_Handler_Type renames
-        Interrupt_Controller_Obj.Internal_Interrupt_Handlers
-          (Cpu_Id, Internal_Interrupt_Id);
-      IPRIORITY_Register_Index :
-        constant Eight_Bits_Per_Interrupt_Register_Index_Type :=
-          Eight_Bits_Per_Interrupt_Register_Index_Type
-            (Internal_Interrupt_Id / GIC_IPRIORITYR_Slot_Array_Type'Length);
-      IPRIORITY_Field_Index    :
-        constant Eight_Bits_Per_Interrupt_Field_Index_Type :=
-          Eight_Bits_Per_Interrupt_Field_Index_Type
-            (Internal_Interrupt_Id mod GIC_IPRIORITYR_Slot_Array_Type'Length);
-      IGROUPR_Register_Index   :
-        constant One_Bit_Per_Interrupt_Register_Index_Type :=
-          One_Bit_Per_Interrupt_Register_Index_Type
-            (Internal_Interrupt_Id / GIC_IGROUPR_Type'Length);
-      IGROUPR_Field_Index      :
-        constant One_Bit_Per_Interrupt_Field_Index_Type :=
-          One_Bit_Per_Interrupt_Field_Index_Type
-            (Internal_Interrupt_Id mod GIC_IGROUPR_Type'Length);
+      Cpu_Id : constant Valid_Cpu_Core_Id_Type := Get_Cpu_Id;
+      Interrupt_Handler : Interrupt_Handler_Type renames
+        Interrupt_Controller_Obj.Internal_Interrupt_Handlers (Cpu_Id, Internal_Interrupt_Id);
+      IPRIORITY_Register_Index : constant Eight_Bits_Per_Interrupt_Register_Index_Type :=
+        Eight_Bits_Per_Interrupt_Register_Index_Type (Internal_Interrupt_Id /
+                                                      GIC_IPRIORITYR_Slot_Array_Type'Length);
+      IPRIORITY_Field_Index    : constant Eight_Bits_Per_Interrupt_Field_Index_Type :=
+        Eight_Bits_Per_Interrupt_Field_Index_Type (Internal_Interrupt_Id mod
+                                                   GIC_IPRIORITYR_Slot_Array_Type'Length);
+      IGROUPR_Register_Index    : constant One_Bit_Per_Interrupt_Register_Index_Type :=
+         One_Bit_Per_Interrupt_Register_Index_Type (Internal_Interrupt_Id / GIC_IGROUPR_Type'Length);
+      IGROUPR_Field_Index       : constant One_Bit_Per_Interrupt_Field_Index_Type :=
+         One_Bit_Per_Interrupt_Field_Index_Type (Internal_Interrupt_Id mod
+                                                 GIC_IGROUPR_Type'Length);
       GIC_IPRIORITYR_Value     : GIC_IPRIORITYR_Type;
       GIC_IGROUPR_Value        : GIC_IGROUPR_Type;
       Old_Data_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
@@ -213,18 +205,15 @@ is
       pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point = null);
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
         (Interrupt_Handler'Address, Interrupt_Handler'Size, Old_Data_Range);
-      Interrupt_Handler.Cpu_Id := Cpu_Id;
+      Interrupt_Handler.Cpu_Id                        := Cpu_Id;
       Interrupt_Handler.Interrupt_Handler_Entry_Point :=
         Interrupt_Handler_Entry_Point;
-      Interrupt_Handler.Interrupt_Handler_Arg := Interrupt_Handler_Arg;
+      Interrupt_Handler.Interrupt_Handler_Arg         := Interrupt_Handler_Arg;
       HiRTOS.Memory_Protection.End_Data_Range_Access (Old_Data_Range);
-
-      HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
-        (GICR'Address, GICR'Size, Old_Mmio_Range);
 
       --
       --  NOTE: We do not need to serialize access to the GICD from multiple
-      --  CPU cores, since corresponding GICD registers for SGIs and PPIs are
+      --  CPU cores, as since corresponding GICD registers for SGIs and PPIs are
       --  banked for each CPU core (for up to 8 cores).
       --
 
@@ -238,27 +227,23 @@ is
       --
       --  Configure interrupt priority:
       --
-      GIC_IPRIORITYR_Value :=
-        GICD.GICD_IPRIORITYR_Array (IPRIORITY_Register_Index);
-      GIC_IPRIORITYR_Value.Slot_Array (IPRIORITY_Field_Index)
-        .Interrupt_Priority :=
-        GIC_Interrupt_Priority_Type (Priority);
-      GICD.GICD_IPRIORITYR_Array (IPRIORITY_Register_Index) :=
-        GIC_IPRIORITYR_Value;
+      GIC_IPRIORITYR_Value := GICD.GICD_IPRIORITYR_Array (IPRIORITY_Register_Index);
+      GIC_IPRIORITYR_Value.Slot_Array (IPRIORITY_Field_Index).Interrupt_Priority :=
+         GIC_Interrupt_Priority_Type (Priority);
+      GICD.GICD_IPRIORITYR_Array (IPRIORITY_Register_Index) := GIC_IPRIORITYR_Value;
 
       --
       --  Assign interrupt to an interrupt group:
       --
       GIC_IGROUPR_Value := GICD.GICD_IGROUPR_Array (IGROUPR_Register_Index);
       GIC_IGROUPR_Value (IGROUPR_Field_Index) :=
-        GIC_Interrupt_Group_Type (Cpu_Interrupt_Line);
+         GIC_Interrupt_Group_Type (Cpu_Interrupt_Line);
       GICD.GICD_IGROUPR_Array (IGROUPR_Register_Index) := GIC_IGROUPR_Value;
 
       --
       --  NOTE: The interrupt starts to fire on the CPU only after Enable_Internal_Interrupt()
       --  is called.
       --
-      HiRTOS.Memory_Protection.End_Mmio_Range_Access (Old_Mmio_Range);
    end Configure_Internal_Interrupt;
 
    procedure Configure_External_Interrupt
@@ -276,25 +261,34 @@ is
           (External_Interrupt_Id);
       Old_Mmio_Range            : HiRTOS.Memory_Protection.Memory_Range_Type;
       Old_Data_Range            : HiRTOS.Memory_Protection.Memory_Range_Type;
-      ICFGR_Register_Index      : constant Integer :=
-        Integer (External_Interrupt_Id)
-        / GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
-      ICFGR_Field_Index         : constant Integer :=
-        Integer (External_Interrupt_Id)
-        mod GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length;
-      IPRIORITYR_Register_Index : constant Integer :=
-        Integer (External_Interrupt_Id)
-        / GIC_IPRIORITYR_Slot_Array_Type'Length;
-      IPRIORITYR_Field_Index    : constant Integer :=
-        Integer (External_Interrupt_Id)
-        mod GIC_IPRIORITYR_Slot_Array_Type'Length;
-      IGROUPR_Register_Index    : constant Integer :=
-        Integer (External_Interrupt_Id) / GIC_IGROUPR_Type'Length;
-      IGROUPR_Field_Index       : constant Integer :=
-        Integer (External_Interrupt_Id) mod GIC_IGROUPR_Type'Length;
+      ICFGR_Register_Index : constant Two_Bits_Per_Interrupt_Register_Index_Type :=
+         Two_Bits_Per_Interrupt_Register_Index_Type (External_Interrupt_Id /
+                                                     GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length);
+      ICFGR_Field_Index : constant Two_Bits_Per_Interrupt_Field_Index_Type :=
+         Two_Bits_Per_Interrupt_Field_Index_Type (External_Interrupt_Id mod
+                                                  GIC_ICFGR_Interrupt_Trigger_Mode_Array_Type'Length);
+      IPRIORITYR_Register_Index : constant Eight_Bits_Per_Interrupt_Register_Index_Type :=
+         Eight_Bits_Per_Interrupt_Register_Index_Type (External_Interrupt_Id /
+                                                       GIC_IPRIORITYR_Slot_Array_Type'Length);
+      IPRIORITYR_Field_Index    : constant Eight_Bits_Per_Interrupt_Field_Index_Type :=
+         Eight_Bits_Per_Interrupt_Field_Index_Type (External_Interrupt_Id mod
+                                                    GIC_IPRIORITYR_Slot_Array_Type'Length);
+      IGROUPR_Register_Index    : constant One_Bit_Per_Interrupt_Register_Index_Type :=
+         One_Bit_Per_Interrupt_Register_Index_Type (External_Interrupt_Id /
+                                                    GIC_IGROUPR_Type'Length);
+      IGROUPR_Field_Index       : constant One_Bit_Per_Interrupt_Field_Index_Type :=
+         One_Bit_Per_Interrupt_Field_Index_Type (External_Interrupt_Id mod
+                                                 GIC_IGROUPR_Type'Length);
+      ITARGETSR_Register_Index : constant Eight_Bits_Per_Interrupt_Register_Index_Type :=
+         Eight_Bits_Per_Interrupt_Register_Index_Type (External_Interrupt_Id /
+                                                       GIC_ITARGETSR_Slot_Array_Type'Length);
+      ITARGETSR_Field_Index    : constant Eight_Bits_Per_Interrupt_Field_Index_Type :=
+         Eight_Bits_Per_Interrupt_Field_Index_Type (External_Interrupt_Id mod
+                                                    GIC_ITARGETSR_Slot_Array_Type'Length);
       GIC_ICFGR_Value           : GIC_ICFGR_Type;
       GIC_IPRIORITYR_Value      : GIC_IPRIORITYR_Type;
       GIC_IGROUPR_Value         : GIC_IGROUPR_Type;
+      GIC_ITARGETSR_Value      : GIC_ITARGETSR_Type;
    begin
       pragma Assert (Interrupt_Handler.Interrupt_Handler_Entry_Point = null);
       HiRTOS.Memory_Protection.Begin_Data_Range_Write_Access
@@ -376,10 +370,10 @@ is
         constant One_Bit_Per_Interrupt_Field_Index_Type :=
           One_Bit_Per_Interrupt_Field_Index_Type
             (Internal_Interrupt_Id mod GIC_ISENABLER_Type'Length);
-      --  Old_Mmio_Range      : HiRTOS.Memory_Protection.Memory_Range_Type;
+      Old_Mmio_Range      : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
       HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
-        (GICR'Address, GICR'Size, Old_Mmio_Range);
+        (GICD'Address, GICD'Size, Old_Mmio_Range);
       --
       --  NOTE: We do not need to serialize access to the GICD from multiple
       --  CPU cores, when enabling SGIs/PPIs, as the corresponding GICD
@@ -398,10 +392,10 @@ is
       GIC_ISENABLER_Value      : GIC_ISENABLER_Type;
       Old_Data_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
       Old_Mmio_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
-      ISENABLER_Register_Index : constant Integer :=
-        Integer (External_Interrupt_Id) / GIC_ISENABLER_Type'Length;
-      ISENABLER_Field_Index    : constant Integer :=
-        Integer (External_Interrupt_Id) mod GIC_ISENABLER_Type'Length;
+      ISENABLER_Register_Index : constant One_Bit_Per_Interrupt_Register_Index_Type :=
+        One_Bit_Per_Interrupt_Register_Index_Type (External_Interrupt_Id / GIC_ISENABLER_Type'Length);
+      ISENABLER_Field_Index    : constant One_Bit_Per_Interrupt_Field_Index_Type :=
+        One_Bit_Per_Interrupt_Field_Index_Type (External_Interrupt_Id mod GIC_ISENABLER_Type'Length);
    begin
       --
       --  NOTE: We need to serialize access to the GICD from multiple
@@ -443,7 +437,7 @@ is
       Old_Mmio_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
    begin
       HiRTOS.Memory_Protection.Begin_Mmio_Range_Write_Access
-        (GICR'Address, GICR'Size, Old_Mmio_Range);
+        (GICD'Address, GICD'Size, Old_Mmio_Range);
       --
       --  NOTE: We do not need to serialize access to the GICD from multiple
       --  CPU cores, when disabling SGIs/PPIs, as the corresponding GICD
@@ -462,10 +456,10 @@ is
       GIC_ICENABLER_Value      : GIC_ICENABLER_Type;
       Old_Data_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
       Old_Mmio_Range           : HiRTOS.Memory_Protection.Memory_Range_Type;
-      ICENABLER_Register_Index : constant Integer :=
-        Integer (External_Interrupt_Id) / GIC_ICENABLER_Type'Length;
-      ICENABLER_Field_Index    : constant Integer :=
-        Integer (External_Interrupt_Id) mod GIC_ICENABLER_Type'Length;
+      ICENABLER_Register_Index : constant One_Bit_Per_Interrupt_Register_Index_Type :=
+        One_Bit_Per_Interrupt_Register_Index_Type (External_Interrupt_Id / GIC_ICENABLER_Type'Length);
+      ICENABLER_Field_Index    : constant One_Bit_Per_Interrupt_Field_Index_Type :=
+        One_Bit_Per_Interrupt_Field_Index_Type (External_Interrupt_Id mod GIC_ICENABLER_Type'Length);
    begin
       --
       --  NOTE: We need to serialize access to the GICD from multiple

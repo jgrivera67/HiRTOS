@@ -149,6 +149,7 @@ package body HiRTOS_Low_Level_Debug_Interface with SPARK_Mode => Off is
    procedure Run_Self_Hosted_Debugger (Arg : Cpu_Register_Type) is
    begin
       if Self_Hosted_Debugger_Callback /= null then
+      HiRTOS_Low_Level_Debug_Interface.Print_String (" *** JGR: calling debugger ..." & ASCII.LF); --???
          Self_Hosted_Debugger_Callback (Arg);
       end if;
    end Run_Self_Hosted_Debugger;

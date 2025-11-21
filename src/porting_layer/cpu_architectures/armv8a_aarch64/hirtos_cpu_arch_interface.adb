@@ -140,7 +140,7 @@ package body HiRTOS_Cpu_Arch_Interface is
    function Ldaex_Agnostic_Word (Agnostic_Word_Address : System.Address) return Cpu_Register_Type is
       Result : Cpu_Register_Type;
    begin
-      HiRTOS_Low_Level_Debug_Interface.Print_String("TODO: do ldaxr" & ASCII.LF); --???
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODO: do ldaxr" & ASCII.LF); --???
       System.Machine_Code.Asm (
           --"ldaxr %0, [%1]",
           "ldr %0, [%1]", -- TODO: Remove this when when can use ldaxr
@@ -157,7 +157,7 @@ package body HiRTOS_Cpu_Arch_Interface is
       use type Interfaces.Unsigned_32;
       Result : Interfaces.Unsigned_32;
    begin
-      HiRTOS_Low_Level_Debug_Interface.Print_String("TODO: do stlxr" & ASCII.LF); --???
+      HiRTOS_Low_Level_Debug_Interface.Print_String ("TODO: do stlxr" & ASCII.LF); --???
       System.Machine_Code.Asm (
            --"stlxr w0, %1, [%2]" & LF &
            --"mov %0, x0",

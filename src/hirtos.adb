@@ -68,12 +68,11 @@ is
                        HiRTOS_Cpu_Startup_Interface.HiRTOS_Secondary_Cores_Start_Gate_Value);
          HiRTOS_Cpu_Arch_Interface.Send_Multicore_Event;
 
-   HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR1" & ASCII.LF); --???
          HiRTOS_Lib_Elaboration;
    HiRTOS_Low_Level_Debug_Interface.Print_String("** JGR2" & ASCII.LF); --???
          if not HiRTOS_Cpu_Startup_Interface.HiRTOS_Booted_As_Partition then
             HiRTOS_Platform_Interface.Initialize_Platform;
-            --??? HiRROS_Multicore_Interface.Start_Secondary_Cores;
+            --??? HiRTOS_Multicore_Interface.Start_Secondary_Cores;
          end if;
 
          Memory_Utils.Flush_Data_Cache_Range (

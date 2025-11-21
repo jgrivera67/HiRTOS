@@ -144,10 +144,17 @@ reset_handler:
         /*
          * We should never come here:
          */
+         j park_cpu
+        .cfi_endproc
+
+        .section .text.privileged.park_cpu /* section not accessible in U-mode (see linker script) */
+        .align 2
+        .global park_cpu
+        .cfi_startproc
+park_cpu:
 1:      wfi
         j 1b
         .cfi_endproc
-
 
 /**
  * Alternating bit pattern that secondary cores wait to see, before

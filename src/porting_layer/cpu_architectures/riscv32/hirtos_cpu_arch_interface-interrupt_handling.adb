@@ -351,6 +351,8 @@ package body HiRTOS_Cpu_Arch_Interface.Interrupt_Handling is
              Interfaces.Unsigned_8'Asm_Input ("g",
                                               HiRTOS_Cpu_Arch_Parameters.Integer_Register_Size_In_Bytes)], -- %1
          Volatile => True);
+
+         raise Program_Error;  --  should never reach here
    end Interrupt_Handler_Epilog;
 
    ----------------------------------------------------------------------------

@@ -9,9 +9,12 @@
 --
 
 with System.Machine_Code;
-with Hirtos_Low_Level_Debug_Interface;
+with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS_Cpu_Multi_Core_Interface.Arch_Specific;
+with Board;
 
 package body PSCI_Interface is
+   use HiRTOS_Cpu_Multi_Core_Interface.Arch_Specific;
 
    function SMC_Call (Function_Id : PSCI_Function_Id_Type;
                       Arg1 : Cpu_Register_Type;
@@ -40,7 +43,7 @@ package body PSCI_Interface is
       return PSCI_Error_Type'Enum_Val (Result);
    end SMC_Call;
 
-   procedure Cpu_On (Cpu_Id : CPU.Secondary_Cpu_Core_Id_Type;
+   procedure Cpu_On (Cpu_Id : Secondary_Cpu_Core_Id_Type;
                      Entry_Point_Address : System.Address) is
       MPIDR_Value : constant MPIDR_EL1_Type := Cpu_Id_To_MPIDR (Cpu_Id, Board.Cpu_Model);
       PSCI_Error : constant PSCI_Error_Type :=

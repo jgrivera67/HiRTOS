@@ -9,7 +9,7 @@
 --  @summary RTOS to target CPU architecture interface
 --
 
-with System.Storage_ELements;
+with System.Storage_Elements;
 with Interfaces;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Arch_Parameters;
@@ -159,5 +159,17 @@ is
                    System.Storage_Elements.To_Integer (End_Address) mod
                      HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0 and then
                    Start_Address < End_Address;
+
+   procedure Flush_Invalidate_Data_Cache_Range (Start_Address : System.Address;
+                                                End_Address : System.Address)
+      with Pre => System.Storage_Elements.To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0 and then
+                   System.Storage_Elements.To_Integer (End_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Cache_Line_Size_Bytes = 0 and then
+                   Start_Address < End_Address;
+
+   function Caches_Are_Enabled return Boolean
+      with Inline_Always,
+           Pre => Cpu_In_Privileged_Mode;
 
 end HiRTOS_Cpu_Arch_Interface_Private;

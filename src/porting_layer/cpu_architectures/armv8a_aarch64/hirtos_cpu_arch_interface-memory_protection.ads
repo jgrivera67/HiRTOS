@@ -137,6 +137,36 @@ is
 
    function Valid_Code_Address (Address_Value : Integer_Address) return Boolean;
 
+   --
+   --  Initializes state of a memory protection descriptor object
+   --
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type;
+      Start_Address : System.Address;
+      Size_In_Bytes : System.Storage_Elements.Integer_Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+      with Pre => HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment > 1 and then
+                  To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  Size_In_Bytes > 0 and then
+                  Size_In_Bytes mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0;
+
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+      with Pre => To_Integer (Start_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (End_Address) mod
+                     HiRTOS_Cpu_Arch_Parameters.Memory_Region_Alignment = 0 and then
+                  To_Integer (Start_Address) < To_Integer (End_Address);
+
    procedure Initialize_Memory_Region_Descriptor_Disabled (
       Region_Descriptor : out Memory_Region_Descriptor_Type);
 
@@ -187,6 +217,8 @@ private
    use HiRTOS_Cpu_Arch_Parameters;
    use HiRTOS_Cpu_Multi_Core_Interface;
    use Bit_Sized_Integer_Types;
+
+   Debug_On : Boolean := True; --???False;
 
    function Valid_Readable_Data_Address (Address : System.Address) return Boolean is
       (Valid_Readable_Data_Address (To_Integer (Address)));
@@ -388,7 +420,7 @@ private
    type Page_Address_Prefix_Type is mod 2 ** 40
       with Size => 40;
 
-      type Translation_Table_Entry_Type (As_Value : Boolean := True)  is record
+   type Translation_Table_Entry_Type (As_Value : Boolean := True)  is record
       case As_Value is
          when True =>
             Value : Interfaces.Unsigned_64 := 0;

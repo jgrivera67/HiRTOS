@@ -24,8 +24,6 @@ package Board is
 
    Uart_Clock_Frequency_Hz : constant := 44_236_800;
 
-   use type Cpu_Core_Id_Type;
-   use type Integer_Address;
    procedure Start_Secondary_Cpu (Cpu_Id : Secondary_Cpu_Core_Id_Type;
                                   Entry_Point_Address : System.Address)
       with Pre => HiRTOS_Cpu_Arch_Interface.Cpu_In_Privileged_Mode and then

@@ -39,10 +39,9 @@ is
    --
    Integer_Register_Size_In_Bytes : constant := Machine_Word_Width_In_Bits / System.Storage_Unit;
 
-   --
-   --  Size in bytes of the 'BL' machine instruction
-   --
    Call_Instruction_Size_In_Bytes : constant := 4;
+
+   Break_Instruction_Size_In_Bytes : constant := 4;
 
    --
    --  Number of usable external interrupt priorities (levels) in

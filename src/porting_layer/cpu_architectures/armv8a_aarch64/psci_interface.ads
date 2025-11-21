@@ -12,11 +12,13 @@
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Arch_Parameters;
 with HiRTOS_Cpu_Multi_Core_Interface;
+with System.Storage_Elements;
 
 package PSCI_Interface with SPARK_MODE => On is
    use HiRTOS_Cpu_Arch_Interface;
    use HiRTOS_Cpu_Arch_Parameters;
-   use HiRTOS_Cpu_Arch_Interface;
+   use HiRTOS_Cpu_Multi_Core_Interface;
+   use System.Storage_Elements;
 
    procedure Cpu_On (Cpu_Id : Secondary_Cpu_Core_Id_Type;
                      Entry_Point_Address : System.Address)

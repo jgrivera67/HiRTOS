@@ -12,9 +12,11 @@
 
 with HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1;
 with HiRTOS_Low_Level_Debug_Interface;
+with HiRTOS_Cpu_Arch_Interface_Private;
 
 package body HiRTOS_Cpu_Arch_Interface.Memory_Protection is
    use HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1;
+   use HiRTOS_Cpu_Arch_Interface_Private;
 
    procedure Initialize is
       procedure Load_Memory_Attributes_Lookup_Table is
@@ -110,46 +112,49 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection is
    end Disable_Memory_Protection;
 
    procedure Configure_Memory_Region (
-      Start_Virtual_Address : System.Address;
+      Region_Id : Memory_Region_Id_Type;
+      Start_Address : System.Address;
       Size_In_Bytes : Integer_Address;
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
       with SPARK_Mode => On
    is
-      End_Virtual_Address : constant System.Address := To_Address (
-         To_Integer (Start_Virtual_Address) + Size_In_Bytes);
+      End_Address : constant System.Address := To_Address (
+         To_Integer (Start_Address) + Size_In_Bytes);
    begin
-      Configure_Memory_Region (Start_Virtual_Address,
-                               End_Virtual_Address,
+      Configure_Memory_Region (Region_Id,
+                               Start_Address,
+                               End_Address,
                                Unprivileged_Permissions,
                                Privileged_Permissions,
                                Region_Attributes);
    end Configure_Memory_Region;
 
    procedure Configure_Memory_Region (
-      Start_Virtual_Address : System.Address;
-      End_Virtual_Address : System.Address;
+      Region_Id : Memory_Region_Id_Type with Unreferenced;
+      Start_Address : System.Address;
+      End_Address : System.Address;
       Unprivileged_Permissions : Region_Permissions_Type;
       Privileged_Permissions : Region_Permissions_Type;
       Region_Attributes : Region_Attributes_Type)
    is
       Translation_Table_Tree : Translation_Table_Tree_Type renames
-         Translation_Table_Trees (CPU.Multicore.Get_Cpu_Id);
+         Translation_Table_Trees (Get_Cpu_Id);
    begin
       Populate_Level1_Translation_Table (Translation_Table_Tree,
-                                         Start_Virtual_Address,
-                                         End_Virtual_Address,
+                                         Start_Address,
+                                         End_Address,
                                          Unprivileged_Permissions,
                                          Privileged_Permissions,
                                          Region_Attributes);
       if Region_Attributes = Normal_Memory_Write_Back_Cacheable or else
          Region_Attributes = Normal_Memory_Write_Through_Cacheable
       then
-         if CPU.Caches_Are_Enabled then
-            CPU.Caches.Flush_Invalidate_Data_Cache_Range (Start_Virtual_Address, End_Virtual_Address);
+         if Caches_Are_Enabled then
+            Flush_Invalidate_Data_Cache_Range (Start_Address, End_Address);
          else
-            CPU.Caches.Invalidate_Data_Cache_Range (Start_Virtual_Address, End_Virtual_Address);
+            Invalidate_Data_Cache_Range (Start_Address, End_Address);
          end if;
       end if;
    end Configure_Memory_Region;
@@ -572,14 +577,14 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection is
       Print_Permissions (Unprivileged_Permissions);
       HiRTOS_Low_Level_Debug_Interface.Print_String (" Caching Attrs=");
       Print_Caching_Attributes (Caching_Attributes);
-      HiRTOS_Low_Level_Debug_Interface.Put_Char (ASCII_LF);
+      HiRTOS_Low_Level_Debug_Interface.Put_Char (ASCII.LF);
    end Print_Translation_Table_Leaf_Entry;
 
    procedure Allocate_Translation_Table (
       Translation_Table_Tree : in out Translation_Table_Tree_Type;
       Translation_Table_Id : out Valid_Translation_Table_Id_Type) is
       Old_Cpu_Interrupting_State : constant Cpu_Register_Type :=
-         Interrupt_Handling.Disable_Cpu_Interrupting;
+         HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
    begin
       if Translation_Table_Tree.Next_Free_Table_Index = Translation_Table_Id_Type'Last then
          raise Program_Error with "No more translation tables available";
@@ -589,7 +594,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection is
       Translation_Table_Tree.Next_Free_Table_Index := @ + 1;
 
       Translation_Table_Tree.Tables_Pointer.all (Translation_Table_Id) := [others => <>];
-      Interrupt_Handling.Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
+      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting_State);
    end Allocate_Translation_Table;
 
    procedure Restore_Memory_Region_Descriptor (
@@ -599,6 +604,41 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection is
       null; --  TODO: Implement this
       Memory_Barrier;
    end Restore_Memory_Region_Descriptor;
+
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type;
+      Start_Address : System.Address;
+      Size_In_Bytes : System.Storage_Elements.Integer_Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type)
+   is
+      End_Address : constant System.Address := To_Address (
+         To_Integer (Start_Address) + Size_In_Bytes);
+   begin
+      Initialize_Memory_Region_Descriptor (Region_Descriptor,
+                                           Start_Address,
+                                           End_Address,
+                                           Unprivileged_Permissions,
+                                           Privileged_Permissions,
+                                           Region_Attributes);
+   end Initialize_Memory_Region_Descriptor;
+
+   procedure Initialize_Memory_Region_Descriptor (
+      Region_Descriptor : out Memory_Region_Descriptor_Type with Unreferenced;
+      Start_Address : System.Address;
+      End_Address : System.Address;
+      Unprivileged_Permissions : Region_Permissions_Type;
+      Privileged_Permissions : Region_Permissions_Type;
+      Region_Attributes : Region_Attributes_Type) is
+   begin
+      Configure_Memory_Region (Memory_Region_Id_Type'Last,
+                               Start_Address,
+                               End_Address,
+                               Unprivileged_Permissions,
+                               Privileged_Permissions,
+                               Region_Attributes);
+   end Initialize_Memory_Region_Descriptor;
 
    procedure Initialize_Memory_Region_Descriptor_Disabled (
       Region_Descriptor : out Memory_Region_Descriptor_Type) is

@@ -160,6 +160,31 @@ function gen_esp32c3_bin
     # --elf-sha256-offset 0xb0 --min-rev 3 --min-rev-full 3 --max-rev-full 199 \
 }
 
+function gen_esp32p4_bin
+{
+    typeset elf_file
+    typeset usage_msg
+
+    usage_msg="Usage: gen_esp32p4_bin <elf file>"
+
+    if [ $# != 1 ]; then
+        echo $usage_msg
+        return 1
+    fi
+
+    elf_file=$1
+    if [ ! -f $elf_file ]; then
+        echo "*** ERROR: file $elf_file does not exist"
+        return 1
+    fi
+
+    $ESPTOOL_DIR/esptool.py --chip esp32p4 \
+       elf2image --flash-mode dio --flash-freq 80m --flash-size 2MB \
+       $elf_file
+       #-o $elf_file.bin $elf_file
+    # --elf-sha256-offset 0xb0 --min-rev 3 --min-rev-full 3 --max-rev-full 199 \
+}
+
 function flash_esp32c3_app
 {
     typeset bin_file
@@ -241,6 +266,34 @@ function flash_esp32c6
    esptool.py --chip esp32c6 -p $tty_dev -b 460800 \
       --before=default_reset --after=hard_reset write_flash \
       --flash_mode dio --flash_freq 80m --flash_size 2MB 0x00000 \
+       $bin_file
+}
+
+function flash_esp32p4
+{
+    typeset bin_file
+    typeset tty_dev
+    typeset usage_msg
+
+    usage_msg="Usage: flash_esp32p4 <bin file> </dev/ttyXXX>"
+
+    if [ $# != 2 ]; then
+        echo $usage_msg
+        return 1
+    fi
+
+    bin_file=$1
+    tty_dev=$2
+    if [ ! -f $bin_file ]; then
+        echo "*** ERROR: file $bin_file does not exist"
+        return 1
+    fi
+
+   # Flash App image on ESPC32-C3 flash:
+   #$ESPTOOL_DIR/esptool.py --chip esp32c3 -p $tty_dev -b 460800 \
+   esptool --chip esp32p4 -p $tty_dev -b 460800 \
+      --before=default-reset --after=hard-reset write-flash \
+      --flash-mode dio --flash-freq 80m --flash-size 2MB 0x00000 \
        $bin_file
 }
 

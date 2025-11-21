@@ -48,7 +48,7 @@ package body HiRTOS_Cpu_Arch_Interface.Memory_Protection.EL1 with SPARK_Mode => 
    begin
       System.Machine_Code.Asm (
          "msr tcr_el1, %0",
-         Inputs => TCR_Type'Asm_Input ("r", TCR_Value), --  %0
+         Inputs => Interfaces.Unsigned_64'Asm_Input ("r", TCR_Value.Value), --  %0
          Volatile => True);
    end Set_TCR;
 
