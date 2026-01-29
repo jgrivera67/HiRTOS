@@ -87,6 +87,10 @@ package body HiRTOS.Interrupt_Handling is
             HiRTOS.Thread_Private.Save_Thread_Stack_Pointer (Current_Thread_Obj, Stack_Pointer);
          end;
 
+         if RTOS_Cpu_Instance.Stop_Executing_Thread_Callback /= null then
+            RTOS_Cpu_Instance.Stop_Executing_Thread_Callback.all;
+         end if;
+
          --
          --  Set new sp to the bottom of the ISR stack:
          --
@@ -139,40 +143,46 @@ package body HiRTOS.Interrupt_Handling is
             Old_Current_Thread_Id : constant Thread_Id_Type :=
                   RTOS_Cpu_Instance.Current_Thread_Id;
          begin
-            HiRTOS.Thread_Private.Run_Thread_Scheduler;
-            declare
-               New_Current_Thread_Id : constant Valid_Thread_Id_Type :=
-                     RTOS_Cpu_Instance.Current_Thread_Id;
-               New_Current_Thread_Obj : Thread_Type renames
-                  RTOS_Cpu_Instance.Thread_Instances (New_Current_Thread_Id);
-            begin
-               if New_Current_Thread_Id /= Old_Current_Thread_Id then
-                  if Old_Current_Thread_Id /= Invalid_Thread_Id then
-                     declare
-                        Old_Current_Thread_Obj : Thread_Type renames
-                           RTOS_Cpu_Instance.Thread_Instances (Old_Current_Thread_Id);
-                     begin
-                        Save_Thread_Extended_Context (Old_Current_Thread_Obj);
-                     end;
+            if RTOS_Cpu_Instance.Start_Executing_Thread_Callback /= null and then
+               RTOS_Cpu_Instance.Start_Executing_Thread_Callback.all
+            then
+               HiRTOS.Thread_Private.Run_Thread_Scheduler;
+               declare
+                  New_Current_Thread_Id : constant Valid_Thread_Id_Type :=
+                        RTOS_Cpu_Instance.Current_Thread_Id;
+                  New_Current_Thread_Obj : Thread_Type renames
+                     RTOS_Cpu_Instance.Thread_Instances (New_Current_Thread_Id);
+               begin
+                  if New_Current_Thread_Id /= Old_Current_Thread_Id then
+                     if Old_Current_Thread_Id /= Invalid_Thread_Id then
+                        declare
+                           Old_Current_Thread_Obj : Thread_Type renames
+                              RTOS_Cpu_Instance.Thread_Instances (Old_Current_Thread_Id);
+                        begin
+                           Save_Thread_Extended_Context (Old_Current_Thread_Obj);
+                        end;
+                     end if;
+
+                     Restore_Thread_Extended_Context (New_Current_Thread_Obj);
                   end if;
 
-                  Restore_Thread_Extended_Context (New_Current_Thread_Obj);
-               end if;
+                  HiRTOS.Interrupt_Handling_Private.Decrement_Interrupt_Nesting (
+                     RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
 
-               HiRTOS.Interrupt_Handling_Private.Decrement_Interrupt_Nesting (
-                  RTOS_Cpu_Instance.Interrupt_Nesting_Level_Stack);
+                  --
+                  --  Restore saved stack pointer from the current RTOS task context:
+                  --
+                  New_Stack_Pointer := Thread_Private.Get_Thread_Stack_Pointer (New_Current_Thread_Obj);
 
-               --
-               --  Restore saved stack pointer from the current RTOS task context:
-               --
-               New_Stack_Pointer := Thread_Private.Get_Thread_Stack_Pointer (New_Current_Thread_Obj);
-
-               if Debug_Tracing_On then
-                  HiRTOS_Low_Level_Debug_Interface.Print_String ("*** exit thread_id: ");
-                  HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
-                     Interfaces.Unsigned_32 (New_Current_Thread_Id), End_Line => True);
-               end if;
-            end;
+                  if Debug_Tracing_On then
+                     HiRTOS_Low_Level_Debug_Interface.Print_String ("*** exit thread_id: ");
+                     HiRTOS_Low_Level_Debug_Interface.Print_Number_Hexadecimal (
+                        Interfaces.Unsigned_32 (New_Current_Thread_Id), End_Line => True);
+                  end if;
+               end;
+            else
+               New_Stack_Pointer := Stack_Pointer;
+            end if;
          end;
       else
          pragma Assert (Current_Interrupt_Nesting_Counter > 1);
@@ -237,5 +247,18 @@ package body HiRTOS.Interrupt_Handling is
    begin
       HiRTOS_Cpu_Arch_Interface.Thread_Context.Set_Saved_PC (Cpu_Context, PC_Value);
    end Set_Interrupted_PC;
+
+   procedure Register_Executing_Thread_Callbacks (
+      Stop_Executing_Thread_Callback : Stop_Executing_Thread_Callback_Type;
+      Start_Executing_Thread_Callback : Start_Executing_Thread_Callback_Type) is
+      RTOS_Cpu_Instance : HiRTOS_Cpu_Instance_Type renames
+         HiRTOS_Obj.RTOS_Cpu_Instances (Get_Cpu_Id);
+      Old_Cpu_Interrupting : constant HiRTOS_Cpu_Arch_Interface.Cpu_Register_Type :=
+         HiRTOS_Cpu_Arch_Interface.Disable_Cpu_Interrupting;
+   begin
+      RTOS_Cpu_Instance.Stop_Executing_Thread_Callback := Stop_Executing_Thread_Callback;
+      RTOS_Cpu_Instance.Start_Executing_Thread_Callback := Start_Executing_Thread_Callback;
+      HiRTOS_Cpu_Arch_Interface.Restore_Cpu_Interrupting (Old_Cpu_Interrupting);
+   end Register_Executing_Thread_Callbacks;
 
 end HiRTOS.Interrupt_Handling;

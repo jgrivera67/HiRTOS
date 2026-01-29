@@ -1,0 +1,33 @@
+name = "nxp_kl25z_hello"
+description = "Hello world app for NXP KL25Z platform"
+version = "0.1.0-dev"
+
+authors = ["J. German Rivera"]
+maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
+maintainers-logins = ["jgrivera67"]
+
+executables = ["nxp_kl25z_hello"]
+
+[[depends-on]]
+hirtos = "*"
+gnat_arm_elf = "*"
+gnatprove = "*"
+gprbuild = "*"
+
+[configuration.values]
+hirtos.Platform = "nxp_kl25z"
+
+[[pins]]
+hirtos = { path='../..' }
+
+[gpr-set-externals]
+CPU_Core = "arm_cortex_m0plus"
+
+[build-profiles]
+hirtos = "development"
+
+[[actions]]
+[actions.'case(os)'.windows]
+[actions.'case(os)'.'...']
+type = "post-build"
+command = ["sh", "-c", "arm-eabi-objdump -dSstl bin/nxp_kl25z_hello.elf > bin/nxp_kl25z_hello.lst; arm-eabi-objcopy -O binary bin/nxp_kl25z_hello.elf bin/nxp_kl25z_hello.bin"]

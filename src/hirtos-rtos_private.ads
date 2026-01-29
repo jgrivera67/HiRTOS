@@ -9,6 +9,7 @@ with HiRTOS.Thread_Private;
 with HiRTOS.Mutex_Private;
 with HiRTOS.Condvar_Private;
 with HiRTOS.Timer_Private;
+with HiRTOS.Interrupt_Handling;
 with HiRTOS.Interrupt_Handling_Private;
 with HiRTOS_Cpu_Arch_Interface;
 with HiRTOS_Cpu_Multi_Core_Interface;
@@ -23,6 +24,7 @@ is
    use HiRTOS.Mutex_Private;
    use HiRTOS.Condvar_Private;
    use HiRTOS.Timer_Private;
+   use HiRTOS.Interrupt_Handling;
    use HiRTOS.Interrupt_Handling_Private;
    use HiRTOS_Cpu_Arch_Interface;
    use HiRTOS_Cpu_Multi_Core_Interface;
@@ -120,6 +122,8 @@ is
          Atomic_Counter_Initializer (Cpu_Register_Type (Condvar_Id_Type'First));
       Next_Free_Timer_Id   : Atomic_Counter_Type :=
          Atomic_Counter_Initializer (Cpu_Register_Type (Timer_Id_Type'First));
+      Stop_Executing_Thread_Callback : Stop_Executing_Thread_Callback_Type := null;
+      Start_Executing_Thread_Callback : Start_Executing_Thread_Callback_Type := null;
       Interrupt_Nesting_Level_Stack : Interrupt_Nesting_Level_Stack_Type;
       Runnable_Threads_Queue        : Thread_Priority_Queue_Type;
       Timer_Wheel                   : Timer_Wheel_Type;

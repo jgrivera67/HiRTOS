@@ -18,7 +18,7 @@ maintainers = ["J. German Rivera <jgrivera67@gmail.com>"]
 maintainers-logins = ["jgrivera67"]
 
 [configuration.variables]
-Platform = {type = "Enum", values = ["arm_fvp", "esp32_c3"], default = "arm_fvp"}
+Platform = {type = "Enum", values = ["arm_fvp", "esp32_c3", "nxp_kl25z"], default = "arm_fvp"}
 
 [[actions]]
 type = "test"

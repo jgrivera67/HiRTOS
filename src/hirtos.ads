@@ -290,6 +290,10 @@ is
       Maximum_Cpu_Utlization_Per_Time_Slice_Us : Relative_Time_Us_Type := 0;
    end record;
 
+   package Tiny_Thread_Stack_Package is new Generic_Execution_Stack
+     (Stack_Size_In_Bytes =>
+        1 * HiRTOS_Config_Parameters.Thread_Stack_Min_Size_In_Bytes);
+
    package Small_Thread_Stack_Package is new Generic_Execution_Stack
      (Stack_Size_In_Bytes =>
         2 * HiRTOS_Config_Parameters.Thread_Stack_Min_Size_In_Bytes);

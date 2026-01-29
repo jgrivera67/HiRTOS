@@ -43,7 +43,7 @@ package body HiRTOS.Mutex_Private is
    is
       procedure Move_Runnable_Thread_To_Higher_Priority_Queue (
          RTOS_Cpu_Instance : in out HiRTOS_Cpu_Instance_Type;
-         Thread_Obj : in out HiRTOS.Thread_Private.Thread_Type;
+         Thread_Obj : HiRTOS.Thread_Private.Thread_Type;
          New_Priority : Valid_Thread_Priority_Type)
          with Pre => Thread_Obj.State = Thread_Runnable
                      and then
@@ -63,7 +63,7 @@ package body HiRTOS.Mutex_Private is
       end Move_Runnable_Thread_To_Higher_Priority_Queue;
 
       procedure Move_Blocked_Thread_To_Higher_Priority_Queue (
-         Thread_Obj : in out HiRTOS.Thread_Private.Thread_Type;
+         Thread_Obj : HiRTOS.Thread_Private.Thread_Type;
          New_Priority : Valid_Thread_Priority_Type)
          with Pre => Thread_Obj.State = Thread_Blocked_On_Mutex
                      and then

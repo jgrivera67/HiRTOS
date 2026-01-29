@@ -17,7 +17,7 @@ is
    --
    --  Maximum number of threads per CPU core
    --
-   Max_Num_Threads : constant := 32;
+   Max_Num_Threads : constant := 6;
 
    pragma Compile_Time_Error
      (Max_Num_Threads <= 2,
@@ -27,7 +27,7 @@ is
    --  Maximum number of condition variables (not counting the condvar embedded
    --  in each thread)
    --
-   Max_Num_Condvars : constant := 48;
+   Max_Num_Condvars : constant := 8;
 
    pragma Compile_Time_Error
      (Max_Num_Condvars < Max_Num_Threads,
@@ -36,12 +36,12 @@ is
    --
    --  Maximum number of mutexes
    --
-   Max_Num_Mutexes : constant := 16;
+   Max_Num_Mutexes : constant := 2;
 
    --
    --  Maximum number of timers
    --
-   Max_Num_Timers : constant := 64;
+   Max_Num_Timers : constant := 8;
 
    pragma Compile_Time_Error
      (Max_Num_Timers < Max_Num_Threads,
@@ -55,7 +55,7 @@ is
    --
    --  Number of thread priorities
    --
-   Num_Thread_Priorities : constant := 32;
+   Num_Thread_Priorities : constant := 8;
 
    --
    --  Thread stack minimum size in bytes

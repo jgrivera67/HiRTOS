@@ -5,7 +5,7 @@ abstract project Hirtos_Config is
 
    Alire_Host_OS := "macos";
 
-   Alire_Host_Arch := "x86_64";
+   Alire_Host_Arch := "aarch64";
 
    Alire_Host_Distro := "homebrew";
    Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
@@ -47,7 +47,7 @@ abstract project Hirtos_Config is
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := "development";
 
-   type Platform_Kind is ("arm_fvp", "esp32_c3");
-   Platform : Platform_Kind := "arm_fvp";
+   type Platform_Kind is ("arm_fvp", "esp32_c3", "nxp_kl25z");
+   Platform : Platform_Kind := "nxp_kl25z";
 
 end Hirtos_Config;

@@ -46,6 +46,9 @@ project HiRTOS is
          Platform_Specific_Interfaces := (
             "Esp32_C3",
             "Esp32_C3.uart");
+      when "nxp_kl25z" =>
+         Platform_Specific_Interfaces := (
+            "HiRTOS_Cpu_Arch_Interface.System_Registers");
       when others =>
          null;
    end case;

@@ -10,14 +10,14 @@ package Hirtos_Config is
 
    Alire_Host_OS : constant String := "macos";
 
-   Alire_Host_Arch : constant String := "x86_64";
+   Alire_Host_Arch : constant String := "aarch64";
 
    Alire_Host_Distro : constant String := "homebrew";
 
    type Build_Profile_Kind is (release, validation, development);
    Build_Profile : constant Build_Profile_Kind := development;
 
-   type Platform_Kind is (arm_fvp, esp32_c3);
-   Platform : constant Platform_Kind := arm_fvp;
+   type Platform_Kind is (arm_fvp, esp32_c3, nxp_kl25z);
+   Platform : constant Platform_Kind := nxp_kl25z;
 
 end Hirtos_Config;

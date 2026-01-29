@@ -30,4 +30,12 @@ is
    procedure Set_Interrupted_PC (PC_Value : System.Address)
       with Pre => Current_Execution_Context_Is_Interrupt;
 
+   type Stop_Executing_Thread_Callback_Type is access procedure;
+
+   type Start_Executing_Thread_Callback_Type is access function return Boolean;
+
+   procedure Register_Executing_Thread_Callbacks (
+      Stop_Executing_Thread_Callback : Stop_Executing_Thread_Callback_Type;
+      Start_Executing_Thread_Callback : Start_Executing_Thread_Callback_Type);
+
 end HiRTOS.Interrupt_Handling;

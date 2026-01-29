@@ -18,10 +18,10 @@ abstract project Hirtos_Compiler_Flags is
    case CPU_Core is
       when "arm_cortex_m0plus" =>
               CPU_Arch := "arm_cortex_m";
-              Target_Compiler_Selector := "arm-abi";
+              Target_Compiler_Selector := "arm-eabi";
               CPU_Core_Switches := ("-mcpu=cortex-m0plus",
                                     "-mthumb",
-                                  --"-march=armv6-m",
+                                    "-march=armv6-m",
                                     "-mlittle-endian",
                                     "-fno-omit-frame-pointer");
 
@@ -116,7 +116,7 @@ abstract project Hirtos_Compiler_Flags is
                   ,"-gnatyM120" --  Check maximum line length
                   ,"-gnatef"    --  Print full path in error messages
                   ,"-gnata"     --  Enable assertions and contracts
-                  ,"-gnatwe"    --  Warnings as errors
+               -- ,"-gnatwe"    --  Warnings as errors
                   ,"-gnat2022"  --  Use Ada 2022
                   ,"-nostdinc"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) source files.
                   ,"-nostdlib"  --  Inhibit the search of the default location for the GNAT Run Time Library (RTL) ALI files.
